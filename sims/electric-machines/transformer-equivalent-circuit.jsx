@@ -326,6 +326,27 @@ function CircuitPrimary({ data, params }) {
       {/* Loss annotations */}
       <text x={140} y={yb + 25} textAnchor="middle" fill="#ef4444" fontSize="9">Pcu1={Pcu1.toFixed(0)}W</text>
       <text x={450} y={yb + 25} textAnchor="middle" fill="#ef4444" fontSize="9">Pcu2={Pcu2.toFixed(0)}W</text>
+
+      {/* Power flow arrows */}
+      <defs>
+        <marker id="pfArrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0,0 8,3 0,6" fill="#22c55e" />
+        </marker>
+        <marker id="pfArrowRed" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0,0 6,2.5 0,5" fill="#ef4444" opacity="0.8" />
+        </marker>
+      </defs>
+      {/* Input power arrow */}
+      <line x1={xSrc + 20} y1={yb + 18} x2={xLoad - 10} y2={yb + 18}
+        stroke="#22c55e" strokeWidth={2} markerEnd="url(#pfArrowGreen)" opacity={0.7} />
+      <text x={(xSrc + xLoad) / 2} y={yb + 14} textAnchor="middle" fill="#22c55e" fontSize={8} fontWeight={600}>
+        P_in = {data.P1.toFixed(0)}W  {'→'}  P_out = {data.P2.toFixed(0)}W
+      </text>
+
+      {/* Core loss arrow (downward from shunt branch) */}
+      <line x1={xRc + 50} y1={yt + 32} x2={xRc + 50} y2={yt + 48}
+        stroke="#a78bfa" strokeWidth={1.5} markerEnd="url(#pfArrowRed)" opacity={0.6} />
+      <text x={xRc + 58} y={yt + 44} fill="#a78bfa" fontSize={7}>Pfe={data.Pfe.toFixed(0)}W</text>
     </g>
   );
 }
@@ -566,6 +587,91 @@ export default function TransformerEquivalentCircuit() {
           </p>
 
           <h3 style={S.h3}>Exact Equivalent Circuit</h3>
+
+          {/* SVG: Exact Equivalent Circuit */}
+          <svg viewBox="0 0 700 220" style={{ width: '100%', maxWidth: 700, height: 'auto', margin: '16px auto', display: 'block' }}>
+            <text x={350} y={16} textAnchor="middle" fill="#71717a" fontSize={10} fontWeight={600}>Exact Equivalent Circuit (with Ideal Transformer)</text>
+
+            {/* Top rail */}
+            <line x1={30} y1={50} x2={90} y2={50} stroke="#d4d4d8" strokeWidth={1.5} />
+            {/* R1 */}
+            <rect x={90} y={42} width={40} height={16} rx={3} fill="#111114" stroke="#ef4444" strokeWidth={1.5} />
+            <text x={110} y={37} textAnchor="middle" fill="#ef4444" fontSize={9} fontWeight={700}>R1</text>
+            <line x1={130} y1={50} x2={150} y2={50} stroke="#d4d4d8" strokeWidth={1.5} />
+            {/* X1 */}
+            <path d="M150,50 A6,6 0 0 1 162,50 A6,6 0 0 1 174,50 A6,6 0 0 1 186,50" fill="none" stroke="#f59e0b" strokeWidth={1.5} />
+            <text x={168} y={37} textAnchor="middle" fill="#f59e0b" fontSize={9} fontWeight={700}>jX1</text>
+            <line x1={186} y1={50} x2={210} y2={50} stroke="#d4d4d8" strokeWidth={1.5} />
+
+            {/* Shunt node vertical */}
+            <line x1={210} y1={50} x2={210} y2={180} stroke="#d4d4d8" strokeWidth={1.5} />
+
+            {/* Rc branch */}
+            <line x1={210} y1={80} x2={230} y2={80} stroke="#d4d4d8" strokeWidth={1} />
+            <rect x={230} y={72} width={36} height={16} rx={3} fill="#111114" stroke="#a78bfa" strokeWidth={1.5} />
+            <text x={248} y={67} textAnchor="middle" fill="#a78bfa" fontSize={9} fontWeight={700}>Rc</text>
+            <line x1={266} y1={80} x2={290} y2={80} stroke="#d4d4d8" strokeWidth={1} />
+
+            {/* Xm branch */}
+            <line x1={210} y1={130} x2={230} y2={130} stroke="#d4d4d8" strokeWidth={1} />
+            <path d="M230,130 A6,6 0 0 1 242,130 A6,6 0 0 1 254,130 A6,6 0 0 1 266,130" fill="none" stroke="#34d399" strokeWidth={1.5} />
+            <text x={248} y={120} textAnchor="middle" fill="#34d399" fontSize={9} fontWeight={700}>jXm</text>
+            <line x1={266} y1={130} x2={290} y2={130} stroke="#d4d4d8" strokeWidth={1} />
+
+            {/* Right side of shunt */}
+            <line x1={290} y1={80} x2={290} y2={130} stroke="#d4d4d8" strokeWidth={1.5} />
+            <text x={250} y={155} textAnchor="middle" fill="#52525b" fontSize={8}>Parallel</text>
+
+            {/* Ideal Transformer */}
+            <line x1={290} y1={50} x2={330} y2={50} stroke="#d4d4d8" strokeWidth={1.5} />
+            <line x1={290} y1={180} x2={330} y2={180} stroke="#d4d4d8" strokeWidth={1.5} />
+            <rect x={330} y={40} width={60} height={150} rx={6} fill="rgba(99,102,241,0.06)" stroke="#6366f1" strokeWidth={1.5} strokeDasharray="5 3" />
+            {/* Two vertical coils */}
+            <line x1={350} y1={45} x2={350} y2={185} stroke="#6366f1" strokeWidth={2} />
+            <line x1={370} y1={45} x2={370} y2={185} stroke="#818cf8" strokeWidth={2} />
+            <text x={360} y={108} textAnchor="middle" fill="#6366f1" fontSize={8} fontWeight={700}>IDEAL</text>
+            <text x={360} y={120} textAnchor="middle" fill="#6366f1" fontSize={8} fontWeight={700}>a : 1</text>
+            {/* Dot convention */}
+            <circle cx={348} cy={52} r={3} fill="#6366f1" />
+            <circle cx={372} cy={52} r={3} fill="#818cf8" />
+
+            {/* After ideal transformer */}
+            <line x1={390} y1={50} x2={420} y2={50} stroke="#d4d4d8" strokeWidth={1.5} />
+            {/* R2 */}
+            <rect x={420} y={42} width={40} height={16} rx={3} fill="#111114" stroke="#ef4444" strokeWidth={1.5} />
+            <text x={440} y={37} textAnchor="middle" fill="#ef4444" fontSize={9} fontWeight={700}>R2</text>
+            <line x1={460} y1={50} x2={480} y2={50} stroke="#d4d4d8" strokeWidth={1.5} />
+            {/* X2 */}
+            <path d="M480,50 A6,6 0 0 1 492,50 A6,6 0 0 1 504,50 A6,6 0 0 1 516,50" fill="none" stroke="#f59e0b" strokeWidth={1.5} />
+            <text x={498} y={37} textAnchor="middle" fill="#f59e0b" fontSize={9} fontWeight={700}>jX2</text>
+            <line x1={516} y1={50} x2={560} y2={50} stroke="#d4d4d8" strokeWidth={1.5} />
+
+            {/* Bottom rail */}
+            <line x1={30} y1={180} x2={210} y2={180} stroke="#d4d4d8" strokeWidth={1.5} />
+            <line x1={390} y1={180} x2={560} y2={180} stroke="#d4d4d8" strokeWidth={1.5} />
+
+            {/* Source */}
+            <circle cx={30} cy={115} r={16} fill="none" stroke="#6366f1" strokeWidth={1.5} />
+            <path d="M22,115 Q26,107 30,115 Q34,123 38,115" fill="none" stroke="#818cf8" strokeWidth={1.2} />
+            <line x1={30} y1={99} x2={30} y2={50} stroke="#6366f1" strokeWidth={1.5} />
+            <line x1={30} y1={131} x2={30} y2={180} stroke="#6366f1" strokeWidth={1.5} />
+            <text x={30} y={92} textAnchor="middle" fill="#818cf8" fontSize={10} fontWeight={600}>V1</text>
+
+            {/* Load */}
+            <line x1={560} y1={50} x2={560} y2={180} stroke="#22c55e" strokeWidth={1.5} strokeDasharray="4 3" />
+            <rect x={566} y={90} width={30} height={40} rx={4} fill="#111114" stroke="#22c55e" strokeWidth={1.5} />
+            <text x={581} y={114} textAnchor="middle" fill="#22c55e" fontSize={9} fontWeight={700}>ZL</text>
+            <text x={581} y={82} textAnchor="middle" fill="#22c55e" fontSize={9} fontWeight={600}>V2</text>
+
+            {/* Current labels */}
+            <text x={60} y={42} fill="#60a5fa" fontSize={8} fontWeight={600}>{'I1 →'}</text>
+            <text x={490} y={42} fill="#f59e0b" fontSize={8} fontWeight={600}>{'I2 →'}</text>
+
+            {/* Region labels */}
+            <text x={130} y={200} textAnchor="middle" fill="#3f3f46" fontSize={8}>Primary side</text>
+            <text x={480} y={200} textAnchor="middle" fill="#3f3f46" fontSize={8}>Secondary side</text>
+          </svg>
+
           <p style={S.p}>
             The ideal transformer at the center couples primary and secondary. To eliminate the ideal
             transformer from calculations, we refer all quantities to one side using the turns ratio a = N1/N2.
@@ -573,8 +679,59 @@ export default function TransformerEquivalentCircuit() {
           <span style={S.eq}>{'a = N1/N2      V1/V2 = a      I2/I1 = a'}</span>
 
           <h3 style={S.h3}>Referred to Primary</h3>
+
+          {/* SVG: Approximate Equivalent Circuit (Referred to Primary) */}
+          <svg viewBox="0 0 700 190" style={{ width: '100%', maxWidth: 700, height: 'auto', margin: '16px auto', display: 'block' }}>
+            <text x={350} y={16} textAnchor="middle" fill="#71717a" fontSize={10} fontWeight={600}>Approximate Equivalent Circuit (Referred to Primary)</text>
+
+            {/* Top rail */}
+            <line x1={30} y1={50} x2={90} y2={50} stroke="#d4d4d8" strokeWidth={1.5} />
+            {/* Req */}
+            <rect x={90} y={42} width={50} height={16} rx={3} fill="#111114" stroke="#ef4444" strokeWidth={1.5} />
+            <text x={115} y={37} textAnchor="middle" fill="#ef4444" fontSize={9} fontWeight={700}>Req=R1+R2'</text>
+            <line x1={140} y1={50} x2={160} y2={50} stroke="#d4d4d8" strokeWidth={1.5} />
+            {/* Xeq */}
+            <path d="M160,50 A8,8 0 0 1 176,50 A8,8 0 0 1 192,50 A8,8 0 0 1 208,50" fill="none" stroke="#f59e0b" strokeWidth={1.5} />
+            <text x={184} y={37} textAnchor="middle" fill="#f59e0b" fontSize={9} fontWeight={700}>jXeq=jX1+jX2'</text>
+            <line x1={208} y1={50} x2={240} y2={50} stroke="#d4d4d8" strokeWidth={1.5} />
+
+            {/* Shunt at input (approximate) */}
+            <line x1={60} y1={50} x2={60} y2={155} stroke="#d4d4d8" strokeWidth={1} />
+            <rect x={44} y={75} width={32} height={14} rx={3} fill="#111114" stroke="#a78bfa" strokeWidth={1.2} />
+            <text x={60} y={69} textAnchor="middle" fill="#a78bfa" fontSize={8} fontWeight={700}>Rc</text>
+            <path d="M44,115 A5,5 0 0 1 54,115 A5,5 0 0 1 64,115 A5,5 0 0 1 76,115" fill="none" stroke="#34d399" strokeWidth={1.2} />
+            <text x={60} y={108} textAnchor="middle" fill="#34d399" fontSize={8} fontWeight={700}>jXm</text>
+            <text x={60} y={140} textAnchor="middle" fill="#52525b" fontSize={7}>Shunt moved</text>
+            <text x={60} y={148} textAnchor="middle" fill="#52525b" fontSize={7}>to input</text>
+
+            {/* Load */}
+            <line x1={240} y1={50} x2={240} y2={155} stroke="#22c55e" strokeWidth={1.5} strokeDasharray="4 3" />
+            <rect x={246} y={82} width={34} height={36} rx={4} fill="#111114" stroke="#22c55e" strokeWidth={1.5} />
+            <text x={263} y={104} textAnchor="middle" fill="#22c55e" fontSize={9} fontWeight={700}>ZL'</text>
+            <text x={263} y={72} textAnchor="middle" fill="#22c55e" fontSize={9}>V2'=aV2</text>
+
+            {/* Bottom rail */}
+            <line x1={30} y1={155} x2={240} y2={155} stroke="#d4d4d8" strokeWidth={1.5} />
+
+            {/* Source */}
+            <circle cx={30} cy={102} r={14} fill="none" stroke="#6366f1" strokeWidth={1.5} />
+            <text x={30} y={106} textAnchor="middle" fill="#818cf8" fontSize={9} fontWeight={600}>V1</text>
+            <line x1={30} y1={88} x2={30} y2={50} stroke="#6366f1" strokeWidth={1.5} />
+            <line x1={30} y1={116} x2={30} y2={155} stroke="#6366f1" strokeWidth={1.5} />
+
+            {/* Note box */}
+            <rect x={320} y={40} width={370} height={130} rx={8} fill="rgba(99,102,241,0.04)" stroke="#27272a" strokeWidth={0.5} />
+            <text x={330} y={58} fill="#818cf8" fontSize={10} fontWeight={600}>Difference: Exact vs. Approximate</text>
+            <text x={330} y={76} fill="#a1a1aa" fontSize={9}>Exact: Shunt branch between Z1 and Z2</text>
+            <text x={330} y={92} fill="#a1a1aa" fontSize={9}>Approximate: Shunt moved to supply terminals</text>
+            <text x={330} y={112} fill="#a1a1aa" fontSize={9}>Error is negligible because:</text>
+            <text x={340} y={128} fill="#71717a" fontSize={9}>- I0 is very small (2-5% of I_FL)</text>
+            <text x={340} y={144} fill="#71717a" fontSize={9}>- V_drop across Z1 at no-load is tiny</text>
+            <text x={340} y={160} fill="#71717a" fontSize={9}>- Simplifies loss calculation: Pfe from V1, Pcu from I_load</text>
+          </svg>
+
           <p style={S.p}>
-            Secondary quantities are multiplied by a² (impedances) or a (voltages), divided by a (currents):
+            Secondary quantities are multiplied by a2 (impedances) or a (voltages), divided by a (currents):
           </p>
           <span style={S.eq}>{"R2' = a²·R2      X2' = a²·X2      V2' = a·V2      I2' = I2/a"}</span>
           <p style={S.p}>

@@ -164,8 +164,15 @@ function Chart({ d, battGWh }) {
         <clipPath id="dc-clip"><rect x={ML} y={MT} width={PW} height={PH} /></clipPath>
       </defs>
 
-      <rect x={xS(0)} y={MT} width={xS(6) - xS(0)} height={PH} fill="#000" opacity={0.06} />
-      <rect x={xS(19)} y={MT} width={xS(24) - xS(19)} height={PH} fill="#000" opacity={0.06} />
+      {/* Region annotations */}
+      <rect x={xS(0)} y={MT} width={xS(6) - xS(0)} height={PH} fill="#6366f1" opacity={0.04} />
+      <text x={(xS(0) + xS(6)) / 2} y={MT + 12} textAnchor="middle" fontSize={8} fill="#6366f1" opacity={0.5} fontWeight="600">Off-Peak</text>
+      <rect x={xS(9)} y={MT} width={xS(15) - xS(9)} height={PH} fill="#22c55e" opacity={0.04} />
+      <text x={(xS(9) + xS(15)) / 2} y={MT + 12} textAnchor="middle" fontSize={8} fill="#22c55e" opacity={0.5} fontWeight="600">Solar Surplus</text>
+      <rect x={xS(16)} y={MT} width={xS(20) - xS(16)} height={PH} fill="#f59e0b" opacity={0.05} />
+      <text x={(xS(16) + xS(20)) / 2} y={MT + 12} textAnchor="middle" fontSize={8} fill="#f59e0b" opacity={0.5} fontWeight="600">Evening Ramp</text>
+      <rect x={xS(19)} y={MT} width={xS(24) - xS(19)} height={PH} fill="#ef4444" opacity={0.04} />
+      <text x={(xS(19) + xS(24)) / 2} y={MT + 12} textAnchor="middle" fontSize={8} fill="#ef4444" opacity={0.5} fontWeight="600">Peak Demand</text>
 
       {yTicks.map(v => (
         <g key={`y${v}`}>
@@ -246,6 +253,104 @@ function Theory() {
         (the head), when solar generation falls off but consumer demand surges for lighting, cooking,
         and air conditioning.
       </p>
+
+      {/* ── SVG: Duck Curve Anatomy ── */}
+      <svg viewBox="0 0 700 320" style={{ width: '100%', maxWidth: 700, height: 'auto', margin: '20px auto', display: 'block' }}>
+        <rect width="700" height="320" rx="12" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+        <text x="350" y="24" textAnchor="middle" fontSize="13" fill="#e4e4e7" fontWeight="700">Duck Curve Anatomy</text>
+
+        {/* Axes */}
+        <line x1="70" y1="280" x2="660" y2="280" stroke="#3f3f46" strokeWidth="1" />
+        <line x1="70" y1="45" x2="70" y2="280" stroke="#3f3f46" strokeWidth="1" />
+        <text x="15" y="165" textAnchor="middle" fontSize="10" fill="#71717a" transform="rotate(-90 15 165)">Net Load (GW)</text>
+        <text x="365" y="300" textAnchor="middle" fontSize="10" fill="#71717a">Hour of Day</text>
+        {[0,3,6,9,12,15,18,21,24].map(h => (
+          <g key={h}>
+            <text x={70 + h/24*590} y="295" textAnchor="middle" fontSize="9" fill="#52525b">{String(h).padStart(2,'0')}:00</text>
+            <line x1={70 + h/24*590} y1="278" x2={70 + h/24*590} y2="282" stroke="#3f3f46" strokeWidth="1" />
+          </g>
+        ))}
+
+        {/* Total demand curve (dashed) */}
+        <path d="M70,210 Q140,195 200,180 Q280,162 365,155 Q420,152 460,155 Q530,165 580,185 Q630,200 660,215"
+          fill="none" stroke="#71717a" strokeWidth="1.5" strokeDasharray="6 3" />
+        <text x="665" y="218" fontSize="8" fill="#71717a" textAnchor="start">Total Load</text>
+
+        {/* Solar generation (filled) */}
+        <path d="M70,280 Q140,280 200,280 Q240,275 280,240 Q320,180 365,155 Q410,180 445,240 Q480,275 530,280 Q600,280 660,280 Z"
+          fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1" strokeDasharray="4 2" />
+        <text x="365" y="200" textAnchor="middle" fontSize="9" fill="#22c55e" opacity="0.8">Solar Generation</text>
+
+        {/* Net load (duck shape) */}
+        <path d="M70,210 Q120,200 160,195 Q200,195 240,210 Q280,240 320,260 Q350,268 365,265 Q390,255 420,200 Q445,155 480,110 Q510,85 540,75 Q560,72 580,80 Q610,100 640,130 Q655,145 660,155"
+          fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinejoin="round" />
+
+        {/* Belly annotation */}
+        <line x1="345" y1="265" x2="345" y2="232" stroke="#f97316" strokeWidth="0.8" strokeDasharray="3 2" />
+        <rect x="290" y="215" width="110" height="20" rx="4" fill="#f9731620" stroke="#f97316" strokeWidth="0.5" />
+        <text x="345" y="229" textAnchor="middle" fontSize="10" fill="#f97316" fontWeight="600">Belly (Solar Peak)</text>
+
+        {/* Neck annotation */}
+        <path d="M440,195 L440,130" fill="none" stroke="#f59e0b" strokeWidth="1" strokeDasharray="3 2" markerEnd="url(#arrowUp)" />
+        <rect x="450" y="148" width="80" height="20" rx="4" fill="#f59e0b20" stroke="#f59e0b" strokeWidth="0.5" />
+        <text x="490" y="162" textAnchor="middle" fontSize="10" fill="#f59e0b" fontWeight="600">Neck (Ramp)</text>
+        <defs>
+          <marker id="arrowUp" markerWidth="6" markerHeight="6" refX="3" refY="6" orient="auto">
+            <path d="M0,6 L3,0 L6,6" fill="none" stroke="#f59e0b" strokeWidth="1" />
+          </marker>
+        </defs>
+
+        {/* Head annotation */}
+        <circle cx="545" cy="74" r="4" fill="none" stroke="#ef4444" strokeWidth="1.5" />
+        <line x1="545" y1="68" x2="545" y2="50" stroke="#ef4444" strokeWidth="0.8" strokeDasharray="3 2" />
+        <rect x="490" y="38" width="110" height="18" rx="4" fill="#ef444420" stroke="#ef4444" strokeWidth="0.5" />
+        <text x="545" y="51" textAnchor="middle" fontSize="10" fill="#ef4444" fontWeight="600">Head (Evening Peak)</text>
+
+        {/* Legend */}
+        <g transform="translate(75,42)">
+          <rect width="160" height="52" rx="6" fill="#09090b" opacity="0.9" stroke="#27272a" strokeWidth="0.5" />
+          <line x1="8" y1="12" x2="24" y2="12" stroke="#71717a" strokeWidth="1.5" strokeDasharray="4 2" />
+          <text x="30" y="15" fontSize="9" fill="#a1a1aa">Total Demand</text>
+          <line x1="8" y1="26" x2="24" y2="26" stroke="#f97316" strokeWidth="2.5" />
+          <text x="30" y="29" fontSize="9" fill="#a1a1aa">Net Load (Duck)</text>
+          <rect x="8" y="36" width="16" height="6" rx="1" fill="rgba(34,197,94,0.3)" stroke="#22c55e" strokeWidth="0.5" />
+          <text x="30" y="43" fontSize="9" fill="#a1a1aa">Solar Generation</text>
+        </g>
+      </svg>
+
+      {/* ── SVG: Ramping Challenge ── */}
+      <svg viewBox="0 0 700 200" style={{ width: '100%', maxWidth: 700, height: 'auto', margin: '16px auto', display: 'block' }}>
+        <rect width="700" height="200" rx="12" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+        <text x="350" y="22" textAnchor="middle" fontSize="12" fill="#e4e4e7" fontWeight="700">Evening Ramp Challenge</text>
+
+        {/* Timeline */}
+        <line x1="80" y1="160" x2="620" y2="160" stroke="#3f3f46" strokeWidth="1" />
+        {['15:00','16:00','17:00','18:00','19:00','20:00','21:00'].map((t, i) => (
+          <g key={t}>
+            <text x={80 + i*90} y="175" textAnchor="middle" fontSize="9" fill="#52525b">{t}</text>
+            <line x1={80 + i*90} y1="158" x2={80 + i*90} y2="162" stroke="#3f3f46" />
+          </g>
+        ))}
+
+        {/* Solar decline arrow */}
+        <path d="M100,70 Q200,72 350,140" fill="none" stroke="#22c55e" strokeWidth="2" />
+        <text x="180" y="65" fontSize="10" fill="#22c55e" fontWeight="600">Solar output declining</text>
+        <path d="M340,135 L350,140 L340,140" fill="#22c55e" />
+
+        {/* Ramp requirement arrow */}
+        <path d="M420,140 Q500,80 600,50" fill="none" stroke="#ef4444" strokeWidth="2.5" />
+        <text x="540" y="42" fontSize="10" fill="#ef4444" fontWeight="600">Ramp needed</text>
+        <path d="M595,55 L600,50 L595,50" fill="#ef4444" />
+
+        {/* Rate labels */}
+        <rect x="400" y="80" width="130" height="36" rx="6" fill="#ef444410" stroke="#ef4444" strokeWidth="0.5" />
+        <text x="465" y="96" textAnchor="middle" fontSize="10" fill="#ef4444" fontWeight="600">50-100+ MW/min</text>
+        <text x="465" y="110" textAnchor="middle" fontSize="9" fill="#a1a1aa">System ramp rate required</text>
+
+        <rect x="120" y="100" width="140" height="36" rx="6" fill="#f59e0b10" stroke="#f59e0b" strokeWidth="0.5" />
+        <text x="190" y="116" textAnchor="middle" fontSize="10" fill="#f59e0b" fontWeight="600">Coal: 5-10 MW/min</text>
+        <text x="190" y="130" textAnchor="middle" fontSize="9" fill="#a1a1aa">Per 500 MW unit</text>
+      </svg>
 
       <h3 style={S.h3}>Origin: California ISO (CAISO), 2013</h3>
       <p style={S.p}>

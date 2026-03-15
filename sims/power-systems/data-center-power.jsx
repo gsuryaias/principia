@@ -91,6 +91,133 @@ function Theory() {
         online double-conversion UPS, diesel backup, and redundant distribution to IT loads.
       </p>
 
+      {/* ── SVG: Data Center Power Distribution ── */}
+      <svg viewBox="0 0 700 310" style={{ width: '100%', maxWidth: 700, height: 'auto', margin: '16px auto', display: 'block' }}>
+        <rect width="700" height="310" rx="12" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+        <text x="350" y="22" textAnchor="middle" fontSize="12" fill="#e4e4e7" fontWeight="700">Data Center Power Distribution Chain</text>
+
+        {/* Utility */}
+        <circle cx="70" cy="80" r="22" fill="#09090b" stroke="#4ade80" strokeWidth="2" />
+        <text x="70" y="76" textAnchor="middle" fontSize="10" fill="#4ade80" fontWeight="700">Utility</text>
+        <text x="70" y="90" textAnchor="middle" fontSize="8" fill="#71717a">33 kV</text>
+        <line x1="92" y1="80" x2="130" y2="80" stroke="#4ade80" strokeWidth="2" />
+
+        {/* ATS */}
+        <rect x="130" y="60" width="60" height="40" rx="6" fill="#09090b" stroke="#818cf8" strokeWidth="1.5" />
+        <text x="160" y="76" textAnchor="middle" fontSize="9" fill="#818cf8" fontWeight="600">ATS</text>
+        <text x="160" y="90" textAnchor="middle" fontSize="7" fill="#52525b">Auto Transfer</text>
+        <line x1="190" y1="80" x2="230" y2="80" stroke="#4ade80" strokeWidth="2" />
+
+        {/* Transformer */}
+        <circle cx="248" cy="80" r="14" fill="#09090b" stroke="#f59e0b" strokeWidth="1.5" />
+        <circle cx="262" cy="80" r="14" fill="#09090b" stroke="#f59e0b" strokeWidth="1.5" />
+        <text x="255" y="103" textAnchor="middle" fontSize="8" fill="#71717a">33/0.4 kV</text>
+        <line x1="276" y1="80" x2="310" y2="80" stroke="#4ade80" strokeWidth="2" />
+
+        {/* UPS */}
+        <rect x="310" y="60" width="80" height="40" rx="6" fill="#09090b" stroke="#22d3ee" strokeWidth="1.5" />
+        <text x="350" y="76" textAnchor="middle" fontSize="10" fill="#22d3ee" fontWeight="600">UPS</text>
+        <text x="350" y="90" textAnchor="middle" fontSize="7" fill="#52525b">Online Double-Conv</text>
+
+        {/* Battery connected to UPS */}
+        <rect x="330" y="115" width="40" height="20" rx="4" fill="#09090b" stroke="#f59e0b" strokeWidth="1" />
+        <text x="350" y="129" textAnchor="middle" fontSize="8" fill="#f59e0b">BAT</text>
+        <line x1="350" y1="100" x2="350" y2="115" stroke="#f59e0b" strokeWidth="1" strokeDasharray="3 2" />
+
+        <line x1="390" y1="80" x2="430" y2="80" stroke="#4ade80" strokeWidth="2" />
+
+        {/* PDU */}
+        <rect x="430" y="55" width="55" height="50" rx="6" fill="#09090b" stroke="#a78bfa" strokeWidth="1.5" />
+        <text x="457" y="77" textAnchor="middle" fontSize="10" fill="#a78bfa" fontWeight="600">PDU</text>
+        <text x="457" y="92" textAnchor="middle" fontSize="7" fill="#52525b">Power Dist.</text>
+        <line x1="485" y1="70" x2="540" y2="50" stroke="#a78bfa" strokeWidth="1.5" />
+        <line x1="485" y1="80" x2="540" y2="80" stroke="#a78bfa" strokeWidth="1.5" />
+        <line x1="485" y1="90" x2="540" y2="110" stroke="#a78bfa" strokeWidth="1.5" />
+
+        {/* Server Racks */}
+        {[50, 80, 110].map((y, i) => (
+          <g key={i}>
+            <rect x="540" y={y-12} width="35" height="24" rx="3" fill="#09090b" stroke="#3f3f46" strokeWidth="1" />
+            {[-6, -1, 4].map(dy => <line key={dy} x1="544" y1={y+dy} x2="571" y2={y+dy} stroke="#27272a" strokeWidth="0.8" />)}
+            <circle cx="568" cy={y-8} r="2" fill="#4ade80" />
+          </g>
+        ))}
+        <text x="557" y="130" textAnchor="middle" fontSize="8" fill="#71717a">Server Racks</text>
+
+        {/* DG */}
+        <circle cx="70" cy="160" r="18" fill="#09090b" stroke="#f97316" strokeWidth="1.5" />
+        <text x="70" y="164" textAnchor="middle" fontSize="11" fill="#f97316" fontWeight="700">G</text>
+        <text x="70" y="185" textAnchor="middle" fontSize="8" fill="#71717a">Diesel Gen</text>
+        <line x1="88" y1="160" x2="135" y2="105" stroke="#f97316" strokeWidth="1" strokeDasharray="4 3" />
+        <text x="115" y="128" fontSize="7" fill="#f97316">Standby Path</text>
+
+        {/* Arrow flow indicators */}
+        {[110, 215, 300, 420].map(x => (
+          <polygon key={x} points={`${x},76 ${x+8},80 ${x},84`} fill="#4ade80" opacity="0.5" />
+        ))}
+
+        {/* Redundancy section */}
+        <text x="350" y="195" textAnchor="middle" fontSize="11" fill="#e4e4e7" fontWeight="700">Redundancy Schemes</text>
+
+        {/* N+1 */}
+        <rect x="60" y="210" width="260" height="80" rx="8" fill="#09090b" stroke="#3b82f6" strokeWidth="1" />
+        <text x="190" y="228" textAnchor="middle" fontSize="10" fill="#3b82f6" fontWeight="600">N+1 Redundancy</text>
+        {[0,1,2,3].map(i => (
+          <rect key={i} x={85+i*50} y="238" width="35" height="22" rx="3" fill="#3b82f615" stroke="#3b82f6" strokeWidth="0.8" />
+        ))}
+        {[0,1,2,3].map(i => (
+          <text key={i} x={102+i*50} y="253" textAnchor="middle" fontSize="8" fill="#3b82f6">UPS {i+1}</text>
+        ))}
+        <rect x="285" y="238" width="25" height="22" rx="3" fill="#22c55e15" stroke="#22c55e" strokeWidth="1" />
+        <text x="297" y="253" textAnchor="middle" fontSize="7" fill="#22c55e">+1</text>
+        <text x="190" y="278" textAnchor="middle" fontSize="8" fill="#71717a">4 needed + 1 spare = 20% overhead</text>
+
+        {/* 2N */}
+        <rect x="380" y="210" width="260" height="80" rx="8" fill="#09090b" stroke="#a78bfa" strokeWidth="1" />
+        <text x="510" y="228" textAnchor="middle" fontSize="10" fill="#a78bfa" fontWeight="600">2N Redundancy</text>
+        <text x="445" y="245" textAnchor="middle" fontSize="8" fill="#818cf8">Path A</text>
+        {[0,1,2,3].map(i => (
+          <rect key={i} x={400+i*30} y="250" width="22" height="14" rx="2" fill="#818cf820" stroke="#818cf8" strokeWidth="0.5" />
+        ))}
+        <text x="575" y="245" textAnchor="middle" fontSize="8" fill="#a78bfa">Path B</text>
+        {[0,1,2,3].map(i => (
+          <rect key={i} x={530+i*30} y="250" width="22" height="14" rx="2" fill="#a78bfa20" stroke="#a78bfa" strokeWidth="0.5" />
+        ))}
+        <text x="510" y="278" textAnchor="middle" fontSize="8" fill="#71717a">2 x 4 = 8 modules = 100% overhead</text>
+      </svg>
+
+      {/* ── SVG: PUE Concept ── */}
+      <svg viewBox="0 0 700 140" style={{ width: '100%', maxWidth: 700, height: 'auto', margin: '16px auto', display: 'block' }}>
+        <rect width="700" height="140" rx="12" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+        <text x="350" y="22" textAnchor="middle" fontSize="12" fill="#e4e4e7" fontWeight="700">Power Usage Effectiveness (PUE)</text>
+
+        <text x="350" y="45" textAnchor="middle" fontSize="11" fill="#c4b5fd" fontFamily="monospace">PUE = Total Facility Power / IT Equipment Power</text>
+
+        {/* Stacked bar showing breakdown */}
+        <rect x="60" y="60" width="280" height="24" rx="4" fill="#4ade80" opacity="0.7" />
+        <text x="200" y="76" textAnchor="middle" fontSize="9" fill="#fff" fontWeight="600">IT Load (Servers, Storage, Network)</text>
+
+        <rect x="340" y="60" width="130" height="24" rx="4" fill="#60a5fa" opacity="0.7" />
+        <text x="405" y="76" textAnchor="middle" fontSize="9" fill="#fff" fontWeight="600">Cooling (30-40%)</text>
+
+        <rect x="470" y="60" width="60" height="24" rx="4" fill="#f59e0b" opacity="0.7" />
+        <text x="500" y="76" textAnchor="middle" fontSize="9" fill="#fff" fontWeight="600">UPS Loss</text>
+
+        <rect x="530" y="60" width="40" height="24" rx="4" fill="#a78bfa" opacity="0.7" />
+        <text x="550" y="76" textAnchor="middle" fontSize="8" fill="#fff" fontWeight="600">Aux</text>
+
+        {/* Benchmark scale */}
+        {[{pue:'1.1', x:180, c:'#22c55e', label:'Google'}, {pue:'1.2', x:300, c:'#4ade80', label:'Hyperscale Avg'}, {pue:'1.5', x:460, c:'#f59e0b', label:'Enterprise'}, {pue:'1.8', x:580, c:'#ef4444', label:'Legacy'}].map(d => (
+          <g key={d.pue}>
+            <line x1={d.x} y1="95" x2={d.x} y2="105" stroke={d.c} strokeWidth="2" />
+            <text x={d.x} y="116" textAnchor="middle" fontSize="9" fill={d.c} fontWeight="600">{d.pue}</text>
+            <text x={d.x} y="128" textAnchor="middle" fontSize="7" fill="#71717a">{d.label}</text>
+          </g>
+        ))}
+        <line x1="100" y1="100" x2="640" y2="100" stroke="#3f3f46" strokeWidth="0.8" />
+        <text x="80" y="103" textAnchor="end" fontSize="8" fill="#71717a">PUE</text>
+      </svg>
+
       <h2 style={S.h2}>Uptime Institute Tier Classification</h2>
       <p style={S.p}>
         The Uptime Institute defines four tiers of data center infrastructure with progressively
@@ -365,6 +492,23 @@ export default function DataCenterPower() {
                 letterSpacing="0.12em" fontFamily="monospace">
                 DATA CENTER SLD — TIER {redundancy === '2N' ? 'IV (2N)' : 'III (N+1)'}
               </text>
+
+              {/* PUE indicator badge */}
+              <g transform="translate(15,365)">
+                <rect width={120} height={34} rx={6} fill="#18181b" stroke={pueClr} strokeWidth={1} opacity={0.9} />
+                <text x={60} y={14} textAnchor="middle" fontSize={8} fill="#71717a" fontWeight={600}>PUE</text>
+                <text x={60} y={28} textAnchor="middle" fontSize={14} fill={pueClr} fontWeight={700} fontFamily="monospace">
+                  {calc.pue.toFixed(2)}
+                </text>
+              </g>
+              {/* Load fraction bar */}
+              <g transform="translate(145,365)">
+                <rect width={120} height={34} rx={6} fill="#18181b" stroke={txHeatClr} strokeWidth={1} opacity={0.9} />
+                <text x={60} y={14} textAnchor="middle" fontSize={8} fill="#71717a" fontWeight={600}>IT LOAD</text>
+                <rect x={10} y={18} width={100} height={6} rx={3} fill="#27272a" />
+                <rect x={10} y={18} width={Math.min(100, loadFrac * 100)} height={6} rx={3} fill={txHeatClr} />
+                <text x={60} y={31} textAnchor="middle" fontSize={7} fill="#71717a">{itLoad} / 50 MW</text>
+              </g>
 
               {/* ── Connection lines ── */}
               {Object.entries(PATHS).map(([id, d]) => (

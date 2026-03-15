@@ -234,6 +234,17 @@ function Diagram({ sys, hover, onHover }) {
       {/* ── Source / Consumer badges ─────────────────────────────────────────── */}
       <text x={CX[0]} y={CY - NH / 2 - 12} textAnchor="middle" fill="#22c55e" fontSize="10" fontWeight="700">SOURCE</text>
       <text x={CX[8]} y={CY - NH / 2 - 12} textAnchor="middle" fill="#f43f5e" fontSize="10" fontWeight="700">CONSUMER</text>
+
+      {/* System efficiency indicator */}
+      <g transform={`translate(${VB_W / 2 - 105}, ${VB_H - 28})`}>
+        <rect width={210} height={18} rx={4}
+          fill={sys.eff > 95 ? '#22c55e10' : sys.eff > 90 ? '#f59e0b10' : '#ef444410'}
+          stroke={sys.eff > 95 ? '#22c55e' : sys.eff > 90 ? '#f59e0b' : '#ef4444'} strokeWidth={0.5} />
+        <text x={105} y={13} textAnchor="middle" fontSize={9}
+          fill={sys.eff > 95 ? '#86efac' : sys.eff > 90 ? '#fcd34d' : '#fca5a5'} fontWeight={600}>
+          {sys.eff > 95 ? 'NORMAL' : sys.eff > 90 ? 'ELEVATED LOSSES' : 'HIGH LOSSES'} | Eff: {sys.eff.toFixed(1)}% | Loss: {sys.totalLoss.toFixed(1)} MW
+        </text>
+      </g>
     </svg>
   );
 }
@@ -384,6 +395,93 @@ function Theory() {
         <strong style={{ color: '#e4e4e7' }}>425 GW</strong>, it serves over 300 million consumers
         through a cascading voltage hierarchy designed to minimise transmission losses.
       </p>
+
+      {/* ── SVG: Complete Power System Overview ── */}
+      <svg viewBox="0 0 740 260" style={{ width: '100%', maxWidth: 740, height: 'auto', margin: '16px auto', display: 'block' }}>
+        <rect width="740" height="260" rx="12" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+        <text x="370" y="22" textAnchor="middle" fontSize="12" fill="#e4e4e7" fontWeight="700">Power System: Generation to Consumer</text>
+
+        {/* Generation */}
+        <circle cx="70" cy="100" r="28" fill="#09090b" stroke="#22c55e" strokeWidth="2" />
+        <text x="70" y="96" textAnchor="middle" fontSize="10" fill="#22c55e" fontWeight="700">GEN</text>
+        <text x="70" y="108" textAnchor="middle" fontSize="8" fill="#71717a">11 kV</text>
+        <text x="70" y="140" textAnchor="middle" fontSize="8" fill="#52525b">Power Station</text>
+
+        {/* GSU Transformer */}
+        <line x1="98" y1="100" x2="130" y2="100" stroke="#22c55e" strokeWidth="2" />
+        <circle cx="143" cy="100" r="12" fill="#09090b" stroke="#f59e0b" strokeWidth="1.5" />
+        <circle cx="157" cy="100" r="12" fill="#09090b" stroke="#f59e0b" strokeWidth="1.5" />
+        <text x="150" y="124" textAnchor="middle" fontSize="7" fill="#71717a">Step-Up TX</text>
+        <text x="150" y="76" textAnchor="middle" fontSize="8" fill="#f59e0b" fontWeight="600">11 → 400 kV</text>
+
+        {/* EHV Transmission */}
+        <line x1="169" y1="100" x2="280" y2="100" stroke="#3b82f6" strokeWidth="3" />
+        {[0,1,2].map(i => (
+          <circle key={i} r="3" fill="#3b82f6" opacity="0.6">
+            <animateMotion dur="2s" begin={`${i*0.7}s`} repeatCount="indefinite" path="M169,100 L280,100" />
+          </circle>
+        ))}
+        <text x="224" y="88" textAnchor="middle" fontSize="9" fill="#3b82f6" fontWeight="600">400 kV EHV</text>
+        {/* Tower icons */}
+        {[200, 250].map(x => (
+          <g key={x}>
+            <line x1={x} y1="100" x2={x-4} y2="115" stroke="#3f3f46" strokeWidth="0.8" />
+            <line x1={x} y1="100" x2={x+4} y2="115" stroke="#3f3f46" strokeWidth="0.8" />
+            <line x1={x-6} y1="95" x2={x+6} y2="95" stroke="#3f3f46" strokeWidth="1.2" />
+          </g>
+        ))}
+
+        {/* Grid Substation */}
+        <rect x="280" y="82" width="50" height="36" rx="6" fill="#09090b" stroke="#06b6d4" strokeWidth="1.5" />
+        <text x="305" y="98" textAnchor="middle" fontSize="8" fill="#06b6d4" fontWeight="600">400/220</text>
+        <text x="305" y="110" textAnchor="middle" fontSize="7" fill="#71717a">Grid SS</text>
+
+        {/* 220 kV line */}
+        <line x1="330" y1="100" x2="410" y2="100" stroke="#8b5cf6" strokeWidth="2.5" />
+        <text x="370" y="88" textAnchor="middle" fontSize="9" fill="#8b5cf6" fontWeight="600">220 kV</text>
+
+        {/* Sub-Transmission SS */}
+        <rect x="410" y="82" width="50" height="36" rx="6" fill="#09090b" stroke="#f59e0b" strokeWidth="1.5" />
+        <text x="435" y="98" textAnchor="middle" fontSize="8" fill="#f59e0b" fontWeight="600">220/33</text>
+        <text x="435" y="110" textAnchor="middle" fontSize="7" fill="#71717a">Sub-TX SS</text>
+
+        {/* 33 kV line */}
+        <line x1="460" y1="100" x2="520" y2="100" stroke="#f59e0b" strokeWidth="2" />
+        <text x="490" y="88" textAnchor="middle" fontSize="9" fill="#f59e0b" fontWeight="600">33 kV</text>
+
+        {/* Distribution SS */}
+        <rect x="520" y="82" width="50" height="36" rx="6" fill="#09090b" stroke="#f97316" strokeWidth="1.5" />
+        <text x="545" y="98" textAnchor="middle" fontSize="8" fill="#f97316" fontWeight="600">33/11</text>
+        <text x="545" y="110" textAnchor="middle" fontSize="7" fill="#71717a">Dist SS</text>
+
+        {/* 11 kV line */}
+        <line x1="570" y1="100" x2="610" y2="100" stroke="#f97316" strokeWidth="1.5" />
+
+        {/* DTR */}
+        <circle cx="620" cy="100" r="9" fill="#09090b" stroke="#f43f5e" strokeWidth="1.2" />
+        <circle cx="630" cy="100" r="9" fill="#09090b" stroke="#f43f5e" strokeWidth="1.2" />
+        <text x="625" y="120" textAnchor="middle" fontSize="7" fill="#71717a">DTR</text>
+
+        {/* Consumer */}
+        <line x1="639" y1="100" x2="670" y2="100" stroke="#f43f5e" strokeWidth="1.2" />
+        <polygon points="670,80 700,100 670,120" fill="none" stroke="#f43f5e" strokeWidth="1.5" />
+        <text x="680" y="104" textAnchor="middle" fontSize="8" fill="#f43f5e" fontWeight="600">415V</text>
+        <text x="685" y="135" textAnchor="middle" fontSize="7" fill="#71717a">Consumer</text>
+
+        {/* Voltage stepping diagram */}
+        <text x="370" y="165" textAnchor="middle" fontSize="10" fill="#e4e4e7" fontWeight="600">Voltage Level Cascade</text>
+        {[{v:'11 kV', x:70, c:'#22c55e', h:12}, {v:'400 kV', x:160, c:'#3b82f6', h:65}, {v:'220 kV', x:280, c:'#8b5cf6', h:45}, {v:'33 kV', x:400, c:'#f59e0b', h:20}, {v:'11 kV', x:510, c:'#f97316', h:12}, {v:'415 V', x:620, c:'#f43f5e', h:3}].map(d => (
+          <g key={d.x}>
+            <rect x={d.x-25} y={240-d.h} width="50" height={d.h} rx="2" fill={d.c} opacity="0.4" />
+            <text x={d.x} y={235-d.h} textAnchor="middle" fontSize="8" fill={d.c} fontWeight="600">{d.v}</text>
+          </g>
+        ))}
+        <line x1="40" y1="240" x2="660" y2="240" stroke="#3f3f46" strokeWidth="0.5" />
+        <text x="70" y="253" textAnchor="middle" fontSize="7" fill="#52525b">Gen</text>
+        <text x="220" y="253" textAnchor="middle" fontSize="7" fill="#52525b">Transmission</text>
+        <text x="450" y="253" textAnchor="middle" fontSize="7" fill="#52525b">Sub-TX</text>
+        <text x="570" y="253" textAnchor="middle" fontSize="7" fill="#52525b">Distribution</text>
+      </svg>
 
       <h3 style={T.h3}>Why Step Up Voltage for Transmission?</h3>
       <p style={T.p}>

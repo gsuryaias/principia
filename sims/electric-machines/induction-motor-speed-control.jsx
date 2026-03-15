@@ -31,6 +31,7 @@ const S = {
   ctx: { padding: '16px 20px', background: 'rgba(99,102,241,0.06)', borderLeft: '3px solid #6366f1', borderRadius: '0 12px 12px 0', margin: '20px 0' },
   ctxT: { fontWeight: 600, color: '#818cf8', marginBottom: 6, fontSize: 14, display: 'block' },
   ctxP: { fontSize: 14, lineHeight: 1.7, color: '#a1a1aa', margin: 0 },
+  svgDiagram: { width: '100%', margin: '20px 0', background: '#0d0d11', border: '1px solid #27272a', borderRadius: 12, padding: 0 },
 };
 
 const BASE = { R1: 0.6, X1: 1.1, R2: 0.45, X2: 1.1, Xm: 28, poles: 4, V: 415, f: 50 };
@@ -113,9 +114,15 @@ function Diagram({ curves, activeMethod }) {
   const xS = (n) => ML + (n / 1500) * PW;
   const yS = (t) => MT + PH - (t / maxTorque) * PH;
   const colors = { 'V/f': '#22c55e', 'Rotor resistance': '#f59e0b', Cascade: '#60a5fa' };
+  const active = curves.find(c => c.method === activeMethod);
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: W, height: 'auto' }}>
+      {/* Speed region shading for active method */}
+      {active && (
+        <rect x={xS(0)} y={MT} width={xS(active.ns) - xS(0)} height={PH} fill={colors[activeMethod]} opacity="0.04" />
+      )}
+
       {[0, 300, 600, 900, 1200, 1500].map((n) => (
         <g key={n}>
           <line x1={xS(n)} y1={MT} x2={xS(n)} y2={MT + PH} stroke="#1f2937" strokeWidth="0.7" />
@@ -130,20 +137,37 @@ function Diagram({ curves, activeMethod }) {
       ))}
 
       {curves.map((curve) => {
-        const active = curve.method === activeMethod;
+        const isActive = curve.method === activeMethod;
         const d = curve.samples.map((p, i) => `${i === 0 ? 'M' : 'L'}${xS(p.speed).toFixed(1)},${yS(p.torque).toFixed(1)}`).join(' ');
         return (
           <g key={curve.method}>
-            <path d={d} fill="none" stroke={colors[curve.method]} strokeWidth={active ? 3.2 : 1.7} opacity={active ? 1 : 0.45} />
-            <line x1={ML} y1={yS(curve.loadTorque)} x2={xS(curve.ns)} y2={yS(curve.loadTorque)} stroke={colors[curve.method]} strokeDasharray="4 4" strokeWidth="1" opacity={active ? 0.7 : 0.25} />
-            <circle cx={xS(curve.operating.speed)} cy={yS(curve.operating.torque)} r={active ? 6 : 4} fill={colors[curve.method]} />
-            <line x1={xS(curve.ns)} y1={MT} x2={xS(curve.ns)} y2={MT + PH} stroke={colors[curve.method]} strokeDasharray="6 4" strokeWidth="1" opacity={active ? 0.85 : 0.35} />
+            <path d={d} fill="none" stroke={colors[curve.method]} strokeWidth={isActive ? 3.2 : 1.7} opacity={isActive ? 1 : 0.45} />
+            <line x1={ML} y1={yS(curve.loadTorque)} x2={xS(curve.ns)} y2={yS(curve.loadTorque)} stroke={colors[curve.method]} strokeDasharray="4 4" strokeWidth="1" opacity={isActive ? 0.7 : 0.25} />
+            <circle cx={xS(curve.operating.speed)} cy={yS(curve.operating.torque)} r={isActive ? 6 : 4} fill={colors[curve.method]} />
+            <line x1={xS(curve.ns)} y1={MT} x2={xS(curve.ns)} y2={MT + PH} stroke={colors[curve.method]} strokeDasharray="6 4" strokeWidth="1" opacity={isActive ? 0.85 : 0.35} />
+            {/* Sync speed label for active */}
+            {isActive && (
+              <text x={xS(curve.ns) + 4} y={MT + PH - 8} fill={colors[curve.method]} fontSize="9" fontWeight="600">
+                Ns={curve.ns.toFixed(0)}
+              </text>
+            )}
+            {/* Operating point label for active */}
+            {isActive && (
+              <g>
+                <text x={xS(curve.operating.speed) + 10} y={yS(curve.operating.torque) - 10} fill={colors[curve.method]} fontSize="10" fontWeight="700">
+                  N={curve.operating.speed.toFixed(0)} rpm
+                </text>
+                <text x={xS(curve.operating.speed) + 10} y={yS(curve.operating.torque) + 4} fill={colors[curve.method]} fontSize="9" opacity="0.8">
+                  s={curve.operating.slip.toFixed(3)}
+                </text>
+              </g>
+            )}
           </g>
         );
       })}
 
       <text x={W / 2} y={H - 14} textAnchor="middle" fill="#71717a" fontSize="10">Speed (rpm)</text>
-      <text x={16} y={H / 2} textAnchor="middle" fill="#71717a" fontSize="10" transform={`rotate(-90 16 ${H / 2})`}>Torque (N·m)</text>
+      <text x={16} y={H / 2} textAnchor="middle" fill="#71717a" fontSize="10" transform={`rotate(-90 16 ${H / 2})`}>Torque (N.m)</text>
 
       <g transform="translate(716,48)">
         <rect width="220" height="92" rx="10" fill="#101015" stroke="#27272a" />
@@ -154,6 +178,218 @@ function Diagram({ curves, activeMethod }) {
           </g>
         ))}
       </g>
+    </svg>
+  );
+}
+
+/* ============================================================
+   Theory SVG Diagrams
+   ============================================================ */
+
+function VfBlockDiagramSVG() {
+  return (
+    <svg viewBox="0 0 780 160" style={S.svgDiagram}>
+      <defs>
+        <marker id="sc-arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0,0 8,3 0,6" fill="#22c55e" />
+        </marker>
+        <marker id="sc-arr2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0,0 8,3 0,6" fill="#818cf8" />
+        </marker>
+      </defs>
+      <text x="390" y="20" textAnchor="middle" fill="#71717a" fontSize="11" fontWeight="600" letterSpacing="0.06em">V/f SPEED CONTROL BLOCK DIAGRAM</text>
+
+      {/* Speed command */}
+      <rect x="20" y="55" width="100" height="44" rx="8" fill="#18181b" stroke="#6366f1" strokeWidth="1.5" />
+      <text x="70" y="74" textAnchor="middle" fill="#a5b4fc" fontSize="10" fontWeight="700">Speed</text>
+      <text x="70" y="88" textAnchor="middle" fill="#a5b4fc" fontSize="10" fontWeight="700">Command</text>
+
+      {/* V/f calculator */}
+      <line x1="120" y1="77" x2="170" y2="77" stroke="#818cf8" strokeWidth="1.5" markerEnd="url(#sc-arr2)" />
+      <rect x="170" y="55" width="110" height="44" rx="8" fill="#18181b" stroke="#22c55e" strokeWidth="1.5" />
+      <text x="225" y="74" textAnchor="middle" fill="#22c55e" fontSize="10" fontWeight="700">V/f</text>
+      <text x="225" y="88" textAnchor="middle" fill="#22c55e" fontSize="10" fontWeight="700">Calculator</text>
+
+      {/* Inverter */}
+      <line x1="280" y1="77" x2="330" y2="77" stroke="#22c55e" strokeWidth="1.5" markerEnd="url(#sc-arr)" />
+      <text x="305" y="68" fill="#71717a" fontSize="8">f, V</text>
+      <rect x="330" y="55" width="110" height="44" rx="8" fill="#18181b" stroke="#f59e0b" strokeWidth="1.5" />
+      <text x="385" y="74" textAnchor="middle" fill="#f59e0b" fontSize="10" fontWeight="700">PWM</text>
+      <text x="385" y="88" textAnchor="middle" fill="#f59e0b" fontSize="10" fontWeight="700">Inverter</text>
+
+      {/* Motor */}
+      <line x1="440" y1="77" x2="490" y2="77" stroke="#f59e0b" strokeWidth="1.5" markerEnd="url(#sc-arr)" />
+      <text x="465" y="68" fill="#71717a" fontSize="8">3-ph AC</text>
+      <rect x="490" y="45" width="130" height="64" rx="8" fill="#18181b" stroke="#ef4444" strokeWidth="1.5" />
+      <text x="555" y="72" textAnchor="middle" fill="#ef4444" fontSize="11" fontWeight="700">Induction Motor</text>
+      <text x="555" y="88" textAnchor="middle" fill="#71717a" fontSize="9">Squirrel cage</text>
+
+      {/* Load */}
+      <line x1="620" y1="77" x2="670" y2="77" stroke="#22c55e" strokeWidth="1.5" markerEnd="url(#sc-arr)" />
+      <rect x="670" y="55" width="80" height="44" rx="8" fill="#18181b" stroke="#22d3ee" strokeWidth="1.5" />
+      <text x="710" y="80" textAnchor="middle" fill="#22d3ee" fontSize="10" fontWeight="700">Load</text>
+
+      {/* Key principle */}
+      <text x="390" y="140" textAnchor="middle" fill="#a1a1aa" fontSize="10">V/f = constant keeps air-gap flux approximately constant, preserving torque capability</text>
+    </svg>
+  );
+}
+
+function RotorResistanceBlockSVG() {
+  return (
+    <svg viewBox="0 0 780 150" style={S.svgDiagram}>
+      <defs>
+        <marker id="rr-arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0,0 8,3 0,6" fill="#f59e0b" />
+        </marker>
+      </defs>
+      <text x="390" y="20" textAnchor="middle" fill="#71717a" fontSize="11" fontWeight="600" letterSpacing="0.06em">ROTOR RESISTANCE SPEED CONTROL</text>
+
+      {/* Supply */}
+      <rect x="30" y="50" width="90" height="44" rx="8" fill="#18181b" stroke="#6366f1" strokeWidth="1.5" />
+      <text x="75" y="76" textAnchor="middle" fill="#a5b4fc" fontSize="10" fontWeight="700">3-ph Supply</text>
+
+      {/* Motor stator */}
+      <line x1="120" y1="72" x2="170" y2="72" stroke="#818cf8" strokeWidth="1.5" markerEnd="url(#rr-arr)" />
+      <rect x="170" y="42" width="140" height="60" rx="8" fill="#18181b" stroke="#ef4444" strokeWidth="1.5" />
+      <text x="240" y="68" textAnchor="middle" fill="#ef4444" fontSize="10" fontWeight="700">Slip-Ring Motor</text>
+      <text x="240" y="84" textAnchor="middle" fill="#71717a" fontSize="9">Wound rotor</text>
+
+      {/* Slip rings */}
+      <line x1="310" y1="72" x2="370" y2="72" stroke="#f59e0b" strokeWidth="1.5" markerEnd="url(#rr-arr)" />
+      <text x="340" y="64" fill="#71717a" fontSize="8">Slip rings</text>
+
+      {/* External resistance */}
+      <rect x="370" y="50" width="130" height="44" rx="8" fill="#18181b" stroke="#f59e0b" strokeWidth="1.5" />
+      <text x="435" y="68" textAnchor="middle" fill="#f59e0b" fontSize="10" fontWeight="700">External R2</text>
+      <text x="435" y="82" textAnchor="middle" fill="#f59e0b" fontSize="9">(Variable)</text>
+
+      {/* Load */}
+      <line x1="500" y1="72" x2="540" y2="72" stroke="#f59e0b" strokeWidth="1" />
+      <line x1="310" y1="72" x2="310" y2="110" stroke="#71717a" strokeWidth="1" strokeDasharray="3 2" />
+      <line x1="310" y1="110" x2="580" y2="110" stroke="#71717a" strokeWidth="1.5" markerEnd="url(#rr-arr)" />
+      <rect x="580" y="50" width="80" height="44" rx="8" fill="#18181b" stroke="#22d3ee" strokeWidth="1.5" />
+      <text x="620" y="76" textAnchor="middle" fill="#22d3ee" fontSize="10" fontWeight="700">Load</text>
+
+      <text x="390" y="138" textAnchor="middle" fill="#a1a1aa" fontSize="10">Slip power dissipated as heat -- inefficient but simple and high starting torque</text>
+    </svg>
+  );
+}
+
+function CascadeBlockSVG() {
+  return (
+    <svg viewBox="0 0 780 150" style={S.svgDiagram}>
+      <defs>
+        <marker id="cas-arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0,0 8,3 0,6" fill="#60a5fa" />
+        </marker>
+      </defs>
+      <text x="390" y="20" textAnchor="middle" fill="#71717a" fontSize="11" fontWeight="600" letterSpacing="0.06em">CUMULATIVE CASCADE (CONCATENATION) CONTROL</text>
+
+      {/* Supply */}
+      <rect x="30" y="50" width="80" height="44" rx="8" fill="#18181b" stroke="#6366f1" strokeWidth="1.5" />
+      <text x="70" y="76" textAnchor="middle" fill="#a5b4fc" fontSize="10" fontWeight="700">Supply</text>
+
+      {/* Main motor */}
+      <line x1="110" y1="72" x2="150" y2="72" stroke="#818cf8" strokeWidth="1.5" markerEnd="url(#cas-arr)" />
+      <rect x="150" y="42" width="140" height="60" rx="8" fill="#18181b" stroke="#ef4444" strokeWidth="1.5" />
+      <text x="220" y="66" textAnchor="middle" fill="#ef4444" fontSize="10" fontWeight="700">Main Motor</text>
+      <text x="220" y="82" textAnchor="middle" fill="#71717a" fontSize="9">P1 poles</text>
+
+      {/* Rotor connection */}
+      <line x1="290" y1="72" x2="350" y2="72" stroke="#60a5fa" strokeWidth="1.5" markerEnd="url(#cas-arr)" />
+      <text x="320" y="64" fill="#71717a" fontSize="8">Rotor output</text>
+
+      {/* Auxiliary motor */}
+      <rect x="350" y="42" width="150" height="60" rx="8" fill="#18181b" stroke="#60a5fa" strokeWidth="1.5" />
+      <text x="425" y="66" textAnchor="middle" fill="#60a5fa" fontSize="10" fontWeight="700">Auxiliary Motor</text>
+      <text x="425" y="82" textAnchor="middle" fill="#71717a" fontSize="9">P2 poles</text>
+
+      {/* Mechanical coupling */}
+      <line x1="500" y1="72" x2="560" y2="72" stroke="#22c55e" strokeWidth="2" strokeDasharray="8 4" />
+      <text x="530" y="64" fill="#22c55e" fontSize="8">Shaft coupled</text>
+
+      {/* Load */}
+      <rect x="560" y="50" width="80" height="44" rx="8" fill="#18181b" stroke="#22d3ee" strokeWidth="1.5" />
+      <text x="600" y="76" textAnchor="middle" fill="#22d3ee" fontSize="10" fontWeight="700">Load</text>
+
+      {/* Equation */}
+      <rect x="200" y="118" width="380" height="24" rx="6" fill="#18181b" stroke="#27272a" />
+      <text x="390" y="134" textAnchor="middle" fill="#c4b5fd" fontSize="11" fontFamily="monospace">Nc = 120f / (P1 + P2)  --  discrete sub-synchronous speeds</text>
+    </svg>
+  );
+}
+
+function ComparativeTNCurveSVG() {
+  const W = 780, H = 280;
+  const ML = 60, MR = 20, MT = 30, MB = 40;
+  const PW = W - ML - MR, PH = H - MT - MB;
+  const xS = (n) => ML + (n / 1600) * PW;
+  const yS = (t) => MT + PH - t * PH;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={S.svgDiagram}>
+      <text x={W / 2} y="18" textAnchor="middle" fill="#71717a" fontSize="11" fontWeight="600" letterSpacing="0.06em">
+        COMPARATIVE T-N CURVES FOR SPEED CONTROL METHODS
+      </text>
+
+      {/* Grid */}
+      {[0, 300, 600, 750, 900, 1200, 1500].map(n => (
+        <g key={n}>
+          <line x1={xS(n)} y1={MT} x2={xS(n)} y2={MT + PH} stroke="#1f2937" strokeWidth="0.5" />
+          <text x={xS(n)} y={MT + PH + 14} textAnchor="middle" fill="#52525b" fontSize="9">{n}</text>
+        </g>
+      ))}
+      <line x1={ML} y1={yS(0)} x2={ML + PW} y2={yS(0)} stroke="#3f3f46" strokeWidth="0.7" />
+
+      {/* V/f family - multiple frequencies */}
+      {[50, 40, 30, 20].map((f, i) => {
+        const ns = (120 * f) / 4;
+        const pts = [];
+        for (let n = 0; n <= ns; n += 10) {
+          const s = Math.max((ns - n) / ns, 0.005);
+          const T = (0.3 / s) / ((0.3 / s) ** 2 + 1.5 ** 2);
+          pts.push({ n, T: T * 3.5 / 1.0 });
+        }
+        const maxT = Math.max(...pts.map(p => p.T));
+        const normPts = pts.map(p => ({ n: p.n, T: p.T / (maxT * 1.3) }));
+        const d = normPts.map((p, j) => `${j === 0 ? 'M' : 'L'}${xS(p.n).toFixed(1)},${yS(p.T).toFixed(1)}`).join(' ');
+        return (
+          <g key={f}>
+            <path d={d} fill="none" stroke="#22c55e" strokeWidth="1.8" opacity={1 - i * 0.18} />
+            <text x={xS(ns) + 4} y={yS(0) - 6} fill="#22c55e" fontSize="8" opacity={0.8}>{f}Hz</text>
+          </g>
+        );
+      })}
+
+      {/* Rotor resistance family */}
+      {[0, 0.3, 0.6, 1.0].map((rExt, i) => {
+        const ns = 1500;
+        const r2 = 0.3 + rExt;
+        const pts = [];
+        for (let n = 0; n <= ns; n += 10) {
+          const s = Math.max((ns - n) / ns, 0.005);
+          const T = (r2 / s) / ((r2 / s) ** 2 + 1.5 ** 2);
+          pts.push({ n, T: T * 3.5 / 1.0 });
+        }
+        const maxT = Math.max(...pts.map(p => p.T));
+        const normPts = pts.map(p => ({ n: p.n, T: p.T / (maxT * 1.3 * (1 + i * 0.05)) }));
+        const d = normPts.map((p, j) => `${j === 0 ? 'M' : 'L'}${xS(p.n).toFixed(1)},${yS(p.T).toFixed(1)}`).join(' ');
+        return (
+          <path key={`rr${rExt}`} d={d} fill="none" stroke="#f59e0b" strokeWidth="1.5" opacity={0.9 - i * 0.15} strokeDasharray={i > 0 ? '6 3' : 'none'} />
+        );
+      })}
+
+      {/* Labels */}
+      <text x={xS(600)} y={MT + 20} fill="#22c55e" fontSize="10" fontWeight="700">V/f curves (different freqs)</text>
+      <text x={xS(1100)} y={MT + 20} fill="#f59e0b" fontSize="10" fontWeight="700">Rotor R curves</text>
+
+      {/* Load torque line */}
+      <line x1={ML} y1={yS(0.32)} x2={ML + PW} y2={yS(0.32)} stroke="#818cf8" strokeWidth="1" strokeDasharray="5 3" opacity="0.5" />
+      <text x={ML + PW - 4} y={yS(0.32) - 4} textAnchor="end" fill="#818cf8" fontSize="9">Load torque</text>
+
+      <text x={W / 2} y={H - 6} textAnchor="middle" fill="#71717a" fontSize="10">Speed (rpm)</text>
+      <text x="14" y={H / 2} textAnchor="middle" fill="#71717a" fontSize="10" transform={`rotate(-90 14 ${H / 2})`}>Torque</text>
     </svg>
   );
 }
@@ -222,7 +458,7 @@ export default function InductionMotorSpeedControl() {
             <div style={S.ri}><span style={S.rl}>Synchronous speed</span><span style={S.rv}>{active.ns.toFixed(0)} rpm</span></div>
             <div style={S.ri}><span style={S.rl}>Operating speed</span><span style={S.rv}>{active.operating.speed.toFixed(0)} rpm</span></div>
             <div style={S.ri}><span style={S.rl}>Operating slip</span><span style={S.rv}>{active.operating.slip.toFixed(3)}</span></div>
-            <div style={S.ri}><span style={S.rl}>Approx. max torque</span><span style={S.rv}>{Math.max(...active.samples.map((p) => p.torque)).toFixed(1)} N·m</span></div>
+            <div style={S.ri}><span style={S.rl}>Approx. max torque</span><span style={S.rv}>{Math.max(...active.samples.map((p) => p.torque)).toFixed(1)} N.m</span></div>
           </div>
 
           <div style={S.strip}>
@@ -265,6 +501,9 @@ export default function InductionMotorSpeedControl() {
           <p style={S.p}>
             This is the dominant industrial method because it retains good efficiency and wide speed range with electronic drives. Below base frequency the applied voltage is reduced in proportion to frequency so the air-gap flux stays roughly constant and the torque capability remains usable.
           </p>
+
+          <VfBlockDiagramSVG />
+
           <span style={S.eq}>For constant flux: V / f = constant</span>
           <p style={S.p}>
             If frequency is reduced without reducing voltage, flux would rise and the machine would saturate. If voltage is reduced too much relative to frequency, flux falls and torque capability collapses.
@@ -274,13 +513,26 @@ export default function InductionMotorSpeedControl() {
           <p style={S.p}>
             Adding external rotor resistance shifts the operating point to higher slip. Speed falls at the same torque, but the lost slip power becomes heat in the external resistance, so this method is inefficient except for short-duration control or starting.
           </p>
+
+          <RotorResistanceBlockSVG />
+
           <span style={S.eq}>Increasing R2 shifts smax to the right with little change in Tmax</span>
 
           <h3 style={S.h3}>Cascade control</h3>
           <p style={S.p}>
             In cumulative cascade, the rotor output of one motor feeds the stator of another, so the combined set runs at synchronous speed based on the sum of pole numbers. That creates a few discrete sub-synchronous operating speeds and was historically useful before variable-frequency drives became common.
           </p>
+
+          <CascadeBlockSVG />
+
           <span style={S.eq}>Nc = 120 f / (P1 + P2)</span>
+
+          <h2 style={S.h2}>Comparative Torque-Speed Curves</h2>
+          <p style={S.p}>
+            The following sketch shows how the torque-speed family differs for V/f control versus rotor resistance control. V/f shifts the entire curve to a new synchronous speed while maintaining shape. Rotor resistance keeps the same synchronous speed but shifts the operating point to higher slip.
+          </p>
+
+          <ComparativeTNCurveSVG />
 
           <h2 style={S.h2}>What The Curves Mean</h2>
           <ul style={S.ul}>

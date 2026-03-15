@@ -379,6 +379,116 @@ function Diagram({ ci, si, bn, res }) {
   );
 }
 
+function TheorySVGConductorArrangements() {
+  return (
+    <svg viewBox="0 0 760 360" style={{ width: '100%', maxWidth: 760, height: 'auto', margin: '20px 0' }}>
+      <rect width="760" height="360" rx="12" fill="#111114" stroke="#27272a" />
+      <text x="380" y="28" textAnchor="middle" fill="#d4d4d8" fontSize={14} fontWeight={700}>Conductor Arrangements and Bundle Configurations</text>
+
+      {/* Single conductor */}
+      <text x="105" y="60" textAnchor="middle" fill="#a5b4fc" fontSize={11} fontWeight={600}>Single</text>
+      <circle cx="105" cy="100" r="14" fill="#18181b" stroke="#818cf8" strokeWidth={2} />
+      <circle cx="105" cy="100" r="5" fill="#818cf8" opacity={0.4} />
+      <line x1="105" y1="100" x2="105" y2="130" stroke="#52525b" strokeWidth={0.7} strokeDasharray="3,2" />
+      <text x="105" y="142" textAnchor="middle" fill="#71717a" fontSize={9}>r, GMR</text>
+
+      {/* Twin bundle */}
+      <text x="255" y="60" textAnchor="middle" fill="#a5b4fc" fontSize={11} fontWeight={600}>Twin Bundle</text>
+      <circle cx="235" cy="100" r="12" fill="#18181b" stroke="#818cf8" strokeWidth={2} />
+      <circle cx="275" cy="100" r="12" fill="#18181b" stroke="#818cf8" strokeWidth={2} />
+      <line x1="247" y1="100" x2="263" y2="100" stroke="#3f3f46" strokeWidth={0.8} strokeDasharray="4,3" />
+      <text x="255" y="90" textAnchor="middle" fill="#71717a" fontSize={8}>d</text>
+      <text x="255" y="142" textAnchor="middle" fill="#c4b5fd" fontSize={9}>GMR_b = (GMR*d)^(1/2)</text>
+
+      {/* Triple bundle */}
+      <text x="430" y="60" textAnchor="middle" fill="#a5b4fc" fontSize={11} fontWeight={600}>Triple Bundle</text>
+      <circle cx="430" cy="84" r="12" fill="#18181b" stroke="#818cf8" strokeWidth={2} />
+      <circle cx="412" cy="116" r="12" fill="#18181b" stroke="#818cf8" strokeWidth={2} />
+      <circle cx="448" cy="116" r="12" fill="#18181b" stroke="#818cf8" strokeWidth={2} />
+      <line x1="420" y1="90" x2="416" y2="108" stroke="#3f3f46" strokeWidth={0.8} strokeDasharray="4,3" />
+      <line x1="440" y1="90" x2="444" y2="108" stroke="#3f3f46" strokeWidth={0.8} strokeDasharray="4,3" />
+      <line x1="424" y1="116" x2="436" y2="116" stroke="#3f3f46" strokeWidth={0.8} strokeDasharray="4,3" />
+      <text x="430" y="142" textAnchor="middle" fill="#c4b5fd" fontSize={9}>GMR_b = (GMR*d²)^(1/3)</text>
+
+      {/* Quad bundle */}
+      <text x="620" y="60" textAnchor="middle" fill="#a5b4fc" fontSize={11} fontWeight={600}>Quad Bundle</text>
+      <circle cx="602" cy="84" r="12" fill="#18181b" stroke="#818cf8" strokeWidth={2} />
+      <circle cx="638" cy="84" r="12" fill="#18181b" stroke="#818cf8" strokeWidth={2} />
+      <circle cx="602" cy="116" r="12" fill="#18181b" stroke="#818cf8" strokeWidth={2} />
+      <circle cx="638" cy="116" r="12" fill="#18181b" stroke="#818cf8" strokeWidth={2} />
+      <line x1="614" y1="84" x2="626" y2="84" stroke="#3f3f46" strokeWidth={0.8} strokeDasharray="4,3" />
+      <line x1="614" y1="116" x2="626" y2="116" stroke="#3f3f46" strokeWidth={0.8} strokeDasharray="4,3" />
+      <line x1="602" y1="96" x2="602" y2="104" stroke="#3f3f46" strokeWidth={0.8} strokeDasharray="4,3" />
+      <line x1="638" y1="96" x2="638" y2="104" stroke="#3f3f46" strokeWidth={0.8} strokeDasharray="4,3" />
+      <text x="620" y="142" textAnchor="middle" fill="#c4b5fd" fontSize={9}>GMR_b = (GMR*d³)^(1/4)</text>
+
+      {/* GMR/GMD concept diagram */}
+      <line x1="40" y1="170" x2="720" y2="170" stroke="#27272a" strokeWidth={0.5} />
+      <text x="380" y="192" textAnchor="middle" fill="#d4d4d8" fontSize={13} fontWeight={700}>GMD Concept — Phase Spacing</text>
+
+      {/* Three phases with GMD lines */}
+      <circle cx="180" cy="260" r="16" fill="rgba(239,68,68,0.15)" stroke="#ef4444" strokeWidth={2} />
+      <text x="180" y="264" textAnchor="middle" fill="#ef4444" fontSize={11} fontWeight={700}>R</text>
+      <circle cx="380" cy="260" r="16" fill="rgba(234,179,8,0.15)" stroke="#eab308" strokeWidth={2} />
+      <text x="380" y="264" textAnchor="middle" fill="#eab308" fontSize={11} fontWeight={700}>Y</text>
+      <circle cx="580" cy="260" r="16" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" strokeWidth={2} />
+      <text x="580" y="264" textAnchor="middle" fill="#3b82f6" fontSize={11} fontWeight={700}>B</text>
+
+      {/* D12, D23, D31 */}
+      <line x1="196" y1="260" x2="364" y2="260" stroke="#52525b" strokeWidth={0.8} strokeDasharray="5,3" />
+      <text x="280" y="254" textAnchor="middle" fill="#a1a1aa" fontSize={10}>D₁₂</text>
+      <line x1="396" y1="260" x2="564" y2="260" stroke="#52525b" strokeWidth={0.8} strokeDasharray="5,3" />
+      <text x="480" y="254" textAnchor="middle" fill="#a1a1aa" fontSize={10}>D₂₃</text>
+      <path d="M196,272 Q380,330 564,272" fill="none" stroke="#818cf8" strokeWidth={1} strokeDasharray="5,3" />
+      <text x="380" y="316" textAnchor="middle" fill="#818cf8" fontSize={10} fontWeight={600}>D₃₁</text>
+
+      {/* GMD formula */}
+      <rect x="230" y="330" width="300" height="22" rx="6" fill="#18181b" stroke="#27272a" />
+      <text x="380" y="345" textAnchor="middle" fill="#c4b5fd" fontSize={11} fontFamily="monospace">D_eq = (D₁₂ * D₂₃ * D₃₁)^(1/3)</text>
+    </svg>
+  );
+}
+
+function TheorySVGMagneticField() {
+  return (
+    <svg viewBox="0 0 760 240" style={{ width: '100%', maxWidth: 760, height: 'auto', margin: '20px 0' }}>
+      <rect width="760" height="240" rx="12" fill="#111114" stroke="#27272a" />
+      <text x="380" y="28" textAnchor="middle" fill="#d4d4d8" fontSize={13} fontWeight={700}>Magnetic Field Lines Around a Current-Carrying Conductor</text>
+
+      {/* Conductor cross-section */}
+      <circle cx="380" cy="135" r="20" fill="#52525b" stroke="#71717a" strokeWidth={1.5} />
+      <circle cx="380" cy="135" r="7" fill="#3f3f46" />
+      {/* Current direction dot (out of page) */}
+      <circle cx="380" cy="135" r="3" fill="#c4b5fd" />
+
+      {/* Concentric field lines */}
+      {[40, 60, 80, 100].map((r, i) => (
+        <g key={r}>
+          <circle cx="380" cy="135" r={r} fill="none" stroke="#6366f1" strokeWidth={0.7} opacity={0.5 - i * 0.1} strokeDasharray={i > 1 ? "6,4" : undefined} />
+          {/* Arrow on field line */}
+          <text x={380 + r * Math.cos(-Math.PI / 4)} y={135 - r * Math.sin(-Math.PI / 4)} fill="#818cf8" fontSize={8} opacity={0.6 - i * 0.1}>{">"}</text>
+        </g>
+      ))}
+
+      {/* Labels */}
+      <text x="500" y="90" fill="#818cf8" fontSize={10}>H = I / (2*pi*r)</text>
+      <text x="500" y="108" fill="#71717a" fontSize={9}>Field decreases as 1/r</text>
+
+      {/* Internal flux region */}
+      <text x="250" y="100" fill="#f59e0b" fontSize={9} fontWeight={500}>Internal flux</text>
+      <text x="250" y="114" fill="#71717a" fontSize={8}>(contributes to L_int)</text>
+      <line x1="290" y1="118" x2="360" y2="130" stroke="#f59e0b" strokeWidth={0.5} strokeDasharray="3,2" />
+
+      {/* External flux region */}
+      <text x="540" y="155" fill="#22c55e" fontSize={9} fontWeight={500}>External flux</text>
+      <text x="540" y="169" fill="#71717a" fontSize={8}>(contributes to L_ext)</text>
+      <line x1="540" y1="148" x2="470" y2="138" stroke="#22c55e" strokeWidth={0.5} strokeDasharray="3,2" />
+
+      <text x="380" y="225" textAnchor="middle" fill="#71717a" fontSize={10}>L = L_int + L_ext = (mu/8*pi) + (mu/2*pi)*ln(D_eq/r')</text>
+    </svg>
+  );
+}
+
 function Theory() {
   return (
     <div style={S.theory}>
@@ -390,6 +500,8 @@ function Theory() {
         and typically ignored. These parameters, expressed per km, determine the line's impedance,
         voltage regulation, power transfer capability, and surge impedance loading (SIL).
       </p>
+
+      <TheorySVGConductorArrangements />
 
       <h3 style={S.h3}>Geometric Mean Radius (GMR)</h3>
       <p style={S.p}>
@@ -406,6 +518,8 @@ function Theory() {
         Note that GMR is used only for inductance; the actual physical radius is used for capacitance
         calculations since capacitance depends on the surface charge distribution, not internal flux.
       </p>
+
+      <TheorySVGMagneticField />
 
       <h3 style={S.h3}>Geometric Mean Distance (GMD)</h3>
       <p style={S.p}>

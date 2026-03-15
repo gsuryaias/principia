@@ -348,6 +348,78 @@ function Diagram({ data, hour }) {
   );
 }
 
+function TheorySVGReverseFlow() {
+  return (
+    <svg viewBox="0 0 760 280" style={{ width: '100%', maxWidth: 760, height: 'auto', margin: '20px 0' }}>
+      <rect width="760" height="280" rx="12" fill="#111114" stroke="#27272a" />
+      <text x="380" y="28" textAnchor="middle" fill="#d4d4d8" fontSize={14} fontWeight={700}>Normal vs Reverse Power Flow on Distribution Feeder</text>
+
+      {/* Normal flow - top */}
+      <text x="380" y="56" textAnchor="middle" fill="#22c55e" fontSize={11} fontWeight={600}>Normal Flow (Night / Low Solar)</text>
+      {/* Substation */}
+      <rect x="70" y="70" width="60" height="30" rx="4" fill="rgba(99,102,241,0.1)" stroke="#6366f1" strokeWidth={1.5} />
+      <text x="100" y="89" textAnchor="middle" fill="#a5b4fc" fontSize={9}>Substation</text>
+      {/* Feeder */}
+      <line x1="130" y1="85" x2="650" y2="85" stroke="#52525b" strokeWidth={2.5} />
+      {/* Flow arrows */}
+      <defs>
+        <marker id="rpfArr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#22c55e" />
+        </marker>
+        <marker id="rpfArrR" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+          <path d="M8,0 L0,3 L8,6 Z" fill="#ef4444" />
+        </marker>
+      </defs>
+      {[200, 350, 500].map(x => (
+        <line key={x} x1={x} y1="75" x2={x + 60} y2="75" stroke="#22c55e" strokeWidth={1.5} markerEnd="url(#rpfArr)">
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite" />
+        </line>
+      ))}
+      {/* Loads */}
+      {[250, 400, 550].map((x, i) => (
+        <g key={x}>
+          <line x1={x} y1="85" x2={x} y2="108" stroke="#52525b" strokeWidth={1} />
+          <rect x={x - 14} y="108" width="28" height="16" rx="3" fill="#18181b" stroke="#3f3f46" />
+          <text x={x} y="119" textAnchor="middle" fill="#71717a" fontSize={7}>Load</text>
+        </g>
+      ))}
+      {/* Voltage profile dropping */}
+      <text x="680" y="80" fill="#22c55e" fontSize={8}>V drops</text>
+
+      {/* Reverse flow - bottom */}
+      <text x="380" y="155" textAnchor="middle" fill="#ef4444" fontSize={11} fontWeight={600}>Reverse Flow (Midday High Solar)</text>
+      {/* Substation */}
+      <rect x="70" y="170" width="60" height="30" rx="4" fill="rgba(99,102,241,0.1)" stroke="#6366f1" strokeWidth={1.5} />
+      <text x="100" y="189" textAnchor="middle" fill="#a5b4fc" fontSize={9}>Substation</text>
+      {/* Feeder */}
+      <line x1="130" y1="185" x2="650" y2="185" stroke="#52525b" strokeWidth={2.5} />
+      {/* Reverse flow arrows */}
+      {[260, 410, 560].map(x => (
+        <line key={x} x1={x} y1="175" x2={x - 60} y2="175" stroke="#ef4444" strokeWidth={1.5} markerEnd="url(#rpfArrR)">
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="1.2s" repeatCount="indefinite" />
+        </line>
+      ))}
+      {/* Loads with solar */}
+      {[250, 400, 550].map((x, i) => (
+        <g key={x}>
+          <line x1={x} y1="185" x2={x} y2="208" stroke="#52525b" strokeWidth={1} />
+          <rect x={x - 14} y="208" width="28" height="16" rx="3" fill="#18181b" stroke="#3f3f46" />
+          <text x={x} y="219" textAnchor="middle" fill="#71717a" fontSize={7}>Load</text>
+          {/* Solar panel */}
+          <rect x={x + 16} y="202" width="20" height="14" rx="2" fill="rgba(245,158,11,0.15)" stroke="#f59e0b" strokeWidth={1} />
+          <text x={x + 26} y="212" textAnchor="middle" fill="#f59e0b" fontSize={6}>PV</text>
+        </g>
+      ))}
+      {/* Voltage profile rising */}
+      <text x="680" y="180" fill="#ef4444" fontSize={8}>V rises!</text>
+
+      {/* Warning box */}
+      <rect x="180" y="245" width="400" height="28" rx="6" fill="rgba(239,68,68,0.06)" stroke="rgba(239,68,68,0.2)" />
+      <text x="380" y="260" textAnchor="middle" fill="#ef4444" fontSize={9} fontWeight={500}>Reverse flow causes voltage rise, relay misoperation, and protection blind spots</text>
+    </svg>
+  );
+}
+
 function Theory() {
   return (
     <div style={S.theory}>
@@ -358,6 +430,8 @@ function Theory() {
         challenge this paradigm. When distributed generation (DG) at a load point exceeds local consumption, surplus
         power flows <em>backwards</em> through the feeder toward the substation. This is <strong style={{ color: '#e4e4e7' }}>reverse power flow</strong>.
       </p>
+
+      <TheorySVGReverseFlow />
 
       <h3 style={S.h3}>What Causes Reverse Power Flow?</h3>
       <p style={S.p}>

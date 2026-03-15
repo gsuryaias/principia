@@ -289,11 +289,184 @@ function LossGraph({ voltage, data, radius }) {
         </g>
       )}
 
+      {/* Region annotation: no-corona zone */}
+      {Vc > 0 && Vc <= 500 && (
+        <g>
+          <rect x={P.l + 2} y={P.t + ph - 18} width={Math.max(0, xS(Math.min(Vc, 500)) - P.l - 4)} height={16} rx={3} fill="rgba(34,197,94,0.06)" stroke="rgba(34,197,94,0.15)" strokeWidth={0.5} />
+          <text x={(P.l + xS(Math.min(Vc, 500))) / 2} y={P.t + ph - 7} textAnchor="middle" fill="#22c55e" fontSize={7} fontWeight={500}>No corona</text>
+        </g>
+      )}
+
       {Vc > 500 && (
         <text x={P.l + pw / 2} y={P.t + ph / 2} textAnchor="middle" fontSize={12} fill="#3f3f46">
           Vc ({Vc.toFixed(0)} kV) exceeds range — no corona in 0–500 kV
         </text>
       )}
+    </svg>
+  );
+}
+
+function TheorySVGCorona() {
+  return (
+    <svg viewBox="0 0 760 320" style={{ width: '100%', maxWidth: 760, height: 'auto', margin: '20px 0' }}>
+      <rect width="760" height="320" rx="12" fill="#111114" stroke="#27272a" />
+      <text x="380" y="28" textAnchor="middle" fill="#d4d4d8" fontSize={14} fontWeight={700}>Corona Discharge Around a Conductor</text>
+
+      {/* No Corona state */}
+      <text x="130" y="60" textAnchor="middle" fill="#22c55e" fontSize={11} fontWeight={600}>V &lt; Vc (No Corona)</text>
+      <circle cx="130" cy="155" r="30" fill="#52525b" stroke="#71717a" strokeWidth={1.5} />
+      <circle cx="130" cy="155" r="10" fill="#3f3f46" />
+      <text x="130" y="205" textAnchor="middle" fill="#71717a" fontSize={9}>No ionization</text>
+
+      {/* Corona onset */}
+      <text x="380" y="60" textAnchor="middle" fill="#f59e0b" fontSize={11} fontWeight={600}>Vc &lt; V &lt; Vv (Onset)</text>
+      <defs>
+        <filter id="thGlow1" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="8" />
+        </filter>
+        <filter id="thGlow2" x="-150%" y="-150%" width="400%" height="400%">
+          <feGaussianBlur stdDeviation="16" />
+        </filter>
+      </defs>
+      <circle cx="380" cy="155" r="55" fill="#7c3aed" opacity="0.2" filter="url(#thGlow1)">
+        <animate attributeName="opacity" values="0.15;0.3;0.15" dur="2s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="380" cy="155" r="30" fill="#52525b" stroke="#71717a" strokeWidth={1.5} />
+      <circle cx="380" cy="155" r="10" fill="#3f3f46" />
+      {/* Micro discharge streaks */}
+      {Array.from({ length: 8 }, (_, i) => {
+        const a = (i * 45) * Math.PI / 180;
+        return <line key={i} x1={380 + 32 * Math.cos(a)} y1={155 + 32 * Math.sin(a)}
+          x2={380 + 46 * Math.cos(a)} y2={155 + 46 * Math.sin(a)}
+          stroke="#8b5cf6" strokeWidth={0.8} opacity={0.5}>
+          <animate attributeName="opacity" values="0;0.6;0" dur={`${0.8 + i * 0.1}s`} repeatCount="indefinite" />
+        </line>;
+      })}
+      <text x="380" y="205" textAnchor="middle" fill="#71717a" fontSize={9}>Micro-discharges (UV only)</text>
+
+      {/* Visual corona */}
+      <text x="630" y="60" textAnchor="middle" fill="#ef4444" fontSize={11} fontWeight={600}>V &gt; Vv (Visual Corona)</text>
+      <circle cx="630" cy="155" r="80" fill="#c4b5fd" opacity="0.15" filter="url(#thGlow2)">
+        <animate attributeName="opacity" values="0.1;0.3;0.1" dur="0.8s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="630" cy="155" r="55" fill="#a78bfa" opacity="0.2" filter="url(#thGlow1)">
+        <animate attributeName="opacity" values="0.15;0.45;0.15" dur="0.6s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="630" cy="155" r="30" fill="#52525b" stroke="#71717a" strokeWidth={1.5} />
+      <circle cx="630" cy="155" r="10" fill="#3f3f46" />
+      {Array.from({ length: 16 }, (_, i) => {
+        const a = (i * 22.5) * Math.PI / 180;
+        const len = 20 + (i % 3) * 8;
+        return <line key={i} x1={630 + 32 * Math.cos(a)} y1={155 + 32 * Math.sin(a)}
+          x2={630 + (32 + len) * Math.cos(a)} y2={155 + (32 + len) * Math.sin(a)}
+          stroke="#c4b5fd" strokeWidth={1}>
+          <animate attributeName="opacity" values="0;0.8;0" dur={`${0.3 + i * 0.05}s`} begin={`${i * 0.04}s`} repeatCount="indefinite" />
+        </line>;
+      })}
+      <text x="630" y="205" textAnchor="middle" fill="#71717a" fontSize={9}>Visible violet glow + noise</text>
+
+      {/* Electric field arrows */}
+      <defs>
+        <marker id="thArr" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <path d="M0,0 L6,2.5 L0,5 Z" fill="#71717a" />
+        </marker>
+      </defs>
+
+      {/* Voltage scale bar at bottom */}
+      <line x1="80" y1="270" x2="680" y2="270" stroke="#3f3f46" strokeWidth={1.5} />
+      <line x1="80" y1="265" x2="80" y2="275" stroke="#3f3f46" strokeWidth={1.5} />
+      <line x1="680" y1="265" x2="680" y2="275" stroke="#3f3f46" strokeWidth={1.5} />
+      <text x="80" y="290" textAnchor="middle" fill="#52525b" fontSize={9}>0 V</text>
+
+      {/* Vc marker */}
+      <line x1="310" y1="260" x2="310" y2="280" stroke="#f59e0b" strokeWidth={2} />
+      <text x="310" y="296" textAnchor="middle" fill="#f59e0b" fontSize={10} fontWeight={700}>Vc</text>
+
+      {/* Vv marker */}
+      <line x1="500" y1="260" x2="500" y2="280" stroke="#ef4444" strokeWidth={2} />
+      <text x="500" y="296" textAnchor="middle" fill="#ef4444" fontSize={10} fontWeight={700}>Vv = 1.5 Vc</text>
+
+      {/* Region shading */}
+      <rect x="80" y="266" width="230" height="8" rx="2" fill="rgba(34,197,94,0.15)" />
+      <rect x="310" y="266" width="190" height="8" rx="2" fill="rgba(245,158,11,0.15)" />
+      <rect x="500" y="266" width="180" height="8" rx="2" fill="rgba(239,68,68,0.15)" />
+      <text x="195" y="260" textAnchor="middle" fill="#22c55e" fontSize={8}>Safe zone</text>
+      <text x="405" y="260" textAnchor="middle" fill="#f59e0b" fontSize={8}>Corona onset</text>
+      <text x="590" y="260" textAnchor="middle" fill="#ef4444" fontSize={8}>Visual corona</text>
+    </svg>
+  );
+}
+
+function TheorySVGVIChar() {
+  const W = 760, H = 260;
+  const P = { t: 48, r: 30, b: 44, l: 65 };
+  const pw = W - P.l - P.r, ph = H - P.t - P.b;
+  const xS = v => P.l + (v / 500) * pw;
+  const yS = p => P.t + ph - (p / 25) * ph;
+
+  // Simulated Peterson curve (generic shape)
+  const pts = [];
+  const Vc = 200;
+  for (let v = 0; v <= 500; v += 2) {
+    const vln = v / Math.sqrt(3);
+    const vcln = Vc / Math.sqrt(3);
+    let pc = 0;
+    if (vln > vcln) pc = 0.0008 * Math.pow(vln - vcln, 2);
+    pts.push({ v, pc: Math.min(pc, 25) });
+  }
+
+  const nonZero = pts.filter(p => p.pc > 0);
+  const linePath = nonZero.length > 0
+    ? nonZero.map((p, i) => `${i === 0 ? 'M' : 'L'}${xS(p.v).toFixed(1)},${yS(p.pc).toFixed(1)}`).join(' ')
+    : '';
+  const fillPath = nonZero.length > 0
+    ? `M${xS(nonZero[0].v).toFixed(1)},${yS(0).toFixed(1)} ${nonZero.map(p => `L${xS(p.v).toFixed(1)},${yS(p.pc).toFixed(1)}`).join(' ')} L${xS(nonZero[nonZero.length - 1].v).toFixed(1)},${yS(0).toFixed(1)} Z`
+    : '';
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: W, height: 'auto', margin: '20px 0' }}>
+      <rect width={W} height={H} rx="12" fill="#111114" stroke="#27272a" />
+      <text x={W / 2} y="24" textAnchor="middle" fill="#d4d4d8" fontSize={13} fontWeight={700}>Corona Power Loss vs Voltage (Peterson's Formula)</text>
+      <text x={W / 2} y="40" textAnchor="middle" fill="#52525b" fontSize={10}>Pc ∝ (V - Vc)² — quadratic increase beyond critical voltage</text>
+
+      {/* Axes */}
+      <line x1={P.l} y1={P.t} x2={P.l} y2={P.t + ph} stroke="#3f3f46" strokeWidth={1} />
+      <line x1={P.l} y1={P.t + ph} x2={P.l + pw} y2={P.t + ph} stroke="#3f3f46" strokeWidth={1} />
+
+      {[0, 100, 200, 300, 400, 500].map(v => (
+        <g key={v}>
+          <line x1={xS(v)} y1={P.t} x2={xS(v)} y2={P.t + ph} stroke="#1e1e2e" strokeWidth={0.5} />
+          <text x={xS(v)} y={P.t + ph + 14} textAnchor="middle" fill="#52525b" fontSize={9}>{v}</text>
+        </g>
+      ))}
+      {[0, 5, 10, 15, 20, 25].map(p => (
+        <g key={p}>
+          <line x1={P.l} y1={yS(p)} x2={P.l + pw} y2={yS(p)} stroke="#1e1e2e" strokeWidth={0.5} />
+          <text x={P.l - 6} y={yS(p) + 3} textAnchor="end" fill="#52525b" fontSize={9}>{p}</text>
+        </g>
+      ))}
+
+      <text x={W / 2} y={H - 4} textAnchor="middle" fill="#71717a" fontSize={10}>Line Voltage (kV, L-L)</text>
+      <text x={16} y={P.t + ph / 2} textAnchor="middle" fill="#71717a" fontSize={10} transform={`rotate(-90,16,${P.t + ph / 2})`}>Loss (kW/km/phase)</text>
+
+      {/* No-corona region */}
+      <rect x={P.l + 2} y={P.t + ph - 20} width={xS(Vc) - P.l - 4} height={18} rx={4} fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.2)" strokeWidth={0.5} />
+      <text x={(P.l + xS(Vc)) / 2} y={P.t + ph - 8} textAnchor="middle" fill="#22c55e" fontSize={8} fontWeight={500}>No corona loss</text>
+
+      {/* Vc vertical */}
+      <line x1={xS(Vc)} y1={P.t} x2={xS(Vc)} y2={P.t + ph} stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="5,3" />
+      <text x={xS(Vc)} y={P.t - 2} textAnchor="middle" fill="#f59e0b" fontSize={10} fontWeight={700}>Vc</text>
+
+      {/* Vv vertical */}
+      <line x1={xS(300)} y1={P.t} x2={xS(300)} y2={P.t + ph} stroke="#ef4444" strokeWidth={1.5} strokeDasharray="5,3" />
+      <text x={xS(300)} y={P.t - 2} textAnchor="middle" fill="#ef4444" fontSize={10} fontWeight={700}>Vv</text>
+
+      {/* Loss curve */}
+      {fillPath && <path d={fillPath} fill="rgba(239,68,68,0.08)" />}
+      {linePath && <path d={linePath} fill="none" stroke="#ef4444" strokeWidth={2.5} />}
+
+      {/* Annotation: quadratic */}
+      <text x={xS(420)} y={yS(15)} fill="#a5b4fc" fontSize={9} fontWeight={500}>Pc ∝ (V-Vc)²</text>
     </svg>
   );
 }
@@ -310,6 +483,8 @@ function Theory() {
         audible hissing noise, ozone smell, and continuous power loss. Corona is a major design
         consideration for EHV and UHV transmission lines.
       </p>
+
+      <TheorySVGCorona />
 
       <h3 style={S.h3}>Peek's Formula — Critical Disruptive Voltage</h3>
       <p style={S.p}>
@@ -361,6 +536,8 @@ function Theory() {
         original formulation gives the visual voltage as Vv = 21.21 × mv × δ × r × (1 + 0.3/√(δr)) × ln(D/r),
         where mv is the visual irregularity factor (~0.72 for rough conductors, ~1.0 for polished).
       </p>
+
+      <TheorySVGVIChar />
 
       <h3 style={S.h3}>Peterson's Formula — Corona Power Loss</h3>
       <p style={S.p}>

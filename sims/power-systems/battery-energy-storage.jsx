@@ -186,11 +186,18 @@ function Chart({ d, bessCapMWh }) {
         <linearGradient id="dis" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ef4444" stopOpacity="0.5" /><stop offset="1" stopColor="#ef4444" stopOpacity="0.1" /></linearGradient>
       </defs>
 
-      <rect x={xS(17)} y={MT} width={xS(22) - xS(17)} height={topH} fill="#f5920815" rx={4} />
-      <text x={xS(19.5)} y={MT + 12} textAnchor="middle" fontSize={8} fill="#f59e0b" opacity={0.5}>Peak Hours</text>
+      {/* Region annotations with operating conditions */}
+      <rect x={xS(0)} y={MT} width={xS(6) - xS(0)} height={topH} fill="#6366f1" opacity={0.03} rx={4} />
+      <text x={xS(3)} y={MT + 12} textAnchor="middle" fontSize={7} fill="#6366f1" opacity={0.4} fontWeight="600">Off-Peak</text>
 
       <rect x={xS(10)} y={MT} width={xS(15) - xS(10)} height={topH} fill="#22c55e10" rx={4} />
-      <text x={xS(12.5)} y={MT + 12} textAnchor="middle" fontSize={8} fill="#22c55e" opacity={0.5}>Solar Surplus</text>
+      <text x={xS(12.5)} y={MT + 12} textAnchor="middle" fontSize={8} fill="#22c55e" opacity={0.5} fontWeight="600">Solar Surplus / BESS Charging</text>
+
+      <rect x={xS(17)} y={MT} width={xS(22) - xS(17)} height={topH} fill="#f5920815" rx={4} />
+      <text x={xS(19.5)} y={MT + 12} textAnchor="middle" fontSize={8} fill="#f59e0b" opacity={0.5} fontWeight="600">Peak Hours / BESS Discharge</text>
+
+      <rect x={xS(15)} y={MT} width={xS(17) - xS(15)} height={topH} fill="#ef4444" opacity={0.03} rx={4} />
+      <text x={xS(16)} y={MT + 12} textAnchor="middle" fontSize={7} fill="#ef4444" opacity={0.4} fontWeight="600">Ramp</text>
 
       {[0, 3, 6, 9, 12, 15, 18, 21, 24].map(h => (
         <g key={`x${h}`}>
@@ -334,6 +341,83 @@ function Theory() {
         contingency events. Unlike conventional generators, BESS responds in <strong style={{ color: '#e4e4e7' }}>milliseconds</strong>,
         making it uniquely suited for frequency regulation, peak shaving, and renewable energy integration.
       </p>
+
+      {/* ── SVG: BESS System Components ── */}
+      <svg viewBox="0 0 700 250" style={{ width: '100%', maxWidth: 700, height: 'auto', margin: '16px auto', display: 'block' }}>
+        <rect width="700" height="250" rx="12" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+        <text x="350" y="22" textAnchor="middle" fontSize="12" fill="#e4e4e7" fontWeight="700">Battery Energy Storage System — Component Architecture</text>
+
+        {/* Battery Modules */}
+        <rect x="30" y="55" width="130" height="80" rx="8" fill="#09090b" stroke="#22c55e" strokeWidth="1.5" />
+        <text x="95" y="75" textAnchor="middle" fontSize="10" fill="#22c55e" fontWeight="700">Battery Modules</text>
+        {[0,1,2].map(r => [0,1,2,3].map(c => (
+          <rect key={`${r}${c}`} x={42+c*28} y={82+r*14} width="24" height="10" rx="2" fill="#22c55e20" stroke="#22c55e" strokeWidth="0.5" />
+        )))}
+        <text x="95" y="127" textAnchor="middle" fontSize="7" fill="#71717a">LFP / NMC Cells</text>
+
+        {/* Arrow */}
+        <line x1="160" y1="95" x2="200" y2="95" stroke="#4ade80" strokeWidth="2" />
+        <polygon points="195,90 200,95 195,100" fill="#4ade80" />
+        <text x="180" y="85" textAnchor="middle" fontSize="7" fill="#71717a">DC Bus</text>
+
+        {/* BMS */}
+        <rect x="200" y="55" width="110" height="80" rx="8" fill="#09090b" stroke="#f59e0b" strokeWidth="1.5" />
+        <text x="255" y="75" textAnchor="middle" fontSize="10" fill="#f59e0b" fontWeight="700">BMS</text>
+        <text x="255" y="90" textAnchor="middle" fontSize="8" fill="#71717a">Battery Mgmt</text>
+        <text x="255" y="103" textAnchor="middle" fontSize="7" fill="#52525b">Cell balancing</text>
+        <text x="255" y="115" textAnchor="middle" fontSize="7" fill="#52525b">SoC / SoH monitor</text>
+        <text x="255" y="127" textAnchor="middle" fontSize="7" fill="#52525b">Thermal protection</text>
+
+        {/* Arrow */}
+        <line x1="310" y1="95" x2="360" y2="95" stroke="#f59e0b" strokeWidth="2" />
+        <polygon points="355,90 360,95 355,100" fill="#f59e0b" />
+
+        {/* PCS (Power Conversion System) */}
+        <rect x="360" y="55" width="120" height="80" rx="8" fill="#09090b" stroke="#818cf8" strokeWidth="1.5" />
+        <text x="420" y="75" textAnchor="middle" fontSize="10" fill="#818cf8" fontWeight="700">PCS</text>
+        <text x="420" y="90" textAnchor="middle" fontSize="8" fill="#71717a">Power Conversion</text>
+        <text x="420" y="103" textAnchor="middle" fontSize="7" fill="#52525b">DC/AC Inverter</text>
+        <text x="420" y="115" textAnchor="middle" fontSize="7" fill="#52525b">Bidirectional</text>
+        <text x="420" y="127" textAnchor="middle" fontSize="7" fill="#52525b">IGBT/SiC switches</text>
+
+        {/* Arrow */}
+        <line x1="480" y1="95" x2="530" y2="95" stroke="#818cf8" strokeWidth="2" />
+        <polygon points="525,90 530,95 525,100" fill="#818cf8" />
+        <text x="505" y="85" textAnchor="middle" fontSize="7" fill="#71717a">AC Bus</text>
+
+        {/* Transformer + Grid */}
+        <circle cx="548" cy="95" r="12" fill="#09090b" stroke="#3b82f6" strokeWidth="1.2" />
+        <circle cx="562" cy="95" r="12" fill="#09090b" stroke="#3b82f6" strokeWidth="1.2" />
+        <text x="555" y="118" textAnchor="middle" fontSize="7" fill="#71717a">Step-Up TX</text>
+
+        <line x1="574" y1="95" x2="610" y2="95" stroke="#3b82f6" strokeWidth="2" />
+        <rect x="610" y="70" width="60" height="50" rx="8" fill="#09090b" stroke="#3b82f6" strokeWidth="1.5" />
+        <text x="640" y="92" textAnchor="middle" fontSize="10" fill="#3b82f6" fontWeight="700">GRID</text>
+        <text x="640" y="108" textAnchor="middle" fontSize="7" fill="#71717a">33/220 kV</text>
+
+        {/* Charge/Discharge cycle */}
+        <text x="350" y="160" textAnchor="middle" fontSize="11" fill="#e4e4e7" fontWeight="600">Charge / Discharge Cycle</text>
+
+        {/* Charging arrow */}
+        <rect x="50" y="175" width="280" height="35" rx="6" fill="#22c55e08" stroke="#22c55e" strokeWidth="0.8" />
+        <text x="190" y="192" textAnchor="middle" fontSize="9" fill="#22c55e" fontWeight="600">CHARGING (Off-peak / Solar surplus)</text>
+        <text x="190" y="204" textAnchor="middle" fontSize="8" fill="#71717a">Grid → PCS → BMS → Battery | Buy low</text>
+        <path d="M340,192 L350,192" stroke="#22c55e" strokeWidth="1.5" markerEnd="url(#arrowGrn)" />
+
+        {/* Discharging arrow */}
+        <rect x="370" y="175" width="280" height="35" rx="6" fill="#ef444408" stroke="#ef4444" strokeWidth="0.8" />
+        <text x="510" y="192" textAnchor="middle" fontSize="9" fill="#ef4444" fontWeight="600">DISCHARGING (Peak demand / High price)</text>
+        <text x="510" y="204" textAnchor="middle" fontSize="8" fill="#71717a">Battery → BMS → PCS → Grid | Sell high</text>
+
+        {/* Revenue stacking */}
+        <text x="350" y="235" textAnchor="middle" fontSize="9" fill="#818cf8" fontWeight="600">Revenue Stacking: Arbitrage + Peak Shaving + Frequency Regulation + RE Firming + T&D Deferral</text>
+
+        <defs>
+          <marker id="arrowGrn" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6" fill="none" stroke="#22c55e" strokeWidth="1" />
+          </marker>
+        </defs>
+      </svg>
 
       <h3 style={S.h3}>Li-ion Cell Chemistry</h3>
       <p style={S.p}>
@@ -604,6 +688,15 @@ export default function BatteryEnergyStorage() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 12px', gap: 8, borderLeft: '1px solid #1e1e2e', background: '#0c0c0f', minWidth: 130 }}>
               <span style={{ fontSize: 10, color: '#52525b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>SoC Gauge</span>
               <SoCGauge soc={curSoC} cap={data.bessCapMWh} />
+              {/* Operating state badge */}
+              <div style={{
+                padding: '4px 10px', borderRadius: 6, fontSize: 9, fontWeight: 700, textAlign: 'center',
+                background: data.bessPower[curIdx] > 0.5 ? 'rgba(239,68,68,0.1)' : data.bessPower[curIdx] < -0.5 ? 'rgba(34,197,94,0.1)' : 'rgba(113,113,122,0.1)',
+                border: `1px solid ${data.bessPower[curIdx] > 0.5 ? '#ef4444' : data.bessPower[curIdx] < -0.5 ? '#22c55e' : '#3f3f46'}`,
+                color: data.bessPower[curIdx] > 0.5 ? '#fca5a5' : data.bessPower[curIdx] < -0.5 ? '#86efac' : '#71717a',
+              }}>
+                {data.bessPower[curIdx] > 0.5 ? 'DISCHARGING' : data.bessPower[curIdx] < -0.5 ? 'CHARGING' : 'IDLE'}
+              </div>
               <FreqDemo bessMW={bessMW} />
             </div>
           </div>

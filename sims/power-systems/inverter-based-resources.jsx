@@ -98,6 +98,23 @@ function FreqView({ sim, stepped, invType, syncH }) {
 
   return (
     <svg viewBox={`0 0 ${W} ${VH}`} style={{ width: '100%', maxWidth: W, height: 'auto' }}>
+      {/* Operating condition indicator */}
+      {stepped && (
+        <rect x={PL} y={PT - 2} width={PR - PL} height={PB - PT + 4} rx={4} fill="none"
+          stroke={sim.nadir < 49.5 ? '#ef4444' : sim.nadir < 49.8 ? '#f59e0b' : '#22c55e'} strokeWidth={1} opacity={0.15} />
+      )}
+      {stepped && (
+        <g transform={`translate(${(PL + PR) / 2 - 60}, ${PT - 14})`}>
+          <rect width={120} height={14} rx={3}
+            fill={sim.nadir < 49.5 ? '#ef444415' : sim.nadir < 49.8 ? '#f59e0b15' : '#22c55e15'}
+            stroke={sim.nadir < 49.5 ? '#ef4444' : sim.nadir < 49.8 ? '#f59e0b' : '#22c55e'} strokeWidth={0.5} />
+          <text x={60} y={10} textAnchor="middle" fontSize={7}
+            fill={sim.nadir < 49.5 ? '#fca5a5' : sim.nadir < 49.8 ? '#fcd34d' : '#86efac'} fontWeight={700}>
+            {sim.nadir < 49.5 ? 'CRITICAL — UFLS RISK' : sim.nadir < 49.8 ? 'STRESSED — LOW INERTIA' : 'STABLE — ADEQUATE INERTIA'}
+          </text>
+        </g>
+      )}
+
       <rect x={40} y={12} width={130} height={42} rx={8} fill="rgba(59,130,246,0.08)" stroke="#3b82f6" />
       <text x={105} y={30} textAnchor="middle" fill="#93c5fd" fontSize={10} fontWeight={600}>Sync Generator</text>
       <text x={105} y={44} textAnchor="middle" fill="#3b82f6" fontSize={9}>H = {syncH}s</text>
@@ -400,6 +417,98 @@ function Theory() {
         these differences is critical for maintaining grid stability as renewable energy penetration
         increases.
       </p>
+
+      {/* ── SVG: Grid-Following vs Grid-Forming Inverter Block Diagram ── */}
+      <svg viewBox="0 0 700 340" style={{ width: '100%', maxWidth: 700, height: 'auto', margin: '20px auto', display: 'block' }}>
+        <rect width="700" height="340" rx="12" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+        <text x="350" y="24" textAnchor="middle" fontSize="13" fill="#e4e4e7" fontWeight="700">Grid-Following vs Grid-Forming Inverter</text>
+
+        {/* Grid-Following (top) */}
+        <text x="350" y="50" textAnchor="middle" fontSize="11" fill="#3b82f6" fontWeight="700">GRID-FOLLOWING (GFL) — Current Source Behaviour</text>
+        <rect x="40" y="65" width="80" height="40" rx="6" fill="#09090b" stroke="#22c55e" strokeWidth="1.5" />
+        <text x="80" y="82" textAnchor="middle" fontSize="9" fill="#22c55e" fontWeight="600">DC Source</text>
+        <text x="80" y="95" textAnchor="middle" fontSize="8" fill="#71717a">PV / Wind</text>
+
+        <line x1="120" y1="85" x2="160" y2="85" stroke="#3b82f6" strokeWidth="1.5" />
+        <rect x="160" y="65" width="100" height="40" rx="6" fill="#09090b" stroke="#3b82f6" strokeWidth="1.5" />
+        <text x="210" y="82" textAnchor="middle" fontSize="9" fill="#3b82f6" fontWeight="600">Inverter (VSI)</text>
+        <text x="210" y="95" textAnchor="middle" fontSize="8" fill="#71717a">IGBT Bridge</text>
+
+        <line x1="260" y1="85" x2="300" y2="85" stroke="#3b82f6" strokeWidth="1.5" />
+        <rect x="300" y="65" width="90" height="40" rx="6" fill="#09090b" stroke="#818cf8" strokeWidth="1.5" />
+        <text x="345" y="82" textAnchor="middle" fontSize="9" fill="#818cf8" fontWeight="600">PLL</text>
+        <text x="345" y="95" textAnchor="middle" fontSize="8" fill="#71717a">Phase Lock Loop</text>
+
+        <line x1="390" y1="85" x2="430" y2="85" stroke="#3b82f6" strokeWidth="1.5" />
+        <rect x="430" y="65" width="90" height="40" rx="6" fill="#09090b" stroke="#f59e0b" strokeWidth="1.5" />
+        <text x="475" y="82" textAnchor="middle" fontSize="9" fill="#f59e0b" fontWeight="600">Current Ctrl</text>
+        <text x="475" y="95" textAnchor="middle" fontSize="8" fill="#71717a">dq-frame PI</text>
+
+        <line x1="520" y1="85" x2="560" y2="85" stroke="#3b82f6" strokeWidth="1.5" markerEnd="url(#arrowR)" />
+        <rect x="560" y="65" width="100" height="40" rx="6" fill="#09090b" stroke="#71717a" strokeWidth="1.5" />
+        <text x="610" y="82" textAnchor="middle" fontSize="9" fill="#71717a" fontWeight="600">Grid</text>
+        <text x="610" y="95" textAnchor="middle" fontSize="8" fill="#52525b">Must exist</text>
+
+        <text x="350" y="125" textAnchor="middle" fontSize="9" fill="#71717a" fontStyle="italic">Follows grid voltage/frequency via PLL. Cannot form grid alone.</text>
+
+        {/* Grid-Forming (bottom) */}
+        <text x="350" y="155" textAnchor="middle" fontSize="11" fill="#22c55e" fontWeight="700">GRID-FORMING (GFM) — Voltage Source Behaviour</text>
+        <rect x="40" y="170" width="80" height="40" rx="6" fill="#09090b" stroke="#22c55e" strokeWidth="1.5" />
+        <text x="80" y="187" textAnchor="middle" fontSize="9" fill="#22c55e" fontWeight="600">DC Source</text>
+        <text x="80" y="200" textAnchor="middle" fontSize="8" fill="#71717a">PV + BESS</text>
+
+        <line x1="120" y1="190" x2="160" y2="190" stroke="#22c55e" strokeWidth="1.5" />
+        <rect x="160" y="170" width="100" height="40" rx="6" fill="#09090b" stroke="#22c55e" strokeWidth="1.5" />
+        <text x="210" y="187" textAnchor="middle" fontSize="9" fill="#22c55e" fontWeight="600">Inverter (VSI)</text>
+        <text x="210" y="200" textAnchor="middle" fontSize="8" fill="#71717a">IGBT Bridge</text>
+
+        <line x1="260" y1="190" x2="300" y2="190" stroke="#22c55e" strokeWidth="1.5" />
+        <rect x="300" y="170" width="90" height="40" rx="6" fill="#09090b" stroke="#22d3ee" strokeWidth="1.5" />
+        <text x="345" y="187" textAnchor="middle" fontSize="9" fill="#22d3ee" fontWeight="600">Virtual SM</text>
+        <text x="345" y="200" textAnchor="middle" fontSize="8" fill="#71717a">Droop / VSM</text>
+
+        <line x1="390" y1="190" x2="430" y2="190" stroke="#22c55e" strokeWidth="1.5" />
+        <rect x="430" y="170" width="90" height="40" rx="6" fill="#09090b" stroke="#f59e0b" strokeWidth="1.5" />
+        <text x="475" y="187" textAnchor="middle" fontSize="9" fill="#f59e0b" fontWeight="600">Voltage Ctrl</text>
+        <text x="475" y="200" textAnchor="middle" fontSize="8" fill="#71717a">V & f setpoint</text>
+
+        <line x1="520" y1="190" x2="560" y2="190" stroke="#22c55e" strokeWidth="1.5" markerEnd="url(#arrowRg)" />
+        <rect x="560" y="170" width="100" height="40" rx="6" fill="#09090b" stroke="#22c55e" strokeWidth="1.5" />
+        <text x="610" y="187" textAnchor="middle" fontSize="9" fill="#22c55e" fontWeight="600">Grid / Island</text>
+        <text x="610" y="200" textAnchor="middle" fontSize="8" fill="#52525b">Can create grid</text>
+
+        <text x="350" y="228" textAnchor="middle" fontSize="9" fill="#71717a" fontStyle="italic">Sets voltage and frequency. Provides synthetic inertia. Can black-start.</text>
+
+        <defs>
+          <marker id="arrowR" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L8,3 L0,6" fill="none" stroke="#3b82f6" strokeWidth="1" />
+          </marker>
+          <marker id="arrowRg" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L8,3 L0,6" fill="none" stroke="#22c55e" strokeWidth="1" />
+          </marker>
+        </defs>
+
+        {/* Droop curves at bottom */}
+        <text x="180" y="255" textAnchor="middle" fontSize="10" fill="#e4e4e7" fontWeight="600">Frequency-Watt Droop</text>
+        <line x1="80" y1="265" x2="80" y2="320" stroke="#3f3f46" strokeWidth="0.8" />
+        <line x1="80" y1="320" x2="280" y2="320" stroke="#3f3f46" strokeWidth="0.8" />
+        <text x="60" y="295" textAnchor="middle" fontSize="8" fill="#71717a" transform="rotate(-90 60 295)">Frequency</text>
+        <text x="180" y="335" textAnchor="middle" fontSize="8" fill="#71717a">Active Power (P)</text>
+        <line x1="90" y1="270" x2="270" y2="315" stroke="#22d3ee" strokeWidth="2" />
+        <text x="200" y="282" fontSize="8" fill="#22d3ee">R = 4-5%</text>
+        <circle cx="180" cy="293" r="3" fill="#22d3ee" />
+        <text x="188" y="290" fontSize="7" fill="#71717a">f₀, P₀</text>
+
+        <text x="520" y="255" textAnchor="middle" fontSize="10" fill="#e4e4e7" fontWeight="600">Volt-VAR Droop</text>
+        <line x1="420" y1="265" x2="420" y2="320" stroke="#3f3f46" strokeWidth="0.8" />
+        <line x1="420" y1="320" x2="620" y2="320" stroke="#3f3f46" strokeWidth="0.8" />
+        <text x="400" y="295" textAnchor="middle" fontSize="8" fill="#71717a" transform="rotate(-90 400 295)">Voltage</text>
+        <text x="520" y="335" textAnchor="middle" fontSize="8" fill="#71717a">Reactive Power (Q)</text>
+        <line x1="430" y1="270" x2="610" y2="315" stroke="#f59e0b" strokeWidth="2" />
+        <text x="540" y="282" fontSize="8" fill="#f59e0b">Slope = Xq droop</text>
+        <circle cx="520" cy="293" r="3" fill="#f59e0b" />
+        <text x="528" y="290" fontSize="7" fill="#71717a">V₀, Q₀</text>
+      </svg>
 
       <h3 style={S.h3}>Synchronous Generator Fundamentals</h3>
       <p style={S.p}>

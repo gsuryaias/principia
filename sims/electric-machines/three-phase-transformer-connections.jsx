@@ -34,11 +34,13 @@ const PHASE_COLORS = { A: '#ef4444', B: '#eab308', C: '#3b82f6', a: '#ef4444', b
 const RAD = Math.PI / 180;
 const sqrt3 = Math.sqrt(3);
 
+const GROUP_COLORS = { 0: '#22c55e', 11: '#f59e0b', 6: '#ef4444', 1: '#60a5fa' };
+
 const CONNECTIONS = [
-  { id: 'Yd11', label: 'Yd11', primary: 'Y', secondary: 'D', groupNum: 11, phaseShift: -30, desc: 'Star–Delta (−30°)' },
-  { id: 'Dy11', label: 'Dy11', primary: 'D', secondary: 'Y', groupNum: 11, phaseShift: -30, desc: 'Delta–Star (−30°)' },
-  { id: 'Dd0',  label: 'Dd0',  primary: 'D', secondary: 'D', groupNum: 0,  phaseShift: 0,   desc: 'Delta–Delta (0°)' },
-  { id: 'Yy0',  label: 'Yy0',  primary: 'Y', secondary: 'Y', groupNum: 0,  phaseShift: 0,   desc: 'Star–Star (0°)' },
+  { id: 'Yd11', label: 'Yd11', primary: 'Y', secondary: 'D', groupNum: 11, phaseShift: -30, desc: 'Star-Delta (-30 deg)', groupColor: '#f59e0b' },
+  { id: 'Dy11', label: 'Dy11', primary: 'D', secondary: 'Y', groupNum: 11, phaseShift: -30, desc: 'Delta-Star (-30 deg)', groupColor: '#f59e0b' },
+  { id: 'Dd0',  label: 'Dd0',  primary: 'D', secondary: 'D', groupNum: 0,  phaseShift: 0,   desc: 'Delta-Delta (0 deg)', groupColor: '#22c55e' },
+  { id: 'Yy0',  label: 'Yy0',  primary: 'Y', secondary: 'Y', groupNum: 0,  phaseShift: 0,   desc: 'Star-Star (0 deg)', groupColor: '#22c55e' },
 ];
 
 function fmt(v, digits = 2) {
@@ -265,10 +267,13 @@ function SimView({ conn, v1L, ratio, setConnId, setV1L, setRatio }) {
           <svg viewBox="0 0 960 340" style={{ width: '100%', maxWidth: 960, height: 'auto' }}>
             <ArrowDefs />
 
-            {/* Background sections */}
+            {/* Background sections with subtle vector group color tint */}
             <rect x={0} y={0} width={310} height={340} fill="#0d0d11" rx={0} />
+            <rect x={0} y={0} width={310} height={3} fill={conn.groupColor} opacity={0.3} />
             <rect x={310} y={0} width={340} height={340} fill="#0a0a0f" rx={0} />
+            <rect x={310} y={0} width={340} height={3} fill={conn.groupColor} opacity={0.2} />
             <rect x={650} y={0} width={310} height={340} fill="#0d0d11" rx={0} />
+            <rect x={650} y={0} width={310} height={3} fill={conn.groupColor} opacity={0.3} />
 
             {/* Section labels */}
             <text x={155} y={22} fontSize={12} fill="#52525b" textAnchor="middle" fontFamily="monospace" fontWeight="600">PRIMARY ({isPrimY ? 'STAR' : 'DELTA'})</text>
@@ -305,7 +310,13 @@ function SimView({ conn, v1L, ratio, setConnId, setV1L, setRatio }) {
 
             {/* Turns ratio label */}
             <text x={480} y={104} fontSize={11} fill="#c4b5fd" textAnchor="middle" fontFamily="monospace">N1/N2 = {ratio.toFixed(1)}</text>
-            <text x={480} y={242} fontSize={10} fill="#6366f1" textAnchor="middle" fontFamily="monospace">{conn.label}</text>
+            {/* Color-coded vector group badge */}
+            <rect x={445} y={232} width={70} height={22} rx={6} fill={`${conn.groupColor}15`} stroke={conn.groupColor} strokeWidth={1.5} />
+            <text x={480} y={247} fontSize={11} fill={conn.groupColor} textAnchor="middle" fontFamily="monospace" fontWeight={700}>{conn.label}</text>
+            {/* Phase shift indicator */}
+            <text x={480} y={264} fontSize={9} fill={conn.groupColor} textAnchor="middle" fontFamily="monospace" opacity={0.8}>
+              {conn.phaseShift === 0 ? '0 deg shift' : `${conn.phaseShift} deg shift`}
+            </text>
 
             {/* Connecting lines primary → core */}
             <line x1={310} y1={130} x2={420} y2={130} stroke="#374151" strokeWidth={1.5} strokeDasharray="4 2" />
@@ -341,12 +352,16 @@ function SimView({ conn, v1L, ratio, setConnId, setV1L, setRatio }) {
             <div style={{ display: 'flex', gap: 4 }}>
               {CONNECTIONS.map(c => (
                 <button key={c.id} style={{
-                  padding: '5px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'monospace',
-                  background: conn.id === c.id ? '#6366f1' : '#1e1e2e',
-                  color: conn.id === c.id ? '#fff' : '#71717a',
+                  padding: '5px 14px', borderRadius: 8, border: conn.id === c.id ? `2px solid ${c.groupColor}` : '2px solid transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'monospace',
+                  background: conn.id === c.id ? `${c.groupColor}22` : '#1e1e2e',
+                  color: conn.id === c.id ? c.groupColor : '#71717a',
                   transition: 'all 0.2s',
+                  boxShadow: conn.id === c.id ? `0 0 8px ${c.groupColor}33` : 'none',
                 }} onClick={() => setConnId(c.id)}>
                   {c.label}
+                  <span style={{ display: 'block', fontSize: 8, color: conn.id === c.id ? c.groupColor : '#52525b', marginTop: 2 }}>
+                    Group {c.groupNum}
+                  </span>
                 </button>
               ))}
             </div>
@@ -410,6 +425,155 @@ function TheoryView() {
           distribution network. The "11" denotes a −30° phase displacement (secondary lags primary).
         </p>
       </div>
+
+      {/* SVG: Connection diagrams for Yy, Yd, Dy, Dd */}
+      <svg viewBox="0 0 720 360" style={{ width: '100%', maxWidth: 720, height: 'auto', margin: '16px auto', display: 'block' }}>
+        <text x={360} y={18} textAnchor="middle" fill="#71717a" fontSize={11} fontWeight={600}>Standard Connection Diagrams</text>
+
+        {/* Yy0 */}
+        <rect x={10} y={30} width={170} height={140} rx={6} fill="#0d0d10" stroke="#27272a" strokeWidth={1} />
+        <text x={95} y={48} textAnchor="middle" fill="#818cf8" fontSize={11} fontWeight={700}>Yy0 (0 deg)</text>
+        {/* Primary Y */}
+        <circle cx={55} cy={100} r={3} fill="#52525b" />
+        <line x1={55} y1={100} x2={55} y2={68} stroke="#ef4444" strokeWidth={1.5} />
+        <line x1={55} y1={100} x2={35} y2={130} stroke="#eab308" strokeWidth={1.5} />
+        <line x1={55} y1={100} x2={75} y2={130} stroke="#3b82f6" strokeWidth={1.5} />
+        <text x={55} y={63} textAnchor="middle" fill="#ef4444" fontSize={8}>A</text>
+        <text x={28} y={138} textAnchor="middle" fill="#eab308" fontSize={8}>B</text>
+        <text x={82} y={138} textAnchor="middle" fill="#3b82f6" fontSize={8}>C</text>
+        <text x={55} y={148} textAnchor="middle" fill="#52525b" fontSize={7}>Y (Star)</text>
+        {/* Secondary Y */}
+        <circle cx={135} cy={100} r={3} fill="#52525b" />
+        <line x1={135} y1={100} x2={135} y2={68} stroke="#ef4444" strokeWidth={1.5} />
+        <line x1={135} y1={100} x2={115} y2={130} stroke="#eab308" strokeWidth={1.5} />
+        <line x1={135} y1={100} x2={155} y2={130} stroke="#3b82f6" strokeWidth={1.5} />
+        <text x={135} y={63} textAnchor="middle" fill="#ef4444" fontSize={8}>a</text>
+        <text x={108} y={138} textAnchor="middle" fill="#eab308" fontSize={8}>b</text>
+        <text x={162} y={138} textAnchor="middle" fill="#3b82f6" fontSize={8}>c</text>
+        <text x={135} y={148} textAnchor="middle" fill="#52525b" fontSize={7}>y (Star)</text>
+        <text x={95} y={163} textAnchor="middle" fill="#22c55e" fontSize={8} fontWeight={600}>Phase shift: 0 deg</text>
+
+        {/* Yd11 */}
+        <rect x={190} y={30} width={170} height={140} rx={6} fill="#0d0d10" stroke="#27272a" strokeWidth={1} />
+        <text x={275} y={48} textAnchor="middle" fill="#818cf8" fontSize={11} fontWeight={700}>Yd11 (-30 deg)</text>
+        {/* Primary Y */}
+        <circle cx={235} cy={100} r={3} fill="#52525b" />
+        <line x1={235} y1={100} x2={235} y2={68} stroke="#ef4444" strokeWidth={1.5} />
+        <line x1={235} y1={100} x2={215} y2={130} stroke="#eab308" strokeWidth={1.5} />
+        <line x1={235} y1={100} x2={255} y2={130} stroke="#3b82f6" strokeWidth={1.5} />
+        <text x={235} y={63} textAnchor="middle" fill="#ef4444" fontSize={8}>A</text>
+        <text x={208} y={138} textAnchor="middle" fill="#eab308" fontSize={8}>B</text>
+        <text x={262} y={138} textAnchor="middle" fill="#3b82f6" fontSize={8}>C</text>
+        <text x={235} y={148} textAnchor="middle" fill="#52525b" fontSize={7}>Y (Star)</text>
+        {/* Secondary D (triangle) */}
+        <line x1={315} y1={72} x2={295} y2={130} stroke="#ef4444" strokeWidth={1.5} />
+        <line x1={295} y1={130} x2={335} y2={130} stroke="#eab308" strokeWidth={1.5} />
+        <line x1={335} y1={130} x2={315} y2={72} stroke="#3b82f6" strokeWidth={1.5} />
+        <circle cx={315} cy={72} r={3} fill="#ef4444" />
+        <circle cx={295} cy={130} r={3} fill="#eab308" />
+        <circle cx={335} cy={130} r={3} fill="#3b82f6" />
+        <text x={315} y={65} textAnchor="middle" fill="#ef4444" fontSize={8}>a</text>
+        <text x={288} y={138} textAnchor="middle" fill="#eab308" fontSize={8}>b</text>
+        <text x={342} y={138} textAnchor="middle" fill="#3b82f6" fontSize={8}>c</text>
+        <text x={315} y={148} textAnchor="middle" fill="#52525b" fontSize={7}>d (Delta)</text>
+        <text x={275} y={163} textAnchor="middle" fill="#f59e0b" fontSize={8} fontWeight={600}>Phase shift: -30 deg</text>
+
+        {/* Dy11 */}
+        <rect x={370} y={30} width={170} height={140} rx={6} fill="#0d0d10" stroke="#27272a" strokeWidth={1} />
+        <text x={455} y={48} textAnchor="middle" fill="#818cf8" fontSize={11} fontWeight={700}>Dy11 (-30 deg)</text>
+        {/* Primary D */}
+        <line x1={415} y1={72} x2={395} y2={130} stroke="#ef4444" strokeWidth={1.5} />
+        <line x1={395} y1={130} x2={435} y2={130} stroke="#eab308" strokeWidth={1.5} />
+        <line x1={435} y1={130} x2={415} y2={72} stroke="#3b82f6" strokeWidth={1.5} />
+        <circle cx={415} cy={72} r={3} fill="#ef4444" />
+        <circle cx={395} cy={130} r={3} fill="#eab308" />
+        <circle cx={435} cy={130} r={3} fill="#3b82f6" />
+        <text x={415} y={65} textAnchor="middle" fill="#ef4444" fontSize={8}>A</text>
+        <text x={388} y={138} textAnchor="middle" fill="#eab308" fontSize={8}>B</text>
+        <text x={442} y={138} textAnchor="middle" fill="#3b82f6" fontSize={8}>C</text>
+        <text x={415} y={148} textAnchor="middle" fill="#52525b" fontSize={7}>D (Delta)</text>
+        {/* Secondary Y */}
+        <circle cx={495} cy={100} r={3} fill="#52525b" />
+        <line x1={495} y1={100} x2={495} y2={68} stroke="#ef4444" strokeWidth={1.5} />
+        <line x1={495} y1={100} x2={475} y2={130} stroke="#eab308" strokeWidth={1.5} />
+        <line x1={495} y1={100} x2={515} y2={130} stroke="#3b82f6" strokeWidth={1.5} />
+        <text x={495} y={63} textAnchor="middle" fill="#ef4444" fontSize={8}>a</text>
+        <text x={468} y={138} textAnchor="middle" fill="#eab308" fontSize={8}>b</text>
+        <text x={522} y={138} textAnchor="middle" fill="#3b82f6" fontSize={8}>c</text>
+        <text x={495} y={148} textAnchor="middle" fill="#52525b" fontSize={7}>y (Star)</text>
+        <text x={455} y={163} textAnchor="middle" fill="#f59e0b" fontSize={8} fontWeight={600}>Phase shift: -30 deg</text>
+
+        {/* Dd0 */}
+        <rect x={550} y={30} width={160} height={140} rx={6} fill="#0d0d10" stroke="#27272a" strokeWidth={1} />
+        <text x={630} y={48} textAnchor="middle" fill="#818cf8" fontSize={11} fontWeight={700}>Dd0 (0 deg)</text>
+        {/* Primary D */}
+        <line x1={595} y1={72} x2={575} y2={130} stroke="#ef4444" strokeWidth={1.5} />
+        <line x1={575} y1={130} x2={615} y2={130} stroke="#eab308" strokeWidth={1.5} />
+        <line x1={615} y1={130} x2={595} y2={72} stroke="#3b82f6" strokeWidth={1.5} />
+        <circle cx={595} cy={72} r={3} fill="#ef4444" />
+        <circle cx={575} cy={130} r={3} fill="#eab308" />
+        <circle cx={615} cy={130} r={3} fill="#3b82f6" />
+        <text x={595} y={65} textAnchor="middle" fill="#ef4444" fontSize={8}>A</text>
+        <text x={568} y={138} textAnchor="middle" fill="#eab308" fontSize={8}>B</text>
+        <text x={622} y={138} textAnchor="middle" fill="#3b82f6" fontSize={8}>C</text>
+        <text x={595} y={148} textAnchor="middle" fill="#52525b" fontSize={7}>D</text>
+        {/* Secondary D */}
+        <line x1={665} y1={72} x2={645} y2={130} stroke="#ef4444" strokeWidth={1.5} />
+        <line x1={645} y1={130} x2={685} y2={130} stroke="#eab308" strokeWidth={1.5} />
+        <line x1={685} y1={130} x2={665} y2={72} stroke="#3b82f6" strokeWidth={1.5} />
+        <circle cx={665} cy={72} r={3} fill="#ef4444" />
+        <circle cx={645} cy={130} r={3} fill="#eab308" />
+        <circle cx={685} cy={130} r={3} fill="#3b82f6" />
+        <text x={665} y={65} textAnchor="middle" fill="#ef4444" fontSize={8}>a</text>
+        <text x={638} y={138} textAnchor="middle" fill="#eab308" fontSize={8}>b</text>
+        <text x={692} y={138} textAnchor="middle" fill="#3b82f6" fontSize={8}>c</text>
+        <text x={665} y={148} textAnchor="middle" fill="#52525b" fontSize={7}>d</text>
+        <text x={630} y={163} textAnchor="middle" fill="#22c55e" fontSize={8} fontWeight={600}>Phase shift: 0 deg</text>
+
+        {/* Vector Group Notation Explanation */}
+        <rect x={10} y={185} width={700} height={165} rx={8} fill="#0d0d10" stroke="#27272a" strokeWidth={1} />
+        <text x={360} y={205} textAnchor="middle" fill="#818cf8" fontSize={11} fontWeight={700}>Vector Group Notation (IEC 60076)</text>
+
+        {/* Notation breakdown */}
+        <rect x={30} y={220} width={660} height={50} rx={6} fill="#18181b" stroke="#27272a" strokeWidth={0.5} />
+        {/* Example: Yd11 */}
+        <text x={80} y={238} fill="#6366f1" fontSize={22} fontWeight={700} fontFamily="monospace">Y</text>
+        <text x={110} y={238} fill="#f59e0b" fontSize={22} fontWeight={700} fontFamily="monospace">d</text>
+        <text x={140} y={238} fill="#22c55e" fontSize={22} fontWeight={700} fontFamily="monospace">11</text>
+
+        <line x1={85} y1={244} x2={85} y2={262} stroke="#6366f1" strokeWidth={1} />
+        <text x={85} y={258} textAnchor="middle" fill="#6366f1" fontSize={8}>Primary winding</text>
+        <text x={85} y={268} textAnchor="middle" fill="#6366f1" fontSize={7}>(CAPITAL = HV)</text>
+
+        <line x1={115} y1={244} x2={115} y2={262} stroke="#f59e0b" strokeWidth={1} />
+        <text x={115} y={258} textAnchor="middle" fill="#f59e0b" fontSize={8}>Secondary winding</text>
+        <text x={115} y={268} textAnchor="middle" fill="#f59e0b" fontSize={7}>(lowercase = LV)</text>
+
+        <line x1={148} y1={244} x2={148} y2={262} stroke="#22c55e" strokeWidth={1} />
+        <text x={148} y={258} textAnchor="middle" fill="#22c55e" fontSize={8}>Clock number</text>
+        <text x={148} y={268} textAnchor="middle" fill="#22c55e" fontSize={7}>(x30 deg shift)</text>
+
+        {/* Symbols explanation */}
+        <text x={260} y={238} fill="#a1a1aa" fontSize={9}>Y/y = Star    D/d = Delta    Z/z = Zigzag</text>
+        <text x={260} y={252} fill="#a1a1aa" fontSize={9}>Clock 0 = 0 deg    Clock 1 = +30 deg    Clock 11 = -30 deg    Clock 6 = 180 deg</text>
+
+        {/* Clock diagram mini */}
+        <circle cx={600} cy={240} r={25} fill="#18181b" stroke="#3f3f46" strokeWidth={1} />
+        <text x={600} y={222} textAnchor="middle" fill="#52525b" fontSize={7}>12</text>
+        <text x={625} y={244} textAnchor="middle" fill="#52525b" fontSize={7}>3</text>
+        <text x={600} y={264} textAnchor="middle" fill="#52525b" fontSize={7}>6</text>
+        <text x={575} y={244} textAnchor="middle" fill="#52525b" fontSize={7}>9</text>
+        {/* Hand pointing to 11 */}
+        <line x1={600} y1={240} x2={590} y2={223} stroke="#6366f1" strokeWidth={2} strokeLinecap="round" />
+        <circle cx={600} cy={240} r={3} fill="#6366f1" />
+        <text x={600} y={278} textAnchor="middle" fill="#818cf8" fontSize={8}>Group 11</text>
+
+        {/* Phasor comparison */}
+        <rect x={430} y={290} width={270} height={50} rx={5} fill="rgba(99,102,241,0.05)" stroke="#27272a" strokeWidth={0.5} />
+        <text x={565} y={308} textAnchor="middle" fill="#818cf8" fontSize={9} fontWeight={600}>Phase Shift Rule</text>
+        <text x={565} y={322} textAnchor="middle" fill="#a1a1aa" fontSize={8}>Yd11 (-30 deg) + Dy11 (-30 deg) at two stages = net -60 deg</text>
+        <text x={565} y={334} textAnchor="middle" fill="#a1a1aa" fontSize={8}>Yd11 + Yd11 in parallel = OK (same group)</text>
+      </svg>
 
       <div style={S.h3}>Star (Y) vs Delta (D) Connections</div>
       <table style={S.tbl}>

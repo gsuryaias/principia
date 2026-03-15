@@ -9,6 +9,7 @@ export default function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/category/:categoryId" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/sim/*" element={<SimulationView />} />
       </Routes>

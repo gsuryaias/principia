@@ -406,10 +406,85 @@ function SimTab({ numC, totalKW, ltLen, pf, condKey, setNumC, setTotalKW, setLtL
   );
 }
 
+function TheorySVGHVDS() {
+  return (
+    <svg viewBox="0 0 760 320" style={{ width: '100%', maxWidth: 760, height: 'auto', margin: '20px 0' }}>
+      <rect width="760" height="320" rx="12" fill="#111114" stroke="#27272a" />
+      <text x="380" y="28" textAnchor="middle" fill="#d4d4d8" fontSize={14} fontWeight={700}>LVDS vs HVDS — Distribution Architecture Comparison</text>
+
+      {/* LVDS - Left */}
+      <text x="190" y="56" textAnchor="middle" fill="#ef4444" fontSize={12} fontWeight={600}>Conventional LVDS</text>
+
+      {/* 11 kV line */}
+      <line x1="60" y1="86" x2="320" y2="86" stroke="#f59e0b" strokeWidth={2} />
+      <text x="60" y="80" fill="#f59e0b" fontSize={8}>11 kV HT</text>
+
+      {/* Large DT */}
+      <rect x="165" y="96" width="50" height="30" rx="4" fill="rgba(99,102,241,0.1)" stroke="#6366f1" strokeWidth={1.5} />
+      <text x="190" y="115" textAnchor="middle" fill="#a5b4fc" fontSize={8}>100 kVA</text>
+      <line x1="190" y1="86" x2="190" y2="96" stroke="#52525b" strokeWidth={2} />
+
+      {/* Long LT lines */}
+      <line x1="190" y1="126" x2="190" y2="145" stroke="#ef4444" strokeWidth={2} />
+      <line x1="80" y1="145" x2="300" y2="145" stroke="#ef4444" strokeWidth={2} />
+      <text x="190" y="160" textAnchor="middle" fill="#ef4444" fontSize={8}>415 V LT lines (500m-2km)</text>
+
+      {/* Consumers spread out */}
+      {[80, 120, 160, 200, 240, 280].map(x => (
+        <g key={x}>
+          <line x1={x} y1="145" x2={x} y2="180" stroke="#52525b" strokeWidth={0.8} />
+          <rect x={x - 6} y="180" width="12" height="10" rx="2" fill="#3f3f46" stroke="#52525b" strokeWidth={0.5} />
+        </g>
+      ))}
+      <text x="190" y="208" textAnchor="middle" fill="#71717a" fontSize={8}>Consumers</text>
+
+      {/* Loss indicator */}
+      <rect x="80" y="220" width="220" height="40" rx="6" fill="rgba(239,68,68,0.06)" stroke="rgba(239,68,68,0.2)" />
+      <text x="190" y="236" textAnchor="middle" fill="#ef4444" fontSize={9} fontWeight={600}>High I²R losses (I ∝ 1/V)</text>
+      <text x="190" y="250" textAnchor="middle" fill="#71717a" fontSize={8}>At 415V: current is 26.5x higher than 11kV</text>
+
+      {/* HVDS - Right */}
+      <text x="570" y="56" textAnchor="middle" fill="#22c55e" fontSize={12} fontWeight={600}>HVDS System</text>
+
+      {/* 11 kV line extended to consumers */}
+      <line x1="440" y1="86" x2="700" y2="86" stroke="#f59e0b" strokeWidth={2} />
+      <text x="440" y="80" fill="#f59e0b" fontSize={8}>11 kV HT extended</text>
+
+      {/* Multiple small DTs near consumers */}
+      {[480, 530, 580, 630, 680].map((x, i) => (
+        <g key={x}>
+          <line x1={x} y1="86" x2={x} y2="100" stroke="#52525b" strokeWidth={1.5} />
+          <rect x={x - 16} y="100" width="32" height="22" rx="3" fill="rgba(34,197,94,0.08)" stroke="#22c55e" strokeWidth={1} />
+          <text x={x} y="114" textAnchor="middle" fill="#22c55e" fontSize={6}>16kVA</text>
+          {/* Short LT */}
+          <line x1={x} y1="122" x2={x} y2="145" stroke="#22c55e" strokeWidth={1} />
+          {/* 1-2 consumers each */}
+          <rect x={x - 6} y="145" width="12" height="10" rx="2" fill="#3f3f46" stroke="#52525b" strokeWidth={0.5} />
+        </g>
+      ))}
+      <text x="570" y="175" textAnchor="middle" fill="#22c55e" fontSize={8}>Short LT leads (&lt;30m each)</text>
+      <text x="570" y="187" textAnchor="middle" fill="#71717a" fontSize={8}>Consumers</text>
+
+      {/* Benefit indicator */}
+      <rect x="460" y="220" width="220" height="40" rx="6" fill="rgba(34,197,94,0.06)" stroke="rgba(34,197,94,0.2)" />
+      <text x="570" y="236" textAnchor="middle" fill="#22c55e" fontSize={9} fontWeight={600}>Low losses + better voltage</text>
+      <text x="570" y="250" textAnchor="middle" fill="#71717a" fontSize={8}>HT carries low current; LT runs are minimal</text>
+
+      {/* Comparison bar */}
+      <line x1="40" y1="280" x2="720" y2="280" stroke="#27272a" strokeWidth={0.5} />
+      <text x="190" y="300" textAnchor="middle" fill="#ef4444" fontSize={9}>Losses: 15-25%</text>
+      <text x="570" y="300" textAnchor="middle" fill="#22c55e" fontSize={9}>Losses: 3-6%</text>
+      <text x="380" y="300" textAnchor="middle" fill="#71717a" fontSize={10} fontWeight={600}>vs</text>
+    </svg>
+  );
+}
+
 function TheoryTab() {
   return (
     <div style={S.theory}>
       <h2 style={{ ...S.h2, marginTop: 0 }}>HVDS — High Voltage Distribution System</h2>
+
+      <TheorySVGHVDS />
 
       <h2 style={S.h2}>1. Why India's LT Lines Have High Losses</h2>
       <p style={S.p}>

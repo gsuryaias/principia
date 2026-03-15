@@ -29,6 +29,7 @@ const S = {
   ctx: { padding: '16px 20px', background: 'rgba(99,102,241,0.06)', borderLeft: '3px solid #6366f1', borderRadius: '0 12px 12px 0', margin: '20px 0' },
   ctxT: { fontWeight: 600, color: '#818cf8', marginBottom: 6, fontSize: 14, display: 'block' },
   ctxP: { fontSize: 14, lineHeight: 1.7, color: '#a1a1aa', margin: 0 },
+  svgDiagram: { width: '100%', margin: '20px 0', background: '#0d0d11', border: '1px solid #27272a', borderRadius: 12, padding: 0 },
 };
 
 const BASE = { R1: 0.6, X1: 1.1, R2: 0.45, X2: 1.1, Xm: 28, poles: 4, fBase: 50, VBase: 415 };
@@ -68,7 +69,8 @@ function buildCurve(Vll, rotorMultiplier, freq) {
   }
   const motoring = samples.filter((p) => p.s > 0 && p.s < 1);
   const tMax = motoring.reduce((best, p) => (p.T > best.T ? p : best), motoring[0]);
-  return { samples, tMax };
+  const starting = samples.find(p => Math.abs(p.s - 1) < 0.02) || { s: 1, T: 0 };
+  return { samples, tMax, starting };
 }
 
 const BASE_CURVE = buildCurve(BASE.VBase, 1, BASE.fBase);
@@ -102,9 +104,14 @@ function Diagram({ curve, operating, freq }) {
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: W, height: 'auto' }}>
+      {/* Color-coded background regions */}
       <rect x={xS(-1)} y={MT} width={xS(0) - xS(-1)} height={PH} fill="#0f172a" opacity="0.45" />
       <rect x={xS(0)} y={MT} width={xS(1) - xS(0)} height={PH} fill="#052e16" opacity="0.35" />
       <rect x={xS(1)} y={MT} width={xS(2) - xS(1)} height={PH} fill="#3f0d12" opacity="0.26" />
+
+      {/* Region boundary lines */}
+      <line x1={xS(0)} y1={MT} x2={xS(0)} y2={MT + PH} stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="6 3" opacity="0.5" />
+      <line x1={xS(1)} y1={MT} x2={xS(1)} y2={MT + PH} stroke="#ef4444" strokeWidth="1.5" strokeDasharray="6 3" opacity="0.5" />
 
       {[ -1, -0.5, 0, 0.5, 1, 1.5, 2 ].map((s) => (
         <g key={s}>
@@ -121,30 +128,216 @@ function Diagram({ curve, operating, freq }) {
 
       <line x1={ML} y1={yS(0)} x2={ML + PW} y2={yS(0)} stroke="#52525b" strokeWidth="1" />
       <path d={path} fill="none" stroke="#a78bfa" strokeWidth="3" />
+
+      {/* Load torque line */}
       <line x1={ML} y1={yS(LOAD_TORQUE)} x2={ML + PW} y2={yS(LOAD_TORQUE)} stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="6 4" />
+      <text x={ML + PW - 4} y={yS(LOAD_TORQUE) - 6} textAnchor="end" fill="#f59e0b" fontSize="10" fontWeight="600">Load torque line</text>
+
+      {/* Operating point */}
       <circle cx={xS(operating.s)} cy={yS(operating.T)} r="6" fill="#22c55e" />
+      <line x1={xS(operating.s)} y1={yS(operating.T)} x2={xS(operating.s)} y2={MT + PH} stroke="#22c55e" strokeWidth="1" strokeDasharray="3 2" opacity="0.5" />
       <text x={xS(operating.s) + 10} y={yS(operating.T) - 10} fill="#22c55e" fontSize="11" fontWeight="700">
         Operating point
       </text>
-      <circle cx={xS(curve.tMax.s)} cy={yS(curve.tMax.T)} r="5" fill="#ef4444" />
-      <text x={xS(curve.tMax.s) + 10} y={yS(curve.tMax.T) + 4} fill="#ef4444" fontSize="11" fontWeight="700">
-        Tmax
+      <text x={xS(operating.s) + 10} y={yS(operating.T) + 6} fill="#22c55e" fontSize="9" opacity="0.8">
+        N = {operating.speed.toFixed(0)} rpm
       </text>
 
+      {/* Tmax / Breakdown torque */}
+      <circle cx={xS(curve.tMax.s)} cy={yS(curve.tMax.T)} r="5" fill="#ef4444" />
+      <line x1={xS(curve.tMax.s)} y1={yS(curve.tMax.T)} x2={xS(curve.tMax.s) + 80} y2={yS(curve.tMax.T) - 30} stroke="#ef4444" strokeWidth="1" strokeDasharray="3 2" />
+      <text x={xS(curve.tMax.s) + 82} y={yS(curve.tMax.T) - 34} fill="#ef4444" fontSize="11" fontWeight="700">
+        Breakdown Torque
+      </text>
+      <text x={xS(curve.tMax.s) + 82} y={yS(curve.tMax.T) - 20} fill="#ef4444" fontSize="9" opacity="0.8">
+        Tmax = {curve.tMax.T.toFixed(1)} N.m @ s = {curve.tMax.s.toFixed(3)}
+      </text>
+
+      {/* Starting torque annotation */}
+      {(() => {
+        const tStart = curve.starting;
+        return (
+          <g>
+            <circle cx={xS(1)} cy={yS(tStart.T)} r="4" fill="#22d3ee" />
+            <text x={xS(1) + 8} y={yS(tStart.T) + 4} fill="#22d3ee" fontSize="10" fontWeight="600">Tstart</text>
+          </g>
+        );
+      })()}
+
+      {/* Region labels */}
       <text x={xS(-0.5)} y={MT + 18} textAnchor="middle" fill="#93c5fd" fontSize="11" fontWeight="700">Generating</text>
+      <text x={xS(-0.5)} y={MT + 32} textAnchor="middle" fill="#93c5fd" fontSize="9" opacity="0.7">N &gt; Ns</text>
       <text x={xS(0.5)} y={MT + 18} textAnchor="middle" fill="#86efac" fontSize="11" fontWeight="700">Motoring</text>
+      <text x={xS(0.5)} y={MT + 32} textAnchor="middle" fill="#86efac" fontSize="9" opacity="0.7">0 &lt; N &lt; Ns</text>
       <text x={xS(1.5)} y={MT + 18} textAnchor="middle" fill="#fca5a5" fontSize="11" fontWeight="700">Plugging / Braking</text>
+      <text x={xS(1.5)} y={MT + 32} textAnchor="middle" fill="#fca5a5" fontSize="9" opacity="0.7">N &lt; 0 (reversed)</text>
 
       <text x={W / 2} y={H - 14} textAnchor="middle" fill="#71717a" fontSize="10">Slip, s</text>
-      <text x={16} y={H / 2} textAnchor="middle" fill="#71717a" fontSize="10" transform={`rotate(-90 16 ${H / 2})`}>Torque (N·m)</text>
+      <text x={16} y={H / 2} textAnchor="middle" fill="#71717a" fontSize="10" transform={`rotate(-90 16 ${H / 2})`}>Torque (N.m)</text>
 
       <g transform="translate(680,52)">
         <rect width="250" height="88" rx="10" fill="#101015" stroke="#27272a" />
         <text x="14" y="22" fill="#a1a1aa" fontSize="11">Ns = {ns.toFixed(0)} rpm</text>
         <text x="14" y="40" fill="#a1a1aa" fontSize="11">N = Ns (1 - s) = {operating.speed.toFixed(0)} rpm</text>
-        <text x="14" y="58" fill="#a1a1aa" fontSize="11">Load torque line = {LOAD_TORQUE.toFixed(1)} N·m</text>
+        <text x="14" y="58" fill="#a1a1aa" fontSize="11">Load torque line = {LOAD_TORQUE.toFixed(1)} N.m</text>
         <text x="14" y="76" fill="#c4b5fd" fontSize="11" fontFamily="monospace">T proportional to V^2, smax proportional to R2</text>
       </g>
+    </svg>
+  );
+}
+
+/* ============================================================
+   Theory SVG Diagrams
+   ============================================================ */
+
+function TorqueSlipAnnotatedSVG() {
+  const W = 780, H = 340;
+  const ML = 60, MR = 20, MT = 30, MB = 44;
+  const PW = W - ML - MR, PH = H - MT - MB;
+  const xS = (s) => ML + ((s + 1) / 3) * PW;
+  const yS = (t) => MT + PH - t * PH;
+
+  // Simplified normalized T-s curve for illustration
+  const points = [];
+  for (let i = 0; i <= 300; i++) {
+    const s = -1 + i * (3 / 300);
+    const sEff = Math.abs(s) < 0.005 ? (s >= 0 ? 0.005 : -0.005) : s;
+    const r2 = 0.3;
+    const xTotal = 1.5;
+    const rOverS = r2 / sEff;
+    const T = rOverS / (rOverS * rOverS + xTotal * xTotal);
+    points.push({ s, T: T * 3.5 });
+  }
+  const maxT = Math.max(...points.filter(p => p.s > 0 && p.s < 1).map(p => p.T));
+  const norm = points.map(p => ({ s: p.s, T: p.T / (maxT * 1.2) }));
+  const path = norm.map((p, i) => `${i === 0 ? 'M' : 'L'}${xS(p.s).toFixed(1)},${yS(p.T).toFixed(1)}`).join(' ');
+
+  const peakPt = norm.filter(p => p.s > 0 && p.s < 1).reduce((b, p) => p.T > b.T ? p : b, norm[0]);
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={S.svgDiagram}>
+      <text x={W / 2} y="18" textAnchor="middle" fill="#71717a" fontSize="11" fontWeight="600" letterSpacing="0.06em">
+        TORQUE-SLIP CURVE WITH LABELED REGIONS
+      </text>
+      {/* Regions */}
+      <rect x={xS(-1)} y={MT} width={xS(0) - xS(-1)} height={PH} fill="#1e3a5f" opacity="0.2" />
+      <rect x={xS(0)} y={MT} width={xS(1) - xS(0)} height={PH} fill="#064e3b" opacity="0.2" />
+      <rect x={xS(1)} y={MT} width={xS(2) - xS(1)} height={PH} fill="#7f1d1d" opacity="0.15" />
+
+      {/* Region boundaries */}
+      <line x1={xS(0)} y1={MT} x2={xS(0)} y2={MT + PH} stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="6 3" opacity="0.6" />
+      <line x1={xS(1)} y1={MT} x2={xS(1)} y2={MT + PH} stroke="#ef4444" strokeWidth="1.5" strokeDasharray="6 3" opacity="0.6" />
+
+      {/* Axis labels */}
+      <text x={xS(-0.5)} y={MT + 16} textAnchor="middle" fill="#93c5fd" fontSize="11" fontWeight="700">GENERATING</text>
+      <text x={xS(-0.5)} y={MT + 30} textAnchor="middle" fill="#93c5fd" fontSize="9">s &lt; 0</text>
+      <text x={xS(0.5)} y={MT + 16} textAnchor="middle" fill="#86efac" fontSize="11" fontWeight="700">MOTORING</text>
+      <text x={xS(0.5)} y={MT + 30} textAnchor="middle" fill="#86efac" fontSize="9">0 &lt; s &lt; 1</text>
+      <text x={xS(1.5)} y={MT + 16} textAnchor="middle" fill="#fca5a5" fontSize="11" fontWeight="700">BRAKING</text>
+      <text x={xS(1.5)} y={MT + 30} textAnchor="middle" fill="#fca5a5" fontSize="9">s &gt; 1</text>
+
+      {/* Grid */}
+      <line x1={ML} y1={yS(0)} x2={ML + PW} y2={yS(0)} stroke="#3f3f46" strokeWidth="1" />
+      {[-1, -0.5, 0, 0.5, 1, 1.5, 2].map(s => (
+        <g key={s}>
+          <line x1={xS(s)} y1={MT} x2={xS(s)} y2={MT + PH} stroke="#1f2937" strokeWidth="0.5" />
+          <text x={xS(s)} y={MT + PH + 14} textAnchor="middle" fill="#52525b" fontSize="9">{s}</text>
+        </g>
+      ))}
+
+      {/* Curve */}
+      <path d={path} fill="none" stroke="#a78bfa" strokeWidth="2.5" />
+
+      {/* Breakdown torque marker */}
+      <circle cx={xS(peakPt.s)} cy={yS(peakPt.T)} r="5" fill="#ef4444" />
+      <line x1={xS(peakPt.s)} y1={yS(peakPt.T)} x2={xS(peakPt.s) + 60} y2={yS(peakPt.T) - 24} stroke="#ef4444" strokeWidth="1" />
+      <text x={xS(peakPt.s) + 64} y={yS(peakPt.T) - 26} fill="#ef4444" fontSize="10" fontWeight="700">Tmax (Breakdown)</text>
+
+      {/* Starting torque at s=1 */}
+      {(() => {
+        const startPt = norm.find(p => Math.abs(p.s - 1) < 0.02);
+        if (!startPt) return null;
+        return (
+          <g>
+            <circle cx={xS(1)} cy={yS(startPt.T)} r="4" fill="#22d3ee" />
+            <text x={xS(1) + 8} y={yS(startPt.T) - 4} fill="#22d3ee" fontSize="10" fontWeight="600">Tstart</text>
+          </g>
+        );
+      })()}
+
+      {/* Rated operating point (approximate) */}
+      <circle cx={xS(0.04)} cy={yS(norm.find(p => Math.abs(p.s - 0.04) < 0.02)?.T || 0)} r="4" fill="#22c55e" />
+      <text x={xS(0.04) + 8} y={yS(norm.find(p => Math.abs(p.s - 0.04) < 0.02)?.T || 0) + 4} fill="#22c55e" fontSize="10" fontWeight="600">Rated point</text>
+
+      <text x={W / 2} y={H - 8} textAnchor="middle" fill="#71717a" fontSize="10">Slip (s)</text>
+      <text x="14" y={H / 2} textAnchor="middle" fill="#71717a" fontSize="10" transform={`rotate(-90 14 ${H / 2})`}>Torque</text>
+    </svg>
+  );
+}
+
+function RotorResistanceEffectSVG() {
+  const W = 780, H = 280;
+  const ML = 60, MR = 20, MT = 30, MB = 40;
+  const PW = W - ML - MR, PH = H - MT - MB;
+  const xS = (s) => ML + (s / 1.2) * PW;
+  const yS = (t) => MT + PH - t * PH;
+
+  const r2Values = [0.15, 0.3, 0.6, 1.0];
+  const colors = ['#a78bfa', '#22c55e', '#f59e0b', '#ef4444'];
+  const xTotal = 1.5;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={S.svgDiagram}>
+      <text x={W / 2} y="18" textAnchor="middle" fill="#71717a" fontSize="11" fontWeight="600" letterSpacing="0.06em">
+        EFFECT OF ROTOR RESISTANCE ON T-s CURVE (MOTORING REGION)
+      </text>
+      {/* Grid */}
+      {[0, 0.2, 0.4, 0.6, 0.8, 1.0].map(s => (
+        <g key={s}>
+          <line x1={xS(s)} y1={MT} x2={xS(s)} y2={MT + PH} stroke="#1f2937" strokeWidth="0.5" />
+          <text x={xS(s)} y={MT + PH + 14} textAnchor="middle" fill="#52525b" fontSize="9">{s}</text>
+        </g>
+      ))}
+      <line x1={ML} y1={yS(0)} x2={ML + PW} y2={yS(0)} stroke="#3f3f46" strokeWidth="0.7" />
+
+      {/* Curves for different R2 */}
+      {r2Values.map((r2, ci) => {
+        const pts = [];
+        let maxT = 0;
+        for (let i = 1; i <= 120; i++) {
+          const s = i / 100;
+          const rOverS = r2 / s;
+          const T = rOverS / (rOverS * rOverS + xTotal * xTotal);
+          if (T > maxT) maxT = T;
+          pts.push({ s, T });
+        }
+        const normPts = pts.map(p => ({ s: p.s, T: p.T / (r2Values[0] / (2 * xTotal) * 1.15) }));
+        const d = normPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${xS(p.s).toFixed(1)},${yS(p.T).toFixed(1)}`).join(' ');
+        const peak = normPts.reduce((b, p) => p.T > b.T ? p : b, normPts[0]);
+        return (
+          <g key={r2}>
+            <path d={d} fill="none" stroke={colors[ci]} strokeWidth="2" />
+            <circle cx={xS(peak.s)} cy={yS(peak.T)} r="3" fill={colors[ci]} />
+            <text x={xS(peak.s) + 6} y={yS(peak.T) - 6} fill={colors[ci]} fontSize="9" fontWeight="600">R2'={r2}</text>
+          </g>
+        );
+      })}
+
+      {/* Annotation arrow showing shift */}
+      <line x1={xS(0.12)} y1={yS(0.85)} x2={xS(0.7)} y2={yS(0.85)} stroke="#71717a" strokeWidth="1.5" markerEnd="url(#ts-arr)" />
+      <defs>
+        <marker id="ts-arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0,0 8,3 0,6" fill="#71717a" />
+        </marker>
+      </defs>
+      <text x={xS(0.4)} y={yS(0.85) - 6} textAnchor="middle" fill="#71717a" fontSize="9">Increasing R2' shifts peak to higher slip</text>
+
+      <text x={W / 2} y={H - 6} textAnchor="middle" fill="#71717a" fontSize="10">Slip (s)</text>
+      <text x="14" y={H / 2} textAnchor="middle" fill="#71717a" fontSize="10" transform={`rotate(-90 14 ${H / 2})`}>Torque</text>
+
+      {/* Legend */}
+      <text x={W - 140} y={MT + 16} fill="#71717a" fontSize="9" fontWeight="600">Tmax remains same;</text>
+      <text x={W - 140} y={MT + 28} fill="#71717a" fontSize="9">only smax changes</text>
     </svg>
   );
 }
@@ -190,7 +383,7 @@ export default function TorqueSlipCharacteristics() {
           </div>
 
           <div style={S.results}>
-            <div style={S.ri}><span style={S.rl}>Pull-out torque</span><span style={S.rv}>{curve.tMax.T.toFixed(1)} N·m</span></div>
+            <div style={S.ri}><span style={S.rl}>Pull-out torque</span><span style={S.rv}>{curve.tMax.T.toFixed(1)} N.m</span></div>
             <div style={S.ri}><span style={S.rl}>Slip at Tmax</span><span style={S.rv}>{curve.tMax.s.toFixed(3)}</span></div>
             <div style={S.ri}><span style={S.rl}>Operating slip</span><span style={S.rv}>{operating.s.toFixed(3)}</span></div>
             <div style={S.ri}><span style={S.rl}>Operating speed</span><span style={S.rv}>{operating.speed.toFixed(0)} rpm</span></div>
@@ -220,14 +413,16 @@ export default function TorqueSlipCharacteristics() {
             The same curve explains starting torque, pull-out torque, normal operating slip, generating operation, and plugging.
           </p>
 
+          <TorqueSlipAnnotatedSVG />
+
           <span style={S.eq}>T = 3 |Vth|^2 (R2 / s) / [omega_sync ((Rth + R2 / s)^2 + (Xth + X2)^2)]</span>
           <span style={S.eq}>smax = R2 / sqrt(Rth^2 + (Xth + X2)^2)</span>
 
           <h2 style={S.h2}>Operating Regions</h2>
           <ul style={S.ul}>
-            <li style={S.li}><strong style={{ color: '#93c5fd' }}>s &lt; 0</strong> — generating region. Rotor speed exceeds synchronous speed and mechanical power is converted into electrical power.</li>
-            <li style={S.li}><strong style={{ color: '#86efac' }}>0 &lt; s &lt; 1</strong> — motoring region. This is the normal induction-motor operating range.</li>
-            <li style={S.li}><strong style={{ color: '#fca5a5' }}>1 &lt; s &lt; 2</strong> — plugging region. Reversing phase sequence while the rotor is moving makes slip exceed unity and produces strong braking torque.</li>
+            <li style={S.li}><strong style={{ color: '#93c5fd' }}>s &lt; 0</strong> -- generating region. Rotor speed exceeds synchronous speed and mechanical power is converted into electrical power.</li>
+            <li style={S.li}><strong style={{ color: '#86efac' }}>0 &lt; s &lt; 1</strong> -- motoring region. This is the normal induction-motor operating range.</li>
+            <li style={S.li}><strong style={{ color: '#fca5a5' }}>1 &lt; s &lt; 2</strong> -- plugging region. Reversing phase sequence while the rotor is moving makes slip exceed unity and produces strong braking torque.</li>
           </ul>
 
           <h2 style={S.h2}>Characteristic Features</h2>
@@ -248,6 +443,13 @@ export default function TorqueSlipCharacteristics() {
           <p style={S.p}>
             The peak of the curve is called breakdown torque or pull-out torque. If the load demands more than this, the motor cannot remain in steady operation and will decelerate toward stall.
           </p>
+
+          <h2 style={S.h2}>Effect of Rotor Resistance</h2>
+          <p style={S.p}>
+            Increasing rotor resistance shifts the slip at which maximum torque occurs toward higher values, but the magnitude of maximum torque itself remains approximately unchanged. This is the basis for slip-ring motor starting with external resistance.
+          </p>
+
+          <RotorResistanceEffectSVG />
 
           <h2 style={S.h2}>Engineering Reading</h2>
           <h3 style={S.h3}>Voltage control</h3>

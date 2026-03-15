@@ -397,6 +397,109 @@ function Diagram({ data }) {
   );
 }
 
+function TheorySVGVoltageProfile() {
+  const W = 760, H = 260;
+  const P = { t: 50, r: 30, b: 44, l: 60 };
+  const pw = W - P.l - P.r, ph = H - P.t - P.b;
+  const xS = d => P.l + (d / 400) * pw;
+  const yS = v => P.t + ph - ((v - 0.9) / 0.25) * ph;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: W, height: 'auto', margin: '20px 0' }}>
+      <rect width={W} height={H} rx="12" fill="#111114" stroke="#27272a" />
+      <text x={W / 2} y="24" textAnchor="middle" fill="#d4d4d8" fontSize={13} fontWeight={700}>Voltage Profile Along Line — Ferranti Effect</text>
+      <text x={W / 2} y="40" textAnchor="middle" fill="#52525b" fontSize={10}>Receiving-end voltage rises above sending-end under no/light load</text>
+
+      {/* Grid */}
+      {[0, 100, 200, 300, 400].map(d => (
+        <g key={d}>
+          <line x1={xS(d)} y1={P.t} x2={xS(d)} y2={P.t + ph} stroke="#1e1e2e" strokeWidth={0.5} />
+          <text x={xS(d)} y={P.t + ph + 14} textAnchor="middle" fill="#52525b" fontSize={9}>{d}</text>
+        </g>
+      ))}
+      {[0.90, 0.95, 1.00, 1.05, 1.10, 1.15].map(v => (
+        <g key={v}>
+          <line x1={P.l} y1={yS(v)} x2={P.l + pw} y2={yS(v)} stroke="#1e1e2e" strokeWidth={0.5} />
+          <text x={P.l - 6} y={yS(v) + 3} textAnchor="end" fill="#52525b" fontSize={9}>{v.toFixed(2)}</text>
+        </g>
+      ))}
+
+      <text x={W / 2} y={H - 4} textAnchor="middle" fill="#71717a" fontSize={10}>Distance from Sending End (km)</text>
+      <text x={16} y={P.t + ph / 2} textAnchor="middle" fill="#71717a" fontSize={10} transform={`rotate(-90,16,${P.t + ph / 2})`}>V / V_rated (p.u.)</text>
+
+      {/* 1.0 pu reference */}
+      <line x1={P.l} y1={yS(1.0)} x2={P.l + pw} y2={yS(1.0)} stroke="#3f3f46" strokeWidth={1} strokeDasharray="6,4" />
+      <text x={P.l + pw + 5} y={yS(1.0) + 3} fill="#71717a" fontSize={8}>1.0 pu</text>
+
+      {/* No-load curve (Ferranti) — rises from 1.0 to ~1.12 */}
+      <path d={`M${xS(0)},${yS(1.0)} Q${xS(200)},${yS(1.03)} ${xS(400)},${yS(1.12)}`} fill="none" stroke="#ef4444" strokeWidth={2.5} />
+      <text x={xS(400) + 5} y={yS(1.12) - 4} fill="#ef4444" fontSize={9} fontWeight={600}>No load</text>
+
+      {/* Light-load curve — rises slightly */}
+      <path d={`M${xS(0)},${yS(1.0)} Q${xS(200)},${yS(1.01)} ${xS(400)},${yS(1.05)}`} fill="none" stroke="#f59e0b" strokeWidth={2} />
+      <text x={xS(400) + 5} y={yS(1.05) - 4} fill="#f59e0b" fontSize={9} fontWeight={600}>Light load</text>
+
+      {/* At SIL — flat */}
+      <line x1={xS(0)} y1={yS(1.0)} x2={xS(400)} y2={yS(1.0)} stroke="#22c55e" strokeWidth={2} />
+      <text x={xS(400) + 5} y={yS(1.0) + 4} fill="#22c55e" fontSize={9} fontWeight={600}>SIL</text>
+
+      {/* Heavy load — drops */}
+      <path d={`M${xS(0)},${yS(1.0)} Q${xS(200)},${yS(0.97)} ${xS(400)},${yS(0.93)}`} fill="none" stroke="#6366f1" strokeWidth={2} />
+      <text x={xS(400) + 5} y={yS(0.93) + 4} fill="#6366f1" fontSize={9} fontWeight={600}>Heavy load</text>
+
+      {/* Overvoltage region */}
+      <rect x={P.l} y={yS(1.15)} width={pw} height={yS(1.05) - yS(1.15)} rx="0" fill="rgba(239,68,68,0.04)" />
+      <text x={P.l + 8} y={yS(1.10)} fill="#ef4444" fontSize={8} opacity={0.6}>Overvoltage zone (&gt;1.05 pu)</text>
+
+      {/* Sending end / Receiving end labels */}
+      <text x={xS(0)} y={P.t - 4} textAnchor="middle" fill="#f59e0b" fontSize={9} fontWeight={600}>Sending</text>
+      <text x={xS(400)} y={P.t - 4} textAnchor="middle" fill="#22d3ee" fontSize={9} fontWeight={600}>Receiving</text>
+    </svg>
+  );
+}
+
+function TheorySVGChargingCurrent() {
+  return (
+    <svg viewBox="0 0 760 200" style={{ width: '100%', maxWidth: 760, height: 'auto', margin: '20px 0' }}>
+      <rect width="760" height="200" rx="12" fill="#111114" stroke="#27272a" />
+      <text x="380" y="28" textAnchor="middle" fill="#d4d4d8" fontSize={13} fontWeight={700}>Capacitive Charging Current Distribution</text>
+
+      {/* Transmission line */}
+      <line x1="80" y1="90" x2="680" y2="90" stroke="#52525b" strokeWidth={3} />
+      <text x="80" y="78" textAnchor="middle" fill="#f59e0b" fontSize={10} fontWeight={600}>Vs</text>
+      <text x="680" y="78" textAnchor="middle" fill="#22d3ee" fontSize={10} fontWeight={600}>Vr</text>
+
+      {/* Distributed capacitors along line */}
+      {[160, 260, 360, 460, 560].map((x, i) => (
+        <g key={x}>
+          <line x1={x} y1="93" x2={x} y2="110" stroke="#22c55e" strokeWidth={1} />
+          <line x1={x - 8} y1="110" x2={x + 8} y2="110" stroke="#22c55e" strokeWidth={2} />
+          <line x1={x - 8} y1="116" x2={x + 8} y2="116" stroke="#22c55e" strokeWidth={2} />
+          <line x1={x} y1="116" x2={x} y2="130" stroke="#22c55e" strokeWidth={1} />
+          {/* Ground */}
+          <line x1={x - 6} y1="130" x2={x + 6} y2="130" stroke="#3f3f46" strokeWidth={1} />
+          <line x1={x - 4} y1="133" x2={x + 4} y2="133" stroke="#3f3f46" strokeWidth={0.8} />
+          {/* Charging current arrow */}
+          <line x1={x + 12} y1="103" x2={x + 12} y2="118" stroke="#22d3ee" strokeWidth={1} opacity={0.5}>
+            <animate attributeName="opacity" values="0.3;0.8;0.3" dur={`${1.5 + i * 0.2}s`} repeatCount="indefinite" />
+          </line>
+          <text x={x + 16} y="113" fill="#22d3ee" fontSize={7} opacity={0.5}>Ic</text>
+        </g>
+      ))}
+
+      {/* Current magnitude arrow (increasing toward sending end) */}
+      <defs>
+        <marker id="fArr" markerWidth="6" markerHeight="5" refX="0" refY="2.5" orient="auto">
+          <path d="M0,0 L6,2.5 L0,5 Z" fill="#22d3ee" />
+        </marker>
+      </defs>
+      <line x1="660" y1="150" x2="100" y2="150" stroke="#22d3ee" strokeWidth={1.5} markerEnd="url(#fArr)" />
+      <text x="380" y="168" textAnchor="middle" fill="#22d3ee" fontSize={9}>Charging current Ic accumulates toward sending end</text>
+      <text x="380" y="182" textAnchor="middle" fill="#71717a" fontSize={9}>Ic at sending end = V * omega * C * l (no load)</text>
+    </svg>
+  );
+}
+
 function Theory() {
   return (
     <div style={S.theory}>
@@ -409,11 +512,16 @@ function Theory() {
         (capacitive) current, which interacts with the series inductance to build up voltage along the
         line length.
       </p>
+
+      <TheorySVGVoltageProfile />
+
       <p style={S.p}>
         The effect is significant on lines longer than about 200 km at 50 Hz, and becomes a critical
         design concern for EHV/UHV lines of 300 km and above, where the receiving-end voltage can
         rise 5–20% above the sending-end value at no-load.
       </p>
+
+      <TheorySVGChargingCurrent />
 
       <h3 style={S.h3}>Mathematical Foundation</h3>
       <p style={S.p}>

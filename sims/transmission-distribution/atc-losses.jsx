@@ -236,6 +236,80 @@ function Benchmark({ atc }) {
   );
 }
 
+function TheorySVGATCFlow() {
+  return (
+    <svg viewBox="0 0 760 300" style={{ width: '100%', maxWidth: 760, height: 'auto', margin: '20px 0' }}>
+      <rect width="760" height="300" rx="12" fill="#111114" stroke="#27272a" />
+      <text x="380" y="28" textAnchor="middle" fill="#d4d4d8" fontSize={14} fontWeight={700}>AT&C Loss — Energy & Revenue Flow Chain</text>
+
+      {/* Energy flow pipeline */}
+      {/* Energy Input */}
+      <rect x="40" y="60" width="120" height="50" rx="8" fill="rgba(99,102,241,0.1)" stroke="#6366f1" strokeWidth={2} />
+      <text x="100" y="82" textAnchor="middle" fill="#a5b4fc" fontSize={10} fontWeight={600}>Energy Input</text>
+      <text x="100" y="96" textAnchor="middle" fill="#71717a" fontSize={8}>1000 MU</text>
+
+      {/* Arrow */}
+      <defs>
+        <marker id="atcArr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#52525b" />
+        </marker>
+      </defs>
+      <line x1="160" y1="85" x2="195" y2="85" stroke="#52525b" strokeWidth={1.5} markerEnd="url(#atcArr)" />
+
+      {/* Technical loss leak */}
+      <line x1="135" y1="110" x2="135" y2="145" stroke="#ef4444" strokeWidth={1.5} markerEnd="url(#atcArr)" />
+      <rect x="100" y="145" width="70" height="30" rx="4" fill="rgba(239,68,68,0.08)" stroke="#ef4444" strokeWidth={1} />
+      <text x="135" y="160" textAnchor="middle" fill="#ef4444" fontSize={8}>Technical Loss</text>
+      <text x="135" y="172" textAnchor="middle" fill="#71717a" fontSize={7}>I²R + iron losses</text>
+
+      {/* Energy Available */}
+      <rect x="200" y="60" width="120" height="50" rx="8" fill="rgba(245,158,11,0.1)" stroke="#f59e0b" strokeWidth={1.5} />
+      <text x="260" y="78" textAnchor="middle" fill="#f59e0b" fontSize={9} fontWeight={600}>Energy Available</text>
+      <text x="260" y="92" textAnchor="middle" fill="#f59e0b" fontSize={9}>for Sale</text>
+      <text x="260" y="106" textAnchor="middle" fill="#71717a" fontSize={8}>850 MU</text>
+
+      <line x1="320" y1="85" x2="355" y2="85" stroke="#52525b" strokeWidth={1.5} markerEnd="url(#atcArr)" />
+
+      {/* Commercial loss leak */}
+      <line x1="295" y1="110" x2="295" y2="145" stroke="#ef4444" strokeWidth={1.5} markerEnd="url(#atcArr)" />
+      <rect x="260" y="145" width="70" height="30" rx="4" fill="rgba(239,68,68,0.08)" stroke="#ef4444" strokeWidth={1} />
+      <text x="295" y="160" textAnchor="middle" fill="#ef4444" fontSize={8}>Commercial Loss</text>
+      <text x="295" y="172" textAnchor="middle" fill="#71717a" fontSize={7}>Theft, meter errors</text>
+
+      {/* Energy Billed */}
+      <rect x="360" y="60" width="120" height="50" rx="8" fill="rgba(34,197,94,0.1)" stroke="#22c55e" strokeWidth={1.5} />
+      <text x="420" y="82" textAnchor="middle" fill="#22c55e" fontSize={10} fontWeight={600}>Energy Billed</text>
+      <text x="420" y="96" textAnchor="middle" fill="#71717a" fontSize={8}>750 MU</text>
+
+      <line x1="480" y1="85" x2="515" y2="85" stroke="#52525b" strokeWidth={1.5} markerEnd="url(#atcArr)" />
+
+      {/* Collection loss leak */}
+      <line x1="455" y1="110" x2="455" y2="145" stroke="#ef4444" strokeWidth={1.5} markerEnd="url(#atcArr)" />
+      <rect x="420" y="145" width="70" height="30" rx="4" fill="rgba(239,68,68,0.08)" stroke="#ef4444" strokeWidth={1} />
+      <text x="455" y="160" textAnchor="middle" fill="#ef4444" fontSize={8}>Collection Gap</text>
+      <text x="455" y="172" textAnchor="middle" fill="#71717a" fontSize={7}>Non-payment</text>
+
+      {/* Revenue Collected */}
+      <rect x="520" y="60" width="120" height="50" rx="8" fill="rgba(34,211,238,0.1)" stroke="#22d3ee" strokeWidth={2} />
+      <text x="580" y="78" textAnchor="middle" fill="#22d3ee" fontSize={9} fontWeight={600}>Revenue</text>
+      <text x="580" y="92" textAnchor="middle" fill="#22d3ee" fontSize={9}>Collected</text>
+      <text x="580" y="106" textAnchor="middle" fill="#71717a" fontSize={8}>675 MU equiv.</text>
+
+      {/* AT&C Loss result */}
+      <rect x="660" y="55" width="80" height="60" rx="8" fill="rgba(239,68,68,0.1)" stroke="#ef4444" strokeWidth={2} />
+      <text x="700" y="76" textAnchor="middle" fill="#ef4444" fontSize={10} fontWeight={700}>AT&C</text>
+      <text x="700" y="92" textAnchor="middle" fill="#ef4444" fontSize={14} fontWeight={700}>32.5%</text>
+      <line x1="640" y1="85" x2="658" y2="85" stroke="#52525b" strokeWidth={1.5} markerEnd="url(#atcArr)" />
+
+      {/* Formula */}
+      <rect x="140" y="210" width="480" height="70" rx="8" fill="#18181b" stroke="#27272a" />
+      <text x="380" y="232" textAnchor="middle" fill="#c4b5fd" fontSize={11} fontFamily="monospace">BE = Energy Billed / Energy Input = 750/1000 = 75%</text>
+      <text x="380" y="250" textAnchor="middle" fill="#c4b5fd" fontSize={11} fontFamily="monospace">CE = Revenue Collected / Revenue Billed = 90%</text>
+      <text x="380" y="268" textAnchor="middle" fill="#f59e0b" fontSize={12} fontFamily="monospace" fontWeight={700}>AT&C = [1 - (BE x CE)] x 100 = [1 - 0.675] x 100 = 32.5%</text>
+    </svg>
+  );
+}
+
 function Theory() {
   return (
     <div style={S.theory}>
@@ -246,6 +320,8 @@ function Theory() {
         company (DISCOM). Unlike simple technical loss, AT&C captures the complete picture — from energy entering
         the distribution system to revenue actually collected by the utility.
       </p>
+
+      <TheorySVGATCFlow />
       <p style={S.p}>
         The metric was introduced by the Ministry of Power, Government of India, to provide a unified measure
         that accounts for technical losses in the network, commercial losses (theft, metering deficiencies),

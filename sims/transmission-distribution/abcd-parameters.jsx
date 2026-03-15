@@ -249,6 +249,161 @@ function Diagram({ d }) {
   );
 }
 
+function TheorySVGLineModels() {
+  const wire = '#52525b';
+  const gnd = (gx, gy) => (
+    <g key={`g${gx}${gy}`}>
+      <line x1={gx - 6} y1={gy} x2={gx + 6} y2={gy} stroke="#3f3f46" strokeWidth={1.2} />
+      <line x1={gx - 4} y1={gy + 3} x2={gx + 4} y2={gy + 3} stroke="#3f3f46" strokeWidth={1} />
+      <line x1={gx - 2} y1={gy + 6} x2={gx + 2} y2={gy + 6} stroke="#3f3f46" strokeWidth={0.8} />
+    </g>
+  );
+  return (
+    <svg viewBox="0 0 760 480" style={{ width: '100%', maxWidth: 760, height: 'auto', margin: '20px 0' }}>
+      <rect width="760" height="480" rx="12" fill="#111114" stroke="#27272a" />
+      <text x="380" y="28" textAnchor="middle" fill="#d4d4d8" fontSize={14} fontWeight={700}>Four Transmission Line Models — Equivalent Circuits</text>
+
+      {/* 1. Short line */}
+      <text x="190" y="60" textAnchor="middle" fill="#22c55e" fontSize={11} fontWeight={600}>Short Line (l &lt; 80 km)</text>
+      <circle cx="60" cy="90" r="3" fill="#f59e0b" />
+      <text x="60" y="82" textAnchor="middle" fill="#f59e0b" fontSize={8}>Vs</text>
+      <line x1="63" y1="90" x2="130" y2="90" stroke={wire} strokeWidth={1.2} />
+      <rect x="130" y="80" width="120" height="20" rx="3" fill="rgba(99,102,241,0.08)" stroke="#6366f1" strokeWidth={1} />
+      <text x="190" y="93" textAnchor="middle" fill="#c4b5fd" fontSize={9}>Z = R + jX</text>
+      <line x1="250" y1="90" x2="320" y2="90" stroke={wire} strokeWidth={1.2} />
+      <circle cx="320" cy="90" r="3" fill="#22d3ee" />
+      <text x="320" y="82" textAnchor="middle" fill="#22d3ee" fontSize={8}>Vr</text>
+      <text x="190" y="115" textAnchor="middle" fill="#52525b" fontSize={8}>A=1, B=Z, C=0, D=1</text>
+
+      {/* 2. Medium Pi */}
+      <text x="570" y="60" textAnchor="middle" fill="#f59e0b" fontSize={11} fontWeight={600}>Medium Line - Nominal pi (80-250 km)</text>
+      <circle cx="420" cy="90" r="3" fill="#f59e0b" />
+      <text x="420" y="82" textAnchor="middle" fill="#f59e0b" fontSize={8}>Vs</text>
+      <line x1="423" y1="90" x2="468" y2="90" stroke={wire} strokeWidth={1.2} />
+      <circle cx="468" cy="90" r="2.5" fill="#d4d4d8" />
+      <line x1="468" y1="90" x2="510" y2="90" stroke={wire} strokeWidth={1.2} />
+      <rect x="510" y="80" width="120" height="20" rx="3" fill="rgba(99,102,241,0.08)" stroke="#6366f1" strokeWidth={1} />
+      <text x="570" y="93" textAnchor="middle" fill="#c4b5fd" fontSize={9}>Z</text>
+      <line x1="630" y1="90" x2="672" y2="90" stroke={wire} strokeWidth={1.2} />
+      <circle cx="672" cy="90" r="2.5" fill="#d4d4d8" />
+      <line x1="672" y1="90" x2="720" y2="90" stroke={wire} strokeWidth={1.2} />
+      <circle cx="720" cy="90" r="3" fill="#22d3ee" />
+      <text x="720" y="82" textAnchor="middle" fill="#22d3ee" fontSize={8}>Vr</text>
+      {/* Y/2 caps */}
+      <line x1="468" y1="93" x2="468" y2="108" stroke="#22c55e" strokeWidth={1} />
+      <line x1="460" y1="108" x2="476" y2="108" stroke="#22c55e" strokeWidth={2} />
+      <line x1="460" y1="113" x2="476" y2="113" stroke="#22c55e" strokeWidth={2} />
+      <line x1="468" y1="113" x2="468" y2="125" stroke="#22c55e" strokeWidth={1} />
+      <text x="485" y="113" fill="#22c55e" fontSize={7}>Y/2</text>
+      {gnd(468, 126)}
+      <line x1="672" y1="93" x2="672" y2="108" stroke="#22c55e" strokeWidth={1} />
+      <line x1="664" y1="108" x2="680" y2="108" stroke="#22c55e" strokeWidth={2} />
+      <line x1="664" y1="113" x2="680" y2="113" stroke="#22c55e" strokeWidth={2} />
+      <line x1="672" y1="113" x2="672" y2="125" stroke="#22c55e" strokeWidth={1} />
+      <text x="689" y="113" fill="#22c55e" fontSize={7}>Y/2</text>
+      {gnd(672, 126)}
+
+      {/* 3. Medium T */}
+      <text x="190" y="180" textAnchor="middle" fill="#818cf8" fontSize={11} fontWeight={600}>Medium Line - Nominal T (80-250 km)</text>
+      <circle cx="40" cy="210" r="3" fill="#f59e0b" />
+      <text x="40" y="202" textAnchor="middle" fill="#f59e0b" fontSize={8}>Vs</text>
+      <line x1="43" y1="210" x2="90" y2="210" stroke={wire} strokeWidth={1.2} />
+      <rect x="90" y="200" width="80" height="20" rx="3" fill="rgba(99,102,241,0.08)" stroke="#6366f1" strokeWidth={1} />
+      <text x="130" y="213" textAnchor="middle" fill="#c4b5fd" fontSize={9}>Z/2</text>
+      <line x1="170" y1="210" x2="210" y2="210" stroke={wire} strokeWidth={1.2} />
+      <circle cx="210" cy="210" r="2.5" fill="#d4d4d8" />
+      <line x1="210" y1="210" x2="230" y2="210" stroke={wire} strokeWidth={1.2} />
+      <rect x="230" y="200" width="80" height="20" rx="3" fill="rgba(99,102,241,0.08)" stroke="#6366f1" strokeWidth={1} />
+      <text x="270" y="213" textAnchor="middle" fill="#c4b5fd" fontSize={9}>Z/2</text>
+      <line x1="310" y1="210" x2="360" y2="210" stroke={wire} strokeWidth={1.2} />
+      <circle cx="360" cy="210" r="3" fill="#22d3ee" />
+      <text x="360" y="202" textAnchor="middle" fill="#22d3ee" fontSize={8}>Vr</text>
+      {/* Y cap at midpoint */}
+      <line x1="210" y1="213" x2="210" y2="228" stroke="#22c55e" strokeWidth={1} />
+      <line x1="202" y1="228" x2="218" y2="228" stroke="#22c55e" strokeWidth={2} />
+      <line x1="202" y1="233" x2="218" y2="233" stroke="#22c55e" strokeWidth={2} />
+      <line x1="210" y1="233" x2="210" y2="245" stroke="#22c55e" strokeWidth={1} />
+      <text x="227" y="233" fill="#22c55e" fontSize={7}>Y</text>
+      {gnd(210, 246)}
+
+      {/* 4. Long line */}
+      <text x="570" y="180" textAnchor="middle" fill="#ef4444" fontSize={11} fontWeight={600}>Long Line - Distributed (l &gt; 250 km)</text>
+      <circle cx="420" cy="210" r="3" fill="#f59e0b" />
+      <text x="420" y="202" textAnchor="middle" fill="#f59e0b" fontSize={8}>Vs</text>
+      <line x1="423" y1="210" x2="468" y2="210" stroke={wire} strokeWidth={1.2} />
+      <circle cx="468" cy="210" r="2.5" fill="#d4d4d8" />
+      <line x1="468" y1="210" x2="510" y2="210" stroke={wire} strokeWidth={1.2} />
+      <rect x="510" y="200" width="120" height="20" rx="3" fill="rgba(245,158,11,0.06)" stroke="#f59e0b" strokeWidth={1} strokeDasharray="4,2" />
+      <text x="570" y="213" textAnchor="middle" fill="#fcd34d" fontSize={8}>Z' = Zc*sinh(gl)</text>
+      <line x1="630" y1="210" x2="672" y2="210" stroke={wire} strokeWidth={1.2} />
+      <circle cx="672" cy="210" r="2.5" fill="#d4d4d8" />
+      <line x1="672" y1="210" x2="720" y2="210" stroke={wire} strokeWidth={1.2} />
+      <circle cx="720" cy="210" r="3" fill="#22d3ee" />
+      <text x="720" y="202" textAnchor="middle" fill="#22d3ee" fontSize={8}>Vr</text>
+      {/* Y'/2 caps */}
+      <line x1="468" y1="213" x2="468" y2="228" stroke="#f59e0b" strokeWidth={1} />
+      <line x1="460" y1="228" x2="476" y2="228" stroke="#f59e0b" strokeWidth={2} />
+      <line x1="460" y1="233" x2="476" y2="233" stroke="#f59e0b" strokeWidth={2} />
+      <line x1="468" y1="233" x2="468" y2="245" stroke="#f59e0b" strokeWidth={1} />
+      <text x="487" y="233" fill="#f59e0b" fontSize={7}>Y'/2</text>
+      {gnd(468, 246)}
+      <line x1="672" y1="213" x2="672" y2="228" stroke="#f59e0b" strokeWidth={1} />
+      <line x1="664" y1="228" x2="680" y2="228" stroke="#f59e0b" strokeWidth={2} />
+      <line x1="664" y1="233" x2="680" y2="233" stroke="#f59e0b" strokeWidth={2} />
+      <line x1="672" y1="233" x2="672" y2="245" stroke="#f59e0b" strokeWidth={1} />
+      <text x="691" y="233" fill="#f59e0b" fontSize={7}>Y'/2</text>
+      {gnd(672, 246)}
+      <text x="570" y="262" textAnchor="middle" fill="#52525b" fontSize={8} fontStyle="italic">Exact equivalent pi (hyperbolic)</text>
+
+      {/* ABCD matrix visual */}
+      <line x1="40" y1="290" x2="720" y2="290" stroke="#27272a" strokeWidth={0.5} />
+      <text x="380" y="316" textAnchor="middle" fill="#d4d4d8" fontSize={13} fontWeight={700}>ABCD Matrix Relationship</text>
+
+      {/* Matrix brackets */}
+      <text x="180" y="380" textAnchor="middle" fill="#a5b4fc" fontSize={28} fontFamily="serif">[</text>
+      <text x="210" y="365" textAnchor="middle" fill="#e4e4e7" fontSize={14}>Vs</text>
+      <text x="210" y="395" textAnchor="middle" fill="#e4e4e7" fontSize={14}>Is</text>
+      <text x="240" y="380" textAnchor="middle" fill="#a5b4fc" fontSize={28} fontFamily="serif">]</text>
+
+      <text x="270" y="380" textAnchor="middle" fill="#71717a" fontSize={18}>=</text>
+
+      <text x="300" y="380" textAnchor="middle" fill="#a5b4fc" fontSize={28} fontFamily="serif">[</text>
+      <text x="330" y="365" textAnchor="middle" fill="#c4b5fd" fontSize={14} fontWeight={600}>A</text>
+      <text x="380" y="365" textAnchor="middle" fill="#c4b5fd" fontSize={14} fontWeight={600}>B</text>
+      <text x="330" y="395" textAnchor="middle" fill="#c4b5fd" fontSize={14} fontWeight={600}>C</text>
+      <text x="380" y="395" textAnchor="middle" fill="#c4b5fd" fontSize={14} fontWeight={600}>D</text>
+      <text x="410" y="380" textAnchor="middle" fill="#a5b4fc" fontSize={28} fontFamily="serif">]</text>
+
+      <text x="438" y="380" textAnchor="middle" fill="#a5b4fc" fontSize={28} fontFamily="serif">[</text>
+      <text x="468" y="365" textAnchor="middle" fill="#e4e4e7" fontSize={14}>Vr</text>
+      <text x="468" y="395" textAnchor="middle" fill="#e4e4e7" fontSize={14}>Ir</text>
+      <text x="498" y="380" textAnchor="middle" fill="#a5b4fc" fontSize={28} fontFamily="serif">]</text>
+
+      {/* Reciprocity condition */}
+      <rect x="540" y="355" width="180" height="40" rx="8" fill="rgba(34,197,94,0.06)" stroke="rgba(34,197,94,0.2)" />
+      <text x="630" y="372" textAnchor="middle" fill="#22c55e" fontSize={11} fontWeight={600}>Reciprocity Check:</text>
+      <text x="630" y="388" textAnchor="middle" fill="#22c55e" fontSize={12} fontFamily="monospace">AD - BC = 1</text>
+
+      {/* Line length scale */}
+      <line x1="80" y1="450" x2="680" y2="450" stroke="#3f3f46" strokeWidth={1} />
+      <line x1="80" y1="445" x2="80" y2="455" stroke="#22c55e" strokeWidth={2} />
+      <line x1="280" y1="445" x2="280" y2="455" stroke="#818cf8" strokeWidth={2} />
+      <line x1="530" y1="445" x2="530" y2="455" stroke="#ef4444" strokeWidth={2} />
+      <line x1="680" y1="445" x2="680" y2="455" stroke="#3f3f46" strokeWidth={1} />
+      <text x="80" y="468" textAnchor="middle" fill="#22c55e" fontSize={8}>0 km</text>
+      <text x="280" y="468" textAnchor="middle" fill="#818cf8" fontSize={8}>80 km</text>
+      <text x="530" y="468" textAnchor="middle" fill="#ef4444" fontSize={8}>250 km</text>
+      <text x="680" y="468" textAnchor="middle" fill="#3f3f46" fontSize={8}>500+ km</text>
+      <rect x="80" y="440" width="200" height="4" rx="2" fill="rgba(34,197,94,0.15)" />
+      <rect x="280" y="440" width="250" height="4" rx="2" fill="rgba(129,140,248,0.15)" />
+      <rect x="530" y="440" width="150" height="4" rx="2" fill="rgba(239,68,68,0.15)" />
+      <text x="180" y="436" textAnchor="middle" fill="#22c55e" fontSize={8}>Short</text>
+      <text x="405" y="436" textAnchor="middle" fill="#818cf8" fontSize={8}>Medium</text>
+      <text x="605" y="436" textAnchor="middle" fill="#ef4444" fontSize={8}>Long</text>
+    </svg>
+  );
+}
+
 function Theory() {
   return (
     <div style={S.theory}>
@@ -258,6 +413,8 @@ function Theory() {
         as a linear two-port network, relating sending-end quantities to receiving-end quantities
         through a 2×2 matrix:
       </p>
+
+      <TheorySVGLineModels />
       <div style={S.eq}>Vs = A · Vr + B · Ir</div>
       <div style={S.eq}>Is = C · Vr + D · Ir</div>
       <p style={S.p}>

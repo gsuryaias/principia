@@ -217,6 +217,58 @@ function Theory() {
       <p style={S.p}>
         A distribution SCADA system has four layers, each performing a critical function:
       </p>
+
+      {/* ── SVG: SCADA Architecture Diagram ── */}
+      <svg viewBox="0 0 700 280" style={{ width: '100%', maxWidth: 700, height: 'auto', margin: '16px auto', display: 'block' }}>
+        <rect width="700" height="280" rx="12" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+        <text x="350" y="22" textAnchor="middle" fontSize="12" fill="#e4e4e7" fontWeight="700">SCADA System Architecture</text>
+
+        {/* Layer 1: Field Devices */}
+        <rect x="30" y="195" width="640" height="55" rx="8" fill="#22c55e08" stroke="#22c55e" strokeWidth="0.8" strokeDasharray="4 2" />
+        <text x="350" y="210" textAnchor="middle" fontSize="9" fill="#22c55e" fontWeight="700" letterSpacing="0.05em">FIELD LAYER</text>
+        {[{x:80, label:'RTU'}, {x:200, label:'IED'}, {x:320, label:'CT/PT'}, {x:440, label:'Breaker'}, {x:560, label:'Meter'}].map(d => (
+          <g key={d.label}>
+            <rect x={d.x-30} y="218" width="60" height="24" rx="4" fill="#09090b" stroke="#22c55e" strokeWidth="1" />
+            <text x={d.x} y="234" textAnchor="middle" fontSize="9" fill="#22c55e" fontWeight="600">{d.label}</text>
+          </g>
+        ))}
+
+        {/* Layer 2: Communication */}
+        <rect x="30" y="130" width="640" height="50" rx="8" fill="#3b82f608" stroke="#3b82f6" strokeWidth="0.8" strokeDasharray="4 2" />
+        <text x="350" y="145" textAnchor="middle" fontSize="9" fill="#3b82f6" fontWeight="700" letterSpacing="0.05em">COMMUNICATION NETWORK</text>
+        {[{x:130, label:'Fiber Optic'}, {x:300, label:'GPRS / 4G'}, {x:470, label:'Microwave'}, {x:600, label:'Pilot Cable'}].map(d => (
+          <g key={d.label}>
+            <rect x={d.x-45} y="152" width="90" height="20" rx="4" fill="#09090b" stroke="#3b82f6" strokeWidth="0.8" />
+            <text x={d.x} y="166" textAnchor="middle" fontSize="8" fill="#3b82f6">{d.label}</text>
+          </g>
+        ))}
+
+        {/* Connecting arrows */}
+        {[130, 300, 470].map(x => (
+          <line key={x} x1={x} y1="180" x2={x} y2="195" stroke="#3f3f46" strokeWidth="0.8" strokeDasharray="2 2" />
+        ))}
+        {[200, 350, 500].map(x => (
+          <line key={x} x1={x} y1="118" x2={x} y2="130" stroke="#3f3f46" strokeWidth="0.8" strokeDasharray="2 2" />
+        ))}
+
+        {/* Layer 3: Master Station */}
+        <rect x="120" y="70" width="250" height="45" rx="8" fill="#6366f108" stroke="#6366f1" strokeWidth="1" />
+        <text x="245" y="88" textAnchor="middle" fontSize="10" fill="#6366f1" fontWeight="700">Master Station</text>
+        <text x="245" y="104" textAnchor="middle" fontSize="8" fill="#71717a">SCADA Server (Redundant Hot-Standby)</text>
+
+        {/* Layer 4: HMI */}
+        <rect x="420" y="70" width="220" height="45" rx="8" fill="#f59e0b08" stroke="#f59e0b" strokeWidth="1" />
+        <text x="530" y="88" textAnchor="middle" fontSize="10" fill="#f59e0b" fontWeight="700">HMI / Operator Console</text>
+        <text x="530" y="104" textAnchor="middle" fontSize="8" fill="#71717a">Real-time Displays, Alarms, Control</text>
+
+        {/* Connection between Master and HMI */}
+        <line x1="370" y1="92" x2="420" y2="92" stroke="#818cf8" strokeWidth="1.5" />
+        <polygon points="415,88 420,92 415,96" fill="#818cf8" />
+
+        {/* Protocol labels */}
+        <text x="350" y="265" textAnchor="middle" fontSize="8" fill="#52525b">Protocols: DNP3 | IEC 60870-5-104 | IEC 61850 GOOSE/MMS | Modbus</text>
+      </svg>
+
       <div style={S.eq}>RTU / IED → Communication Network → Master Station (SCADA Server) → HMI (Operator Console)</div>
       <ul style={S.ul}>
         <li style={S.li}><strong style={{ color: '#e4e4e7' }}>RTU (Remote Terminal Unit):</strong> Installed at each substation, it interfaces with field devices — CTs, PTs, breaker contacts, tap changers. RTUs digitize analog measurements (voltage, current, power) and transmit them to the master station. Modern RTUs also accept control commands (open/close breakers, adjust taps).</li>
@@ -296,6 +348,55 @@ function Theory() {
         <li style={S.li}><strong style={{ color: '#e4e4e7' }}>DER Management:</strong> Monitors and controls distributed energy resources — rooftop solar, battery storage, EV chargers — to manage reverse power flow and voltage rise on LT networks.</li>
       </ul>
       <div style={S.eq}>Loss Reduction by Reconfiguration: ΔP_loss = Σ(I²R)_normal − Σ(I²R)_optimized</div>
+
+      {/* ── SVG: Smart Grid Technology Stack ── */}
+      <svg viewBox="0 0 700 220" style={{ width: '100%', maxWidth: 700, height: 'auto', margin: '16px auto', display: 'block' }}>
+        <rect width="700" height="220" rx="12" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+        <text x="350" y="22" textAnchor="middle" fontSize="12" fill="#e4e4e7" fontWeight="700">Smart Grid Technology Stack</text>
+
+        {/* Layer 1: Applications */}
+        <rect x="30" y="38" width="640" height="35" rx="6" fill="#6366f108" stroke="#6366f1" strokeWidth="1" />
+        <text x="50" y="58" fontSize="10" fill="#6366f1" fontWeight="700">Applications</text>
+        {['DMS', 'FLISR', 'VVO', 'OMS', 'Demand Response', 'DER Mgmt'].map((t, i) => (
+          <g key={t}>
+            <rect x={150 + i * 88} y="42" width="80" height="24" rx="4" fill="#09090b" stroke="#6366f150" strokeWidth="0.5" />
+            <text x={190 + i * 88} y="58" textAnchor="middle" fontSize="8" fill="#a5b4fc">{t}</text>
+          </g>
+        ))}
+
+        {/* Layer 2: SCADA/EMS */}
+        <rect x="30" y="80" width="640" height="35" rx="6" fill="#818cf808" stroke="#818cf8" strokeWidth="1" />
+        <text x="50" y="100" fontSize="10" fill="#818cf8" fontWeight="700">Platform</text>
+        {['SCADA Master', 'State Estimation', 'Historian', 'Alarm Mgmt', 'GIS'].map((t, i) => (
+          <g key={t}>
+            <rect x={150 + i * 108} y="84" width="100" height="24" rx="4" fill="#09090b" stroke="#818cf850" strokeWidth="0.5" />
+            <text x={200 + i * 108} y="100" textAnchor="middle" fontSize="8" fill="#c4b5fd">{t}</text>
+          </g>
+        ))}
+
+        {/* Layer 3: Communication */}
+        <rect x="30" y="122" width="640" height="35" rx="6" fill="#22d3ee08" stroke="#22d3ee" strokeWidth="1" />
+        <text x="50" y="142" fontSize="10" fill="#22d3ee" fontWeight="700">Comms</text>
+        {['Fiber Optic', 'GPRS/4G', 'RF Mesh', 'PLC', 'Microwave'].map((t, i) => (
+          <g key={t}>
+            <rect x={150 + i * 108} y="126" width="100" height="24" rx="4" fill="#09090b" stroke="#22d3ee50" strokeWidth="0.5" />
+            <text x={200 + i * 108} y="142" textAnchor="middle" fontSize="8" fill="#67e8f9">{t}</text>
+          </g>
+        ))}
+
+        {/* Layer 4: Field Devices */}
+        <rect x="30" y="164" width="640" height="35" rx="6" fill="#22c55e08" stroke="#22c55e" strokeWidth="1" />
+        <text x="50" y="184" fontSize="10" fill="#22c55e" fontWeight="700">Devices</text>
+        {['RTU/IED', 'Smart Meters', 'Sensors', 'Reclosers', 'Cap Banks', 'PMU'].map((t, i) => (
+          <g key={t}>
+            <rect x={150 + i * 88} y="168" width="80" height="24" rx="4" fill="#09090b" stroke="#22c55e50" strokeWidth="0.5" />
+            <text x={190 + i * 88} y="184" textAnchor="middle" fontSize="8" fill="#86efac">{t}</text>
+          </g>
+        ))}
+
+        {/* Protocols at bottom */}
+        <text x="350" y="212" textAnchor="middle" fontSize="8" fill="#52525b">Standards: IEC 61850 | DNP3 | IEC 60870-5-104 | IEEE C37.118 | DLMS/COSEM</text>
+      </svg>
 
       <h3 style={S.h3}>Advanced Metering Infrastructure (AMI)</h3>
       <p style={S.p}>

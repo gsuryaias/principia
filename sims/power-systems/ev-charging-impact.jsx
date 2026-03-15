@@ -122,6 +122,13 @@ function Network({ evs, col, volts, kw, loadPct, hs, faa, life }) {
         );
       })}
 
+      {/* Operating condition indicator */}
+      <rect x={700} y={-4} width={175} height={10} rx={4}
+        fill={loadPct > 100 ? '#ef4444' : loadPct > 80 ? '#f59e0b' : '#22c55e'} opacity={0.15} />
+      <text x={787} y={4} textAnchor="middle" fontSize={7} fill={loadPct > 100 ? '#ef4444' : loadPct > 80 ? '#f59e0b' : '#22c55e'} fontWeight={700}>
+        {loadPct > 100 ? 'CRITICAL — OVERLOADED' : loadPct > 80 ? 'STRESSED — NEAR CAPACITY' : 'NORMAL OPERATION'}
+      </text>
+
       {/* Transformer health panel */}
       <rect x={700} y={3} width={175} height={114} fill="#0c0c0f" rx={8} stroke="#1e1e2e" strokeWidth={0.7} />
       <text x={787} y={15} fill="#52525b" fontSize={7.5} textAnchor="middle" fontWeight={700} letterSpacing="0.06em">
@@ -182,6 +189,14 @@ function Chart({ profile, rKW, time, totalNow }) {
       ))}
       <text x={px(24)} y={B + 13} fill="#52525b" fontSize={9} textAnchor="middle">24h</text>
 
+      {/* Region annotations */}
+      <rect x={px(0)} y={T} width={px(6)-px(0)} height={B-T} fill="#6366f1" opacity={0.03} />
+      <text x={(px(0)+px(6))/2} y={T+10} textAnchor="middle" fontSize={7} fill="#6366f1" opacity={0.5} fontWeight="600">Off-Peak</text>
+      <rect x={px(17)} y={T} width={px(21)-px(17)} height={B-T} fill="#ef4444" opacity={0.04} />
+      <text x={(px(17)+px(21))/2} y={T+10} textAnchor="middle" fontSize={7} fill="#ef4444" opacity={0.5} fontWeight="600">EV Peak Risk</text>
+      <rect x={px(22)} y={T} width={px(24)-px(22)} height={B-T} fill="#22c55e" opacity={0.03} />
+      <text x={(px(22)+px(24))/2} y={T+10} textAnchor="middle" fontSize={7} fill="#22c55e" opacity={0.4} fontWeight="600">Smart Window</text>
+
       <path d={baseArea} fill="#3b82f6" opacity={0.18} />
       <path d={evArea} fill="#f59e0b" opacity={0.22} />
       <path d={olArea} fill="#ef4444" opacity={0.2} />
@@ -221,6 +236,88 @@ function Theory() {
         spikes — particularly when multiple vehicles charge simultaneously during evening peak hours. This simulation
         models the impact on a typical 11 kV / 415 V distribution transformer serving a residential colony in India.
       </p>
+
+      {/* ── SVG: Charging Infrastructure Levels ── */}
+      <svg viewBox="0 0 700 220" style={{ width: '100%', maxWidth: 700, height: 'auto', margin: '16px auto', display: 'block' }}>
+        <rect width="700" height="220" rx="12" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+        <text x="350" y="22" textAnchor="middle" fontSize="12" fill="#e4e4e7" fontWeight="700">EV Charging Levels — Infrastructure Comparison</text>
+
+        {/* Level 1 */}
+        <rect x="30" y="42" width="200" height="110" rx="8" fill="#09090b" stroke="#22c55e" strokeWidth="1.2" />
+        <text x="130" y="60" textAnchor="middle" fontSize="11" fill="#22c55e" fontWeight="700">AC Level 1 (Bharat AC)</text>
+        <rect x="100" y="68" width="60" height="30" rx="4" fill="#22c55e15" stroke="#22c55e" strokeWidth="0.8" />
+        <text x="130" y="80" textAnchor="middle" fontSize="12" fill="#22c55e" fontWeight="700">3.3 kW</text>
+        <text x="130" y="91" textAnchor="middle" fontSize="7" fill="#71717a">230V, 15A</text>
+        <text x="130" y="112" textAnchor="middle" fontSize="9" fill="#a1a1aa">Charge time: 8-12 hrs</text>
+        <text x="130" y="126" textAnchor="middle" fontSize="9" fill="#a1a1aa">Home overnight</text>
+        <text x="130" y="142" textAnchor="middle" fontSize="8" fill="#52525b">Standard wall socket</text>
+
+        {/* Level 2 */}
+        <rect x="250" y="42" width="200" height="110" rx="8" fill="#09090b" stroke="#3b82f6" strokeWidth="1.2" />
+        <text x="350" y="60" textAnchor="middle" fontSize="11" fill="#3b82f6" fontWeight="700">AC Level 2 (Type 2)</text>
+        <rect x="320" y="68" width="60" height="30" rx="4" fill="#3b82f615" stroke="#3b82f6" strokeWidth="0.8" />
+        <text x="350" y="80" textAnchor="middle" fontSize="12" fill="#3b82f6" fontWeight="700">7.2 kW</text>
+        <text x="350" y="91" textAnchor="middle" fontSize="7" fill="#71717a">230V, 32A</text>
+        <text x="350" y="112" textAnchor="middle" fontSize="9" fill="#a1a1aa">Charge time: 4-6 hrs</text>
+        <text x="350" y="126" textAnchor="middle" fontSize="9" fill="#a1a1aa">Dedicated EVSE</text>
+        <text x="350" y="142" textAnchor="middle" fontSize="8" fill="#52525b">Mennekes connector</text>
+
+        {/* DC Fast */}
+        <rect x="470" y="42" width="200" height="110" rx="8" fill="#09090b" stroke="#ef4444" strokeWidth="1.2" />
+        <text x="570" y="60" textAnchor="middle" fontSize="11" fill="#ef4444" fontWeight="700">DC Fast (CCS2)</text>
+        <rect x="540" y="68" width="60" height="30" rx="4" fill="#ef444415" stroke="#ef4444" strokeWidth="0.8" />
+        <text x="570" y="80" textAnchor="middle" fontSize="12" fill="#ef4444" fontWeight="700">50 kW</text>
+        <text x="570" y="91" textAnchor="middle" fontSize="7" fill="#71717a">200-1000V DC</text>
+        <text x="570" y="112" textAnchor="middle" fontSize="9" fill="#a1a1aa">Charge time: 30-60 min</text>
+        <text x="570" y="126" textAnchor="middle" fontSize="9" fill="#a1a1aa">Highway / Public</text>
+        <text x="570" y="142" textAnchor="middle" fontSize="8" fill="#52525b">CCS Combo 2</text>
+
+        {/* Grid Impact Scale */}
+        <text x="350" y="175" textAnchor="middle" fontSize="10" fill="#71717a" fontWeight="600">Grid Impact Scale</text>
+        <line x1="50" y1="190" x2="650" y2="190" stroke="#3f3f46" strokeWidth="1" />
+        <rect x="50" y="185" width="200" height="10" rx="2" fill="#22c55e" opacity="0.3" />
+        <rect x="250" y="185" width="200" height="10" rx="2" fill="#f59e0b" opacity="0.3" />
+        <rect x="450" y="185" width="200" height="10" rx="2" fill="#ef4444" opacity="0.3" />
+        <text x="150" y="210" textAnchor="middle" fontSize="8" fill="#22c55e">Low Impact</text>
+        <text x="350" y="210" textAnchor="middle" fontSize="8" fill="#f59e0b">Moderate Impact</text>
+        <text x="550" y="210" textAnchor="middle" fontSize="8" fill="#ef4444">High Impact</text>
+      </svg>
+
+      {/* ── SVG: Unmanaged vs Smart Charging ── */}
+      <svg viewBox="0 0 700 200" style={{ width: '100%', maxWidth: 700, height: 'auto', margin: '16px auto', display: 'block' }}>
+        <rect width="700" height="200" rx="12" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+        <text x="350" y="22" textAnchor="middle" fontSize="12" fill="#e4e4e7" fontWeight="700">Unmanaged vs Smart Charging Load Profiles</text>
+
+        {/* Unmanaged (left) */}
+        <text x="175" y="42" textAnchor="middle" fontSize="10" fill="#ef4444" fontWeight="600">Unmanaged Charging</text>
+        <line x1="40" y1="160" x2="310" y2="160" stroke="#3f3f46" strokeWidth="0.8" />
+        <line x1="40" y1="55" x2="40" y2="160" stroke="#3f3f46" strokeWidth="0.8" />
+        {/* Base load */}
+        <path d="M40,140 Q80,138 120,130 Q160,120 175,115 Q200,125 240,100 Q260,90 280,88 Q300,95 310,110"
+          fill="none" stroke="#3b82f6" strokeWidth="1.2" strokeDasharray="4 2" />
+        {/* EV spike */}
+        <path d="M240,100 Q255,65 270,55 Q280,55 290,60 Q305,80 310,110"
+          fill="#ef444420" stroke="#ef4444" strokeWidth="2" />
+        <text x="270" y="50" textAnchor="middle" fontSize="8" fill="#ef4444" fontWeight="600">EV Peak Spike</text>
+        <text x="175" y="178" textAnchor="middle" fontSize="8" fill="#71717a">6 PM - All EVs plug in together</text>
+
+        {/* Smart (right) */}
+        <text x="525" y="42" textAnchor="middle" fontSize="10" fill="#22c55e" fontWeight="600">Smart / Managed Charging</text>
+        <line x1="390" y1="160" x2="660" y2="160" stroke="#3f3f46" strokeWidth="0.8" />
+        <line x1="390" y1="55" x2="390" y2="160" stroke="#3f3f46" strokeWidth="0.8" />
+        {/* Base load */}
+        <path d="M390,140 Q430,138 470,130 Q510,120 525,115 Q550,125 590,125 Q620,128 640,130 Q655,135 660,140"
+          fill="none" stroke="#3b82f6" strokeWidth="1.2" strokeDasharray="4 2" />
+        {/* Flattened EV load */}
+        <path d="M390,140 Q420,140 450,140 Q480,138 510,120 Q525,115 540,118 Q570,125 590,125 Q620,128 640,130 Q655,135 660,140"
+          fill="#22c55e10" stroke="#22c55e" strokeWidth="2" />
+        {/* Off-peak charging highlight */}
+        <rect x="390" y="65" width="100" height="80" rx="4" fill="#22c55e08" stroke="#22c55e" strokeWidth="0.5" strokeDasharray="3 2" />
+        <text x="440" y="78" textAnchor="middle" fontSize="8" fill="#22c55e" fontWeight="600">Off-peak charging</text>
+        <text x="440" y="90" textAnchor="middle" fontSize="7" fill="#71717a">Midnight - 6 AM</text>
+        <text x="525" y="178" textAnchor="middle" fontSize="8" fill="#71717a">Shifted to off-peak, flattened load</text>
+      </svg>
+
       <p style={S.p}>
         The core challenge is simple: a single Level 2 EV charger (7.2 kW) draws as much power as 2–3 average Indian
         households combined. When multiple EVs in a colony plug in simultaneously at 7 PM, the resulting demand spike

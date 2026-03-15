@@ -147,6 +147,14 @@ function SkinView({ freq, rmm, sigma }) {
       <path d={path} fill="none" stroke="#818cf8" strokeWidth={2} />
       <path d={areaPath} fill="rgba(99,102,241,0.06)" />
 
+      {/* Region annotations */}
+      <rect x={CL + 4} y={CB - 22} width={CW * 0.25} height={18} rx={4} fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.2)" strokeWidth={0.5} />
+      <text x={CL + 4 + CW * 0.125} y={CB - 10} textAnchor="middle" fill="#22c55e" fontSize={8} fontWeight={500}>Negligible</text>
+      {yMax > 1.05 && <>
+        <rect x={CL + CW * 0.55} y={CT + 6} width={CW * 0.42} height={18} rx={4} fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.2)" strokeWidth={0.5} />
+        <text x={CL + CW * 0.76} y={CT + 18} textAnchor="middle" fill="#f59e0b" fontSize={8} fontWeight={500}>Significant skin effect</text>
+      </>}
+
       {freq <= MF && <>
         <line x1={mx} y1={CT} x2={mx} y2={CB} stroke="#6366f1" strokeWidth={1} strokeDasharray="3,3" opacity={0.4} />
         <circle cx={mx} cy={my} r={5} fill="#6366f1" stroke="#e4e4e7" strokeWidth={1.5} />
@@ -216,6 +224,137 @@ function ProximityView({ rmm, sigma, freq }) {
   );
 }
 
+function TheorySVGCrossSection() {
+  return (
+    <svg viewBox="0 0 760 340" style={{ width: '100%', maxWidth: 760, height: 'auto', margin: '20px 0' }}>
+      <rect width="760" height="340" rx="12" fill="#111114" stroke="#27272a" />
+      <text x="380" y="28" textAnchor="middle" fill="#d4d4d8" fontSize={14} fontWeight={700}>Current Density Distribution in a Conductor Cross-Section</text>
+
+      {/* Left: DC case */}
+      <text x="145" y="56" textAnchor="middle" fill="#a5b4fc" fontSize={12} fontWeight={600}>DC (f = 0)</text>
+      <defs>
+        <radialGradient id="dcGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.7" />
+        </radialGradient>
+        <radialGradient id="acGrad50" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.05" />
+          <stop offset="60%" stopColor="#22d3ee" stopOpacity="0.15" />
+          <stop offset="85%" stopColor="#f59e0b" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="#ef4444" stopOpacity="0.9" />
+        </radialGradient>
+        <radialGradient id="acGradHF" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.01" />
+          <stop offset="75%" stopColor="#22d3ee" stopOpacity="0.03" />
+          <stop offset="90%" stopColor="#f59e0b" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#ef4444" stopOpacity="1.0" />
+        </radialGradient>
+      </defs>
+      <circle cx="145" cy="165" r="80" fill="url(#dcGrad)" />
+      <circle cx="145" cy="165" r="80" fill="none" stroke="#52525b" strokeWidth={1.5} />
+      <text x="145" y="170" textAnchor="middle" fill="#e4e4e7" fontSize={10} fontWeight={500}>Uniform J</text>
+      <text x="145" y="268" textAnchor="middle" fill="#71717a" fontSize={10}>J = I / (pi*R²)</text>
+
+      {/* Center: 50 Hz */}
+      <text x="380" y="56" textAnchor="middle" fill="#a5b4fc" fontSize={12} fontWeight={600}>50 Hz (Power Frequency)</text>
+      <circle cx="380" cy="165" r="80" fill="url(#acGrad50)" />
+      <circle cx="380" cy="165" r="80" fill="none" stroke="#52525b" strokeWidth={1.5} />
+      <circle cx="380" cy="165" r="56" fill="none" stroke="#c4b5fd" strokeWidth={1} strokeDasharray="5,3" />
+      <line x1="380" y1="165" x2="460" y2="165" stroke="#c4b5fd" strokeWidth={0.8} />
+      <line x1="380" y1="165" x2="380" y2="85" stroke="#71717a" strokeWidth={0.6} strokeDasharray="3,2" />
+      <text x="420" y="158" textAnchor="middle" fill="#c4b5fd" fontSize={11} fontWeight={700}>delta</text>
+      <text x="395" y="126" fill="#71717a" fontSize={9}>R</text>
+      <text x="380" y="268" textAnchor="middle" fill="#71717a" fontSize={10}>J concentrates near surface</text>
+
+      {/* Right: High frequency */}
+      <text x="615" y="56" textAnchor="middle" fill="#a5b4fc" fontSize={12} fontWeight={600}>High Frequency (kHz+)</text>
+      <circle cx="615" cy="165" r="80" fill="url(#acGradHF)" />
+      <circle cx="615" cy="165" r="80" fill="none" stroke="#52525b" strokeWidth={1.5} />
+      <circle cx="615" cy="165" r="72" fill="none" stroke="#ef4444" strokeWidth={1} strokeDasharray="4,3" />
+      <text x="615" y="158" textAnchor="middle" fill="#52525b" fontSize={9}>~No current</text>
+      <text x="615" y="170" textAnchor="middle" fill="#52525b" fontSize={9}>in core</text>
+      <text x="615" y="268" textAnchor="middle" fill="#71717a" fontSize={10}>Thin skin carries all current</text>
+
+      {/* Color legend */}
+      <defs>
+        <linearGradient id="thLegend" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.1" />
+          <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#ef4444" stopOpacity="1" />
+        </linearGradient>
+      </defs>
+      <rect x="230" y="298" width="300" height="10" rx="4" fill="url(#thLegend)" />
+      <text x="230" y="325" fill="#52525b" fontSize={9}>Low J (center)</text>
+      <text x="530" y="325" textAnchor="end" fill="#52525b" fontSize={9}>High J (surface)</text>
+    </svg>
+  );
+}
+
+function TheorySVGPenetrationDepth() {
+  const materials = [
+    { name: 'Copper', sigma: 5.8e7, color: '#f59e0b' },
+    { name: 'Aluminum', sigma: 3.5e7, color: '#22d3ee' },
+  ];
+  const freqs = [10, 50, 100, 200, 500, 1000, 2000, 5000];
+  const W = 760, H = 300;
+  const PD = { t: 50, r: 30, b: 50, l: 70 };
+  const pw = W - PD.l - PD.r, ph = H - PD.t - PD.b;
+
+  const logMin = Math.log10(10), logMax = Math.log10(5000);
+  const xS = (f) => PD.l + ((Math.log10(f) - logMin) / (logMax - logMin)) * pw;
+  const maxD = 35;
+  const yS = (d) => PD.t + ph - (Math.min(d, maxD) / maxD) * ph;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: W, height: 'auto', margin: '20px 0' }}>
+      <rect width={W} height={H} rx="12" fill="#111114" stroke="#27272a" />
+      <text x={W / 2} y="28" textAnchor="middle" fill="#d4d4d8" fontSize={13} fontWeight={700}>Skin Depth vs Frequency</text>
+      <text x={W / 2} y="44" textAnchor="middle" fill="#52525b" fontSize={10}>delta = 1 / sqrt(pi * f * mu * sigma)</text>
+
+      {/* Grid */}
+      {freqs.map(f => (
+        <g key={f}>
+          <line x1={xS(f)} y1={PD.t} x2={xS(f)} y2={PD.t + ph} stroke="#1e1e2e" strokeWidth={0.5} />
+          <text x={xS(f)} y={PD.t + ph + 16} textAnchor="middle" fill="#52525b" fontSize={9}>{f >= 1000 ? `${f / 1000}k` : f}</text>
+        </g>
+      ))}
+      {[0, 5, 10, 15, 20, 25, 30, 35].map(d => (
+        <g key={d}>
+          <line x1={PD.l} y1={yS(d)} x2={PD.l + pw} y2={yS(d)} stroke="#1e1e2e" strokeWidth={0.5} />
+          <text x={PD.l - 6} y={yS(d) + 3} textAnchor="end" fill="#52525b" fontSize={9}>{d}</text>
+        </g>
+      ))}
+
+      <text x={W / 2} y={H - 6} textAnchor="middle" fill="#71717a" fontSize={10}>Frequency (Hz)</text>
+      <text x={18} y={PD.t + ph / 2} textAnchor="middle" fill="#71717a" fontSize={10} transform={`rotate(-90,18,${PD.t + ph / 2})`}>Skin Depth (mm)</text>
+
+      {/* Curves */}
+      {materials.map(({ name, sigma, color }) => {
+        const pts = [];
+        for (let f = 10; f <= 5000; f += 5) {
+          const d = (1 / Math.sqrt(Math.PI * f * 4 * Math.PI * 1e-7 * sigma)) * 1000;
+          pts.push(`${pts.length === 0 ? 'M' : 'L'}${xS(f).toFixed(1)},${yS(d).toFixed(1)}`);
+        }
+        return <g key={name}>
+          <path d={pts.join(' ')} fill="none" stroke={color} strokeWidth={2} />
+          <text x={xS(20)} y={yS((1 / Math.sqrt(Math.PI * 20 * 4 * Math.PI * 1e-7 * sigma)) * 1000) - 8} fill={color} fontSize={10} fontWeight={600}>{name}</text>
+        </g>;
+      })}
+
+      {/* 50 Hz marker region */}
+      <rect x={xS(50) - 1} y={PD.t} width={2} height={ph} fill="#6366f1" opacity={0.3} />
+      <text x={xS(50)} y={PD.t - 4} textAnchor="middle" fill="#a5b4fc" fontSize={9} fontWeight={600}>50 Hz (Power)</text>
+
+      {/* Region annotations */}
+      <rect x={xS(10)} y={PD.t + 4} width={xS(100) - xS(10)} height={18} rx={4} fill="rgba(34,197,94,0.08)" stroke="rgba(34,197,94,0.2)" strokeWidth={0.5} />
+      <text x={(xS(10) + xS(100)) / 2} y={PD.t + 16} textAnchor="middle" fill="#22c55e" fontSize={8} fontWeight={500}>Low-f: deep penetration</text>
+
+      <rect x={xS(500)} y={PD.t + 4} width={xS(5000) - xS(500)} height={18} rx={4} fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.2)" strokeWidth={0.5} />
+      <text x={(xS(500) + xS(5000)) / 2} y={PD.t + 16} textAnchor="middle" fill="#ef4444" fontSize={8} fontWeight={500}>High-f: thin skin shell</text>
+    </svg>
+  );
+}
+
 function Theory() {
   return (
     <div style={S.theory}>
@@ -226,6 +365,8 @@ function Theory() {
         <strong style={{ color: '#e4e4e7' }}> skin effect</strong>. This effectively reduces the
         usable cross-sectional area and increases AC resistance compared to DC resistance.
       </p>
+
+      <TheorySVGCrossSection />
       <p style={S.p}>
         The skin effect arises because the time-varying magnetic field inside the conductor induces
         eddy currents (by Faraday's law). These eddy currents, governed by Lenz's law, oppose the
@@ -253,6 +394,8 @@ function Theory() {
         its surface value. At 3δ, it drops to ~5%. The current density profile from the surface inward follows:
       </p>
       <div style={S.eq}>J(d) = J_surface × exp(−d / δ)</div>
+
+      <TheorySVGPenetrationDepth />
 
       <h3 style={S.h3}>Bessel Function Solution for Cylindrical Conductors</h3>
       <p style={S.p}>

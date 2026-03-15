@@ -317,6 +317,59 @@ function Diagram({ data, capPos, capQ, loadP, view, onCapPos }) {
   );
 }
 
+function TheorySVGCapPlacement() {
+  return (
+    <svg viewBox="0 0 760 300" style={{ width: '100%', maxWidth: 760, height: 'auto', margin: '20px 0' }}>
+      <rect width="760" height="300" rx="12" fill="#111114" stroke="#27272a" />
+      <text x="380" y="28" textAnchor="middle" fill="#d4d4d8" fontSize={14} fontWeight={700}>Capacitor Placement — The 2/3 Rule</text>
+
+      {/* Feeder line */}
+      <line x1="80" y1="100" x2="680" y2="100" stroke="#52525b" strokeWidth={3} />
+      <text x="80" y="90" fill="#6366f1" fontSize={10} fontWeight={600}>Substation</text>
+      <text x="680" y="90" textAnchor="end" fill="#71717a" fontSize={10}>Feeder End</text>
+
+      {/* Distributed loads */}
+      {[160, 240, 320, 400, 480, 560, 640].map(x => (
+        <g key={x}>
+          <line x1={x} y1="100" x2={x} y2="115" stroke="#52525b" strokeWidth={0.8} />
+          <circle cx={x} cy="118" r="3" fill="#3f3f46" />
+        </g>
+      ))}
+
+      {/* 2/3 point marker */}
+      <line x1="480" y1="80" x2="480" y2="130" stroke="#22c55e" strokeWidth={2} strokeDasharray="5,3" />
+      <text x="480" y="72" textAnchor="middle" fill="#22c55e" fontSize={10} fontWeight={700}>2/3 L</text>
+
+      {/* Capacitor symbol at 2/3 */}
+      <line x1="480" y1="130" x2="480" y2="145" stroke="#22c55e" strokeWidth={1.5} />
+      <line x1="468" y1="145" x2="492" y2="145" stroke="#22c55e" strokeWidth={3} />
+      <line x1="468" y1="152" x2="492" y2="152" stroke="#22c55e" strokeWidth={3} />
+      <line x1="480" y1="152" x2="480" y2="165" stroke="#22c55e" strokeWidth={1.5} />
+      <line x1="472" y1="165" x2="488" y2="165" stroke="#3f3f46" strokeWidth={1} />
+      <text x="500" y="152" fill="#22c55e" fontSize={9} fontWeight={600}>Qc = 2/3 * Q_L</text>
+
+      {/* Voltage profile - without cap */}
+      <text x="380" y="195" textAnchor="middle" fill="#d4d4d8" fontSize={11} fontWeight={600}>Voltage Profile Comparison</text>
+      <line x1="80" y1="230" x2="680" y2="230" stroke="#3f3f46" strokeWidth={0.5} />
+      <text x="70" y="234" textAnchor="end" fill="#52525b" fontSize={8}>1.0</text>
+      <line x1="80" y1="250" x2="680" y2="250" stroke="#3f3f46" strokeWidth={0.5} strokeDasharray="4,3" />
+      <text x="70" y="254" textAnchor="end" fill="#52525b" fontSize={8}>0.94</text>
+
+      {/* Without capacitor */}
+      <path d="M80,230 L280,236 L480,248 L680,260" fill="none" stroke="#ef4444" strokeWidth={1.5} />
+      <text x="685" y="263" fill="#ef4444" fontSize={8}>No cap</text>
+
+      {/* With capacitor at 2/3 */}
+      <path d="M80,230 L280,233 L480,235 L680,244" fill="none" stroke="#22c55e" strokeWidth={2} />
+      <text x="685" y="247" fill="#22c55e" fontSize={8}>With cap</text>
+
+      {/* Loss reduction annotation */}
+      <rect x="240" y="268" width="280" height="22" rx="6" fill="rgba(34,197,94,0.06)" stroke="rgba(34,197,94,0.2)" />
+      <text x="380" y="283" textAnchor="middle" fill="#22c55e" fontSize={9}>Optimal: 2/3 rated Qc at 2/3 distance → 89% max loss reduction</text>
+    </svg>
+  );
+}
+
 function Theory() {
   return (
     <div style={S.theory}>
@@ -328,6 +381,8 @@ function Theory() {
         commercial losses), even modest PF improvement yields significant technical and
         financial benefits.
       </p>
+
+      <TheorySVGCapPlacement />
 
       <h3 style={S.h3}>Why Power Factor Correction Matters</h3>
       <p style={S.p}>

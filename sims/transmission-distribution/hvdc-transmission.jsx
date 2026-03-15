@@ -295,6 +295,87 @@ function CostChart({ data, distKm }) {
   );
 }
 
+function TheorySVGHVDC() {
+  return (
+    <svg viewBox="0 0 760 300" style={{ width: '100%', maxWidth: 760, height: 'auto', margin: '20px 0' }}>
+      <rect width="760" height="300" rx="12" fill="#111114" stroke="#27272a" />
+      <text x="380" y="28" textAnchor="middle" fill="#d4d4d8" fontSize={14} fontWeight={700}>HVDC Transmission — System Single-Line Diagram</text>
+
+      {/* AC System 1 */}
+      <circle cx="80" cy="120" r="28" fill="none" stroke="#6366f1" strokeWidth={2} />
+      <text x="80" y="118" textAnchor="middle" fill="#a5b4fc" fontSize={9} fontWeight={600}>AC</text>
+      <text x="80" y="130" textAnchor="middle" fill="#a5b4fc" fontSize={8}>System 1</text>
+      <text x="80" y="160" textAnchor="middle" fill="#52525b" fontSize={8}>50 Hz</text>
+
+      {/* Transformer 1 */}
+      <line x1="108" y1="120" x2="140" y2="120" stroke="#52525b" strokeWidth={2} />
+      <circle cx="150" cy="120" r="10" fill="none" stroke="#818cf8" strokeWidth={1.5} />
+      <circle cx="166" cy="120" r="10" fill="none" stroke="#818cf8" strokeWidth={1.5} />
+
+      {/* Rectifier */}
+      <line x1="176" y1="120" x2="210" y2="120" stroke="#52525b" strokeWidth={2} />
+      <rect x="210" y="96" width="60" height="48" rx="6" fill="rgba(239,68,68,0.08)" stroke="#ef4444" strokeWidth={1.5} />
+      <text x="240" y="116" textAnchor="middle" fill="#ef4444" fontSize={9} fontWeight={600}>Rectifier</text>
+      <text x="240" y="130" textAnchor="middle" fill="#71717a" fontSize={7}>AC → DC</text>
+
+      {/* DC Line */}
+      <line x1="270" y1="108" x2="490" y2="108" stroke="#ef4444" strokeWidth={2.5} />
+      <line x1="270" y1="132" x2="490" y2="132" stroke="#3b82f6" strokeWidth={2.5} />
+      <text x="380" y="102" textAnchor="middle" fill="#ef4444" fontSize={8}>+ pole</text>
+      <text x="380" y="148" textAnchor="middle" fill="#3b82f6" fontSize={8}>- pole (or ground return)</text>
+
+      {/* Animated DC particles */}
+      {[0, 1, 2, 3, 4].map(i => (
+        <circle key={i} cx="270" cy="108" r="3" fill="#ef4444" opacity={0.8}>
+          <animate attributeName="cx" values="270;490" dur="2s" begin={`${i * 0.4}s`} repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.8;0.3;0.8" dur="2s" begin={`${i * 0.4}s`} repeatCount="indefinite" />
+        </circle>
+      ))}
+
+      {/* DC line label */}
+      <text x="380" y="126" textAnchor="middle" fill="#d4d4d8" fontSize={10} fontWeight={600}>HVDC Line (100-2000 km)</text>
+
+      {/* Inverter */}
+      <rect x="490" y="96" width="60" height="48" rx="6" fill="rgba(34,197,94,0.08)" stroke="#22c55e" strokeWidth={1.5} />
+      <text x="520" y="116" textAnchor="middle" fill="#22c55e" fontSize={9} fontWeight={600}>Inverter</text>
+      <text x="520" y="130" textAnchor="middle" fill="#71717a" fontSize={7}>DC → AC</text>
+
+      {/* Transformer 2 */}
+      <line x1="550" y1="120" x2="584" y2="120" stroke="#52525b" strokeWidth={2} />
+      <circle cx="594" cy="120" r="10" fill="none" stroke="#818cf8" strokeWidth={1.5} />
+      <circle cx="610" cy="120" r="10" fill="none" stroke="#818cf8" strokeWidth={1.5} />
+
+      {/* AC System 2 */}
+      <line x1="620" y1="120" x2="652" y2="120" stroke="#52525b" strokeWidth={2} />
+      <circle cx="680" cy="120" r="28" fill="none" stroke="#6366f1" strokeWidth={2} />
+      <text x="680" y="118" textAnchor="middle" fill="#a5b4fc" fontSize={9} fontWeight={600}>AC</text>
+      <text x="680" y="130" textAnchor="middle" fill="#a5b4fc" fontSize={8}>System 2</text>
+      <text x="680" y="160" textAnchor="middle" fill="#52525b" fontSize={8}>50/60 Hz</text>
+
+      {/* Cost comparison */}
+      <line x1="40" y1="190" x2="720" y2="190" stroke="#27272a" strokeWidth={0.5} />
+      <text x="380" y="212" textAnchor="middle" fill="#d4d4d8" fontSize={12} fontWeight={700}>AC vs DC Cost Comparison</text>
+
+      {/* AC cost line */}
+      <line x1="100" y1="280" x2="660" y2="230" stroke="#6366f1" strokeWidth={2} />
+      <text x="665" y="228" fill="#6366f1" fontSize={9}>AC total cost</text>
+
+      {/* DC cost line */}
+      <line x1="100" y1="260" x2="660" y2="240" stroke="#ef4444" strokeWidth={2} />
+      <text x="665" y="243" fill="#ef4444" fontSize={9}>DC total cost</text>
+
+      {/* Breakeven point */}
+      <circle cx="420" cy="250" r="5" fill="#f59e0b" stroke="#f59e0b" strokeWidth={2} />
+      <text x="420" y="268" textAnchor="middle" fill="#f59e0b" fontSize={10} fontWeight={700}>Breakeven Distance</text>
+      <text x="420" y="280" textAnchor="middle" fill="#71717a" fontSize={8}>~600-800 km (overhead) | ~50 km (submarine)</text>
+
+      {/* Axis labels */}
+      <text x="100" y="292" fill="#52525b" fontSize={8}>0 km</text>
+      <text x="660" y="292" textAnchor="end" fill="#52525b" fontSize={8}>Distance</text>
+    </svg>
+  );
+}
+
 function Theory() {
   return (
     <div style={S.theory}>
@@ -307,6 +388,8 @@ function Theory() {
         conductors, narrower right-of-way, no reactive power losses, no skin effect). Beyond a
         <strong style={{ color: '#e4e4e7' }}> breakeven distance</strong>, HVDC becomes more economical than HVAC.
       </p>
+
+      <TheorySVGHVDC />
 
       <h3 style={S.h3}>Why DC for Long-Distance Transmission?</h3>
       <ul style={S.ul}>

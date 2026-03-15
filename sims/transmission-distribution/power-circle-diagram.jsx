@@ -211,6 +211,81 @@ function Diagram({ d }) {
   );
 }
 
+function TheorySVGPowerCircles() {
+  const W = 760, H = 340;
+  const CX = 380, CY = 180, R = 110;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: W, height: 'auto', margin: '20px 0' }}>
+      <rect width={W} height={H} rx="12" fill="#111114" stroke="#27272a" />
+      <text x={W / 2} y="24" textAnchor="middle" fill="#d4d4d8" fontSize={14} fontWeight={700}>Sending and Receiving End Power Circles</text>
+      <text x={W / 2} y="40" textAnchor="middle" fill="#52525b" fontSize={10}>P-Q plane with labeled axes and key operating points</text>
+
+      {/* Receiving end circle (left) */}
+      <g>
+        <text x="190" y="70" textAnchor="middle" fill="#22d3ee" fontSize={12} fontWeight={600}>Receiving End Circle</text>
+
+        {/* P-Q axes */}
+        <line x1="60" y1="180" x2="320" y2="180" stroke="#3f3f46" strokeWidth={1} />
+        <line x1="190" y1="280" x2="190" y2="80" stroke="#3f3f46" strokeWidth={1} />
+        <text x="315" y="175" fill="#71717a" fontSize={9}>Pr</text>
+        <text x="195" y="88" fill="#71717a" fontSize={9}>Qr</text>
+
+        {/* Circle */}
+        <circle cx="170" cy="200" r={R} fill="none" stroke="#22d3ee" strokeWidth={2} />
+
+        {/* Center (fixed term) */}
+        <circle cx="170" cy="200" r="3" fill="#ef4444" />
+        <text x="148" y="214" fill="#ef4444" fontSize={8}>Center</text>
+        <text x="148" y="224" fill="#52525b" fontSize={7}>-|A||Vr|²/|B|</text>
+
+        {/* Radius to operating point */}
+        <line x1="170" y1="200" x2="260" y2="150" stroke="#22d3ee" strokeWidth={1.5} strokeDasharray="4,2" />
+        <circle cx="260" cy="150" r="4" fill="#22d3ee" />
+        <text x="272" y="148" fill="#22d3ee" fontSize={9} fontWeight={600}>Sr</text>
+
+        {/* Max power line */}
+        <line x1="280" y1="200" x2="280" y2="90" stroke="#f59e0b" strokeWidth={1} strokeDasharray="3,2" />
+        <text x="285" y="98" fill="#f59e0b" fontSize={8}>P_max</text>
+
+        {/* delta angle arc */}
+        <path d={`M170,180 A20,20 0 0,1 185,168`} fill="none" stroke="#a5b4fc" strokeWidth={1} />
+        <text x="186" y="178" fill="#a5b4fc" fontSize={8}>delta</text>
+      </g>
+
+      {/* Sending end circle (right) */}
+      <g>
+        <text x="570" y="70" textAnchor="middle" fill="#f59e0b" fontSize={12} fontWeight={600}>Sending End Circle</text>
+
+        {/* P-Q axes */}
+        <line x1="440" y1="180" x2="700" y2="180" stroke="#3f3f46" strokeWidth={1} />
+        <line x1="570" y1="280" x2="570" y2="80" stroke="#3f3f46" strokeWidth={1} />
+        <text x="695" y="175" fill="#71717a" fontSize={9}>Ps</text>
+        <text x="575" y="88" fill="#71717a" fontSize={9}>Qs</text>
+
+        {/* Circle */}
+        <circle cx="590" cy="160" r={R} fill="none" stroke="#f59e0b" strokeWidth={2} />
+
+        {/* Center */}
+        <circle cx="590" cy="160" r="3" fill="#ef4444" />
+        <text x="598" y="156" fill="#ef4444" fontSize={8}>Center</text>
+        <text x="598" y="166" fill="#52525b" fontSize={7}>|A||Vs|²/|B|</text>
+
+        {/* Radius to operating point */}
+        <line x1="590" y1="160" x2="520" y2="110" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="4,2" />
+        <circle cx="520" cy="110" r="4" fill="#f59e0b" />
+        <text x="505" y="106" fill="#f59e0b" fontSize={9} fontWeight={600}>Ss</text>
+      </g>
+
+      {/* Key */}
+      <rect x="180" y="296" width="400" height="34" rx="8" fill="#18181b" stroke="#27272a" />
+      <text x="280" y="312" textAnchor="middle" fill="#71717a" fontSize={9}>Radius = |Vs||Vr| / |B|</text>
+      <text x="280" y="324" textAnchor="middle" fill="#71717a" fontSize={9}>Power angle delta rotates the operating point on the circle</text>
+      <text x="500" y="318" textAnchor="middle" fill="#f59e0b" fontSize={9} fontWeight={600}>P_max at delta = beta (stability limit)</text>
+    </svg>
+  );
+}
+
 function Theory() {
   return (
     <div style={S.theory}>
@@ -222,6 +297,8 @@ function Theory() {
         circle — hence the name. It provides an immediate visual picture of real power transfer,
         reactive power requirements, and the <strong style={{ color: '#e4e4e7' }}>steady-state stability limit</strong>.
       </p>
+
+      <TheorySVGPowerCircles />
 
       <h3 style={S.h3}>Starting Point: ABCD Equations</h3>
       <p style={S.p}>

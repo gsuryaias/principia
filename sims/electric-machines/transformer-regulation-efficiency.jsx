@@ -304,11 +304,14 @@ function Diagram({ x, cosφ, Rpu, Xpu, Pi, Pc }) {
             stroke="#22c55e" strokeWidth={1.2} strokeDasharray="5 4" />
           <circle cx={xToRPx(xOptClamped)} cy={effToRPy(effMaxClamped)} r={5} fill="#22c55e" filter="url(#glow2)" />
           {/* η_max label */}
-          <rect x={xToRPx(xOptClamped) - 62} y={RP.y + 5} width={60} height={28} rx={5}
+          <rect x={xToRPx(xOptClamped) - 62} y={RP.y + 5} width={60} height={40} rx={5}
             fill="rgba(34,197,94,0.12)" stroke="#22c55e" strokeWidth={0.5} />
-          <text x={xToRPx(xOptClamped) - 32} y={RP.y + 16} textAnchor="middle" fontSize={8} fill="#22c55e" fontWeight={700}>η_max</text>
+          <text x={xToRPx(xOptClamped) - 32} y={RP.y + 16} textAnchor="middle" fontSize={8} fill="#22c55e" fontWeight={700}>OPTIMAL</text>
           <text x={xToRPx(xOptClamped) - 32} y={RP.y + 27} textAnchor="middle" fontSize={7} fill="#22c55e" fontFamily="monospace">
             x={xOptClamped.toFixed(2)}
+          </text>
+          <text x={xToRPx(xOptClamped) - 32} y={RP.y + 38} textAnchor="middle" fontSize={7} fill="#22c55e" fontFamily="monospace">
+            Pi=Pcu
           </text>
         </g>
       )}
@@ -436,11 +439,70 @@ function Theory() {
       </p>
 
       <h3 style={S.h3}>2. Approximate VR Formula — Phasor Derivation</h3>
+
+      {/* SVG: Phasor diagram for voltage regulation */}
+      <svg viewBox="0 0 520 280" style={{ width: '100%', maxWidth: 520, height: 'auto', margin: '16px auto', display: 'block' }}>
+        <defs>
+          <marker id="vrPh" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0,0 7,2.5 0,5" fill="#22c55e" />
+          </marker>
+          <marker id="vrPhB" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0,0 7,2.5 0,5" fill="#818cf8" />
+          </marker>
+          <marker id="vrPhR" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0,0 7,2.5 0,5" fill="#ef4444" />
+          </marker>
+          <marker id="vrPhY" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0,0 7,2.5 0,5" fill="#f59e0b" />
+          </marker>
+        </defs>
+        <text x={260} y={18} textAnchor="middle" fill="#71717a" fontSize={11} fontWeight={600}>Phasor Diagram for Voltage Regulation (Lagging PF)</text>
+
+        {/* Origin at (100, 180) */}
+        {/* V2 = reference, horizontal */}
+        <line x1={100} y1={180} x2={300} y2={180} stroke="#22c55e" strokeWidth={2.5} markerEnd="url(#vrPh)" />
+        <text x={310} y={184} fill="#22c55e" fontSize={11} fontWeight={700}>V2 (reference)</text>
+
+        {/* I2 at angle -phi below V2 */}
+        <line x1={100} y1={180} x2={220} y2={230} stroke="#f59e0b" strokeWidth={2} markerEnd="url(#vrPhY)" />
+        <text x={228} y={234} fill="#f59e0b" fontSize={10} fontWeight={600}>I2</text>
+
+        {/* Phi angle arc */}
+        <path d="M 150,180 A 50,50 0 0 1 142,198" fill="none" stroke="#f59e0b" strokeWidth={1} strokeDasharray="3 2" />
+        <text x={155} y={200} fill="#f59e0b" fontSize={9}>phi</text>
+
+        {/* I2*Req drop (in phase with I2) - from tip of V2 */}
+        <line x1={300} y1={180} x2={342} y2={200} stroke="#ef4444" strokeWidth={2} markerEnd="url(#vrPhR)" />
+        <text x={338} y={218} fill="#ef4444" fontSize={9} fontWeight={600}>I2*Req</text>
+
+        {/* I2*Xeq drop (perpendicular to I2, leading) - from tip of I2*Req */}
+        <line x1={342} y1={200} x2={362} y2={155} stroke="#60a5fa" strokeWidth={2} />
+        <text x={372} y={160} fill="#60a5fa" fontSize={9} fontWeight={600}>I2*Xeq</text>
+
+        {/* V1 phasor from origin to tip */}
+        <line x1={100} y1={180} x2={362} y2={155} stroke="#818cf8" strokeWidth={2.5} markerEnd="url(#vrPhB)" />
+        <text x={372} y={148} fill="#818cf8" fontSize={11} fontWeight={700}>V1</text>
+
+        {/* |V1| projection on V2 axis (horizontal dashed) */}
+        <line x1={362} y1={155} x2={362} y2={180} stroke="#71717a" strokeWidth={1} strokeDasharray="3 2" />
+        <line x1={300} y1={185} x2={362} y2={185} stroke="#71717a" strokeWidth={1} />
+        <text x={331} y={196} fill="#71717a" fontSize={8}>|V1| - |V2|</text>
+
+        {/* VR annotation */}
+        <rect x={60} y={240} width={400} height={32} rx={6} fill="rgba(99,102,241,0.06)" stroke="#27272a" strokeWidth={0.5} />
+        <text x={260} y={255} textAnchor="middle" fill="#818cf8" fontSize={10} fontWeight={600} fontFamily="monospace">
+          VR = (|V1| - |V2|) / |V2| x 100%
+        </text>
+        <text x={260} y={268} textAnchor="middle" fill="#52525b" fontSize={9}>
+          Positive VR for lagging PF (voltage drops under load)
+        </text>
+      </svg>
+
       <p style={S.p}>
-        Using the equivalent circuit (all referred to primary), with V₂ as reference and load current
-        I at angle −φ (lagging), the primary voltage phasor is:
+        Using the equivalent circuit (all referred to primary), with V2 as reference and load current
+        I at angle -phi (lagging), the primary voltage phasor is:
       </p>
-      <div style={S.eq}>V₁ = V₂ + I(R_eq cosφ + X_eq sinφ) + jI(X_eq cosφ − R_eq sinφ)</div>
+      <div style={S.eq}>V1 = V2 + I(R_eq cos phi + X_eq sin phi) + jI(X_eq cos phi - R_eq sin phi)</div>
       <p style={S.p}>
         Taking the magnitude and subtracting V₂, and normalising by the rated values (per-unit), the
         approximate formula in terms of load fraction x is:
@@ -498,6 +560,156 @@ function Theory() {
       <p style={S.p}>
         where S is the rated kVA, P_i and P_c are in kW (or same unit as x·S·cosφ).
       </p>
+
+      {/* SVG: Annotated efficiency vs load curve */}
+      <svg viewBox="0 0 520 260" style={{ width: '100%', maxWidth: 520, height: 'auto', margin: '16px auto', display: 'block' }}>
+        <defs>
+          <linearGradient id="effFillT" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="#6366f1" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        <text x={260} y={18} textAnchor="middle" fill="#71717a" fontSize={11} fontWeight={600}>Efficiency vs Load — Maximum Efficiency Point</text>
+
+        {/* Axes */}
+        <line x1={60} y1={220} x2={480} y2={220} stroke="#3f3f46" strokeWidth={1} />
+        <line x1={60} y1={220} x2={60} y2={30} stroke="#3f3f46" strokeWidth={1} />
+        <text x={270} y={245} textAnchor="middle" fill="#52525b" fontSize={9}>Load Fraction x (p.u.)</text>
+        <text x={30} y={125} textAnchor="middle" fill="#52525b" fontSize={9} transform="rotate(-90,30,125)">Efficiency (%)</text>
+
+        {/* Y-axis labels */}
+        {[80,85,90,95,100].map(v => {
+          const y = 220 - ((v - 75) / 25) * 190;
+          return (
+            <g key={v}>
+              <line x1={55} y1={y} x2={480} y2={y} stroke="#1e1e2e" strokeWidth={0.5} />
+              <text x={50} y={y + 3} textAnchor="end" fill="#52525b" fontSize={8} fontFamily="monospace">{v}</text>
+            </g>
+          );
+        })}
+
+        {/* X-axis labels */}
+        {[0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5].map(v => {
+          const x = 60 + (v / 1.5) * 420;
+          return <text key={v} x={x} y={233} textAnchor="middle" fill="#52525b" fontSize={8}>{v}</text>;
+        })}
+
+        {/* Efficiency curve (Pi=50, Pc=100, cosφ=0.85, S=1000) */}
+        <path d={(() => {
+          let d = '';
+          for (let i = 0; i <= 60; i++) {
+            const xx = (i / 60) * 1.5;
+            const out = xx * 1000 * 0.85;
+            const eff = out > 0 ? (out / (out + 50 + xx * xx * 100)) * 100 : 75;
+            const px = 60 + (xx / 1.5) * 420;
+            const py = 220 - ((eff - 75) / 25) * 190;
+            d += (i === 0 ? 'M' : 'L') + px.toFixed(1) + ',' + py.toFixed(1);
+          }
+          return d;
+        })()} fill="none" stroke="#6366f1" strokeWidth={2.5} />
+
+        {/* Fill under curve */}
+        <path d={(() => {
+          let d = '';
+          for (let i = 0; i <= 60; i++) {
+            const xx = (i / 60) * 1.5;
+            const out = xx * 1000 * 0.85;
+            const eff = out > 0 ? (out / (out + 50 + xx * xx * 100)) * 100 : 75;
+            const px = 60 + (xx / 1.5) * 420;
+            const py = 220 - ((eff - 75) / 25) * 190;
+            d += (i === 0 ? 'M' : 'L') + px.toFixed(1) + ',' + py.toFixed(1);
+          }
+          d += `L${480},${220}L${60},${220}Z`;
+          return d;
+        })()} fill="url(#effFillT)" />
+
+        {/* xOpt = sqrt(50/100) = 0.707 */}
+        {(() => {
+          const xOpt = Math.sqrt(50 / 100);
+          const px = 60 + (xOpt / 1.5) * 420;
+          const out = xOpt * 1000 * 0.85;
+          const effMax = (out / (out + 2 * 50)) * 100;
+          const py = 220 - ((effMax - 75) / 25) * 190;
+          return (
+            <g>
+              <line x1={px} y1={220} x2={px} y2={py} stroke="#22c55e" strokeWidth={1.5} strokeDasharray="5 3" />
+              <circle cx={px} cy={py} r={5} fill="#22c55e" />
+              <rect x={px + 8} y={py - 30} width={120} height={42} rx={5} fill="rgba(34,197,94,0.1)" stroke="#22c55e" strokeWidth={0.8} />
+              <text x={px + 14} y={py - 16} fill="#22c55e" fontSize={9} fontWeight={700}>Maximum Efficiency</text>
+              <text x={px + 14} y={py - 4} fill="#22c55e" fontSize={8} fontFamily="monospace">x_opt = {xOpt.toFixed(3)}</text>
+              <text x={px + 14} y={py + 7} fill="#22c55e" fontSize={8} fontFamily="monospace">eta_max = {effMax.toFixed(1)}%</text>
+            </g>
+          );
+        })()}
+
+        {/* Annotation: Pi = Pcu at max efficiency */}
+        <rect x={300} y={175} width={170} height={38} rx={5} fill="rgba(167,139,250,0.08)" stroke="#a78bfa" strokeWidth={0.5} />
+        <text x={385} y={190} textAnchor="middle" fill="#a78bfa" fontSize={9} fontWeight={600}>At max efficiency:</text>
+        <text x={385} y={205} textAnchor="middle" fill="#c4b5fd" fontSize={10} fontWeight={700} fontFamily="monospace">Iron Loss = Copper Loss</text>
+      </svg>
+
+      {/* SVG: VR for lagging, unity, leading PF */}
+      <svg viewBox="0 0 520 200" style={{ width: '100%', maxWidth: 520, height: 'auto', margin: '16px auto', display: 'block' }}>
+        <text x={260} y={16} textAnchor="middle" fill="#71717a" fontSize={11} fontWeight={600}>Voltage Regulation vs PF — Lagging, Unity, Leading</text>
+        {/* Axes */}
+        <line x1={60} y1={160} x2={480} y2={160} stroke="#3f3f46" strokeWidth={1} />
+        <line x1={60} y1={160} x2={60} y2={25} stroke="#3f3f46" strokeWidth={1} />
+        <text x={270} y={183} textAnchor="middle" fill="#52525b" fontSize={9}>Load Fraction x</text>
+        <text x={35} y={92} textAnchor="middle" fill="#52525b" fontSize={9} transform="rotate(-90,35,92)">VR (%)</text>
+
+        {/* Zero line */}
+        {(() => {
+          const zeroY = 160 - ((0 - (-2)) / 10) * 135;
+          return <line x1={60} y1={zeroY} x2={480} y2={zeroY} stroke="#4b5563" strokeWidth={0.8} strokeDasharray="4 3" />;
+        })()}
+
+        {/* Lagging PF curve (cosφ=0.8, Rpu=0.015, Xpu=0.06) */}
+        <polyline points={(() => {
+          const pts = [];
+          for (let i = 0; i <= 50; i++) {
+            const xx = (i / 50) * 1.5;
+            const cosP = 0.8, sinP = 0.6;
+            const vr = (xx * (0.015 * cosP + 0.06 * sinP) + xx * xx * Math.pow(0.06 * cosP - 0.015 * sinP, 2) / 2) * 100;
+            pts.push(`${(60 + (xx / 1.5) * 420).toFixed(1)},${(160 - ((vr - (-2)) / 10) * 135).toFixed(1)}`);
+          }
+          return pts.join(' ');
+        })()} fill="none" stroke="#f59e0b" strokeWidth={2} />
+
+        {/* Unity PF curve */}
+        <polyline points={(() => {
+          const pts = [];
+          for (let i = 0; i <= 50; i++) {
+            const xx = (i / 50) * 1.5;
+            const vr = (xx * 0.015 + xx * xx * Math.pow(0.06, 2) / 2) * 100;
+            pts.push(`${(60 + (xx / 1.5) * 420).toFixed(1)},${(160 - ((vr - (-2)) / 10) * 135).toFixed(1)}`);
+          }
+          return pts.join(' ');
+        })()} fill="none" stroke="#22c55e" strokeWidth={2} />
+
+        {/* Leading PF curve */}
+        <polyline points={(() => {
+          const pts = [];
+          for (let i = 0; i <= 50; i++) {
+            const xx = (i / 50) * 1.5;
+            const cosP = 0.8, sinP = -0.6;
+            const vr = (xx * (0.015 * cosP + 0.06 * sinP) + xx * xx * Math.pow(0.06 * cosP - 0.015 * sinP, 2) / 2) * 100;
+            pts.push(`${(60 + (xx / 1.5) * 420).toFixed(1)},${(160 - ((vr - (-2)) / 10) * 135).toFixed(1)}`);
+          }
+          return pts.join(' ');
+        })()} fill="none" stroke="#60a5fa" strokeWidth={2} />
+
+        {/* Legend */}
+        <rect x={340} y={28} width={140} height={58} rx={5} fill="rgba(9,9,11,0.85)" stroke="#27272a" strokeWidth={0.5} />
+        <line x1={350} y1={42} x2={370} y2={42} stroke="#f59e0b" strokeWidth={2} />
+        <text x={378} y={46} fill="#f59e0b" fontSize={9}>cos phi=0.8 lag</text>
+        <line x1={350} y1={58} x2={370} y2={58} stroke="#22c55e" strokeWidth={2} />
+        <text x={378} y={62} fill="#22c55e" fontSize={9}>cos phi=1.0</text>
+        <line x1={350} y1={74} x2={370} y2={74} stroke="#60a5fa" strokeWidth={2} />
+        <text x={378} y={78} fill="#60a5fa" fontSize={9}>cos phi=0.8 lead</text>
+
+        {/* Annotation for negative VR */}
+        <text x={200} y={195} textAnchor="middle" fill="#60a5fa" fontSize={8}>Leading PF: Negative VR (voltage rise under load)</text>
+      </svg>
 
       <h3 style={S.h3}>5. Maximum Efficiency Condition</h3>
       <p style={S.p}>

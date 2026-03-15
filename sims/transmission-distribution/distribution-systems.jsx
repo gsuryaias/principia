@@ -431,6 +431,89 @@ function NodePopup({ idx, loads, net, onLoad, onClose }) {
   );
 }
 
+function TheorySVGTopologies() {
+  return (
+    <svg viewBox="0 0 760 340" style={{ width: '100%', maxWidth: 760, height: 'auto', margin: '20px 0' }}>
+      <rect width="760" height="340" rx="12" fill="#111114" stroke="#27272a" />
+      <text x="380" y="28" textAnchor="middle" fill="#d4d4d8" fontSize={14} fontWeight={700}>Distribution Network Topologies</text>
+
+      {/* Radial */}
+      <text x="130" y="58" textAnchor="middle" fill="#ef4444" fontSize={11} fontWeight={600}>Radial System</text>
+      <rect x="110" y="70" width="40" height="24" rx="4" fill="rgba(99,102,241,0.1)" stroke="#6366f1" strokeWidth={1.5} />
+      <text x="130" y="86" textAnchor="middle" fill="#a5b4fc" fontSize={8}>S/S</text>
+      <line x1="130" y1="94" x2="130" y2="120" stroke="#52525b" strokeWidth={2} />
+      <line x1="130" y1="120" x2="80" y2="150" stroke="#52525b" strokeWidth={1.5} />
+      <line x1="130" y1="120" x2="180" y2="150" stroke="#52525b" strokeWidth={1.5} />
+      <line x1="80" y1="150" x2="60" y2="180" stroke="#52525b" strokeWidth={1} />
+      <line x1="80" y1="150" x2="100" y2="180" stroke="#52525b" strokeWidth={1} />
+      <line x1="180" y1="150" x2="160" y2="180" stroke="#52525b" strokeWidth={1} />
+      <line x1="180" y1="150" x2="200" y2="180" stroke="#52525b" strokeWidth={1} />
+      {[60, 100, 160, 200].map(x => <circle key={x} cx={x} cy="184" r="5" fill="#ef4444" opacity={0.6} />)}
+      {[80, 180].map(x => <circle key={x} cx={x} cy="154" r="5" fill="#f59e0b" opacity={0.6} />)}
+      <text x="130" y="210" textAnchor="middle" fill="#71717a" fontSize={8}>Single source, tree structure</text>
+      <text x="130" y="222" textAnchor="middle" fill="#ef4444" fontSize={8}>Any fault = downstream outage</text>
+
+      {/* Ring Main */}
+      <text x="380" y="58" textAnchor="middle" fill="#22c55e" fontSize={11} fontWeight={600}>Ring Main System</text>
+      <rect x="360" y="70" width="40" height="24" rx="4" fill="rgba(99,102,241,0.1)" stroke="#6366f1" strokeWidth={1.5} />
+      <text x="380" y="86" textAnchor="middle" fill="#a5b4fc" fontSize={8}>S/S</text>
+      <line x1="380" y1="94" x2="380" y2="110" stroke="#52525b" strokeWidth={2} />
+      {/* Ring */}
+      <path d="M340,130 L320,160 L320,190 L380,210 L440,190 L440,160 L420,130 Z" fill="none" stroke="#22c55e" strokeWidth={2} />
+      <line x1="380" y1="110" x2="340" y2="130" stroke="#52525b" strokeWidth={2} />
+      <line x1="380" y1="110" x2="420" y2="130" stroke="#52525b" strokeWidth={2} />
+      {[[340,130],[320,160],[320,190],[380,210],[440,190],[440,160],[420,130]].map(([x,y],i) => (
+        <g key={i}>
+          <circle cx={x} cy={y} r="5" fill="#22c55e" opacity={0.6} />
+          <rect x={x-2} y={y-2} width="4" height="4" rx="1" fill="none" stroke="#22c55e" strokeWidth={0.8} />
+        </g>
+      ))}
+      <text x="380" y="240" textAnchor="middle" fill="#71717a" fontSize={8}>Closed loop with RMUs</text>
+      <text x="380" y="252" textAnchor="middle" fill="#22c55e" fontSize={8}>Fault = only 1 section isolated</text>
+
+      {/* Mesh */}
+      <text x="630" y="58" textAnchor="middle" fill="#6366f1" fontSize={11} fontWeight={600}>Mesh / Network</text>
+      <rect x="590" y="70" width="40" height="24" rx="4" fill="rgba(99,102,241,0.1)" stroke="#6366f1" strokeWidth={1.5} />
+      <text x="610" y="86" textAnchor="middle" fill="#a5b4fc" fontSize={8}>S/S1</text>
+      <rect x="650" y="70" width="40" height="24" rx="4" fill="rgba(99,102,241,0.1)" stroke="#6366f1" strokeWidth={1.5} />
+      <text x="670" y="86" textAnchor="middle" fill="#a5b4fc" fontSize={8}>S/S2</text>
+      {/* Grid lines */}
+      {[110,150,190].map(y => (
+        <g key={y}>
+          <line x1="580" y1={y} x2="680" y2={y} stroke="#818cf8" strokeWidth={1.5} />
+        </g>
+      ))}
+      {[580,610,640,680].map(x => (
+        <line key={x} x1={x} y1="110" x2={x} y2="190" stroke="#818cf8" strokeWidth={1} />
+      ))}
+      <line x1="610" y1="94" x2="610" y2="110" stroke="#52525b" strokeWidth={2} />
+      <line x1="670" y1="94" x2="670" y2="110" stroke="#52525b" strokeWidth={2} />
+      {[580,610,640,680].flatMap(x => [110,150,190].map(y => (
+        <circle key={`${x}${y}`} cx={x} cy={y} r="3" fill="#818cf8" opacity={0.5} />
+      )))}
+      <text x="630" y="218" textAnchor="middle" fill="#71717a" fontSize={8}>Multiple sources & paths</text>
+      <text x="630" y="230" textAnchor="middle" fill="#6366f1" fontSize={8}>Highest reliability & cost</text>
+
+      {/* Voltage profile comparison at bottom */}
+      <line x1="40" y1="270" x2="720" y2="270" stroke="#27272a" strokeWidth={0.5} />
+      <text x="380" y="290" textAnchor="middle" fill="#d4d4d8" fontSize={11} fontWeight={600}>Voltage Drop Profile Comparison</text>
+      <line x1="100" y1="310" x2="660" y2="310" stroke="#3f3f46" strokeWidth={0.5} />
+      <text x="90" y="314" textAnchor="end" fill="#52525b" fontSize={8}>1.0 pu</text>
+      <line x1="100" y1="325" x2="660" y2="325" stroke="#3f3f46" strokeWidth={0.5} strokeDasharray="4,3" />
+      <text x="90" y="329" textAnchor="end" fill="#52525b" fontSize={8}>0.94</text>
+      {/* Radial - steep drop */}
+      <path d="M100,310 L300,312 L500,322 L660,330" fill="none" stroke="#ef4444" strokeWidth={1.5} />
+      <text x="665" y="333" fill="#ef4444" fontSize={7}>Radial</text>
+      {/* Ring - moderate */}
+      <path d="M100,310 L300,311 L500,314 L660,316" fill="none" stroke="#22c55e" strokeWidth={1.5} />
+      <text x="665" y="319" fill="#22c55e" fontSize={7}>Ring</text>
+      {/* Mesh - flat */}
+      <path d="M100,310 L300,310.5 L500,311 L660,311.5" fill="none" stroke="#818cf8" strokeWidth={1.5} />
+      <text x="665" y="314" fill="#818cf8" fontSize={7}>Mesh</text>
+    </svg>
+  );
+}
+
 function Theory() {
   return (
     <div style={S.theory}>
@@ -442,6 +525,8 @@ function Theory() {
         <strong style={{ color: '#e4e4e7' }}>cost</strong>. The three fundamental topologies are
         radial, ring main, and mesh — each with distinct trade-offs.
       </p>
+
+      <TheorySVGTopologies />
 
       <h3 style={S.h3}>Topology Comparison</h3>
       <table style={S.tbl}>

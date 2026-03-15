@@ -338,6 +338,44 @@ function Diagram({ trx, phase }) {
         {(fluxNorm * Phimax * 1000).toFixed(2)} mWb
       </text>
 
+      {/* ══ LEAKAGE FLUX PATHS (animated) ══ */}
+      {/* Primary leakage flux - dashed curves that bypass the core */}
+      <path
+        d={`M ${leftLimbX - 20},${CY - 25} C ${leftLimbX - 50},${CY - 25} ${leftLimbX - 55},${CY} ${leftLimbX - 50},${CY + 25}`}
+        fill="none" stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 3"
+        opacity={brightness * 0.5} />
+      <path
+        d={`M ${leftLimbX - 22},${CY - 15} C ${leftLimbX - 42},${CY - 15} ${leftLimbX - 45},${CY} ${leftLimbX - 42},${CY + 15}`}
+        fill="none" stroke="#f59e0b" strokeWidth={0.8} strokeDasharray="3 3"
+        opacity={brightness * 0.4} />
+      {brightness > 0.2 && (
+        <text x={leftLimbX - 60} y={CY + 42} fill="#f59e0b" fontSize={7} opacity={0.6} textAnchor="middle">
+          Leakage
+        </text>
+      )}
+
+      {/* Secondary leakage flux */}
+      <path
+        d={`M ${rightLimbX + 20},${CY - 25} C ${rightLimbX + 50},${CY - 25} ${rightLimbX + 55},${CY} ${rightLimbX + 50},${CY + 25}`}
+        fill="none" stroke="#22d3ee" strokeWidth={1} strokeDasharray="4 3"
+        opacity={brightness * 0.5} />
+      <path
+        d={`M ${rightLimbX + 22},${CY - 15} C ${rightLimbX + 42},${CY - 15} ${rightLimbX + 45},${CY} ${rightLimbX + 42},${CY + 15}`}
+        fill="none" stroke="#22d3ee" strokeWidth={0.8} strokeDasharray="3 3"
+        opacity={brightness * 0.4} />
+      {brightness > 0.2 && (
+        <text x={rightLimbX + 60} y={CY + 42} fill="#22d3ee" fontSize={7} opacity={0.6} textAnchor="middle">
+          Leakage
+        </text>
+      )}
+
+      {/* ══ MUTUAL FLUX LABEL ══ */}
+      {brightness > 0.3 && (
+        <text x={CX} y={outerY + YH / 2 + 3} textAnchor="middle" fill="#818cf8" fontSize={7} fontWeight={600} opacity={brightness * 0.7}>
+          MUTUAL FLUX (Phi_m)
+        </text>
+      )}
+
       {/* ══ DIVIDERS ══ */}
       <line x1={220} y1={20} x2={220} y2={300} stroke="#1e1e2e" strokeWidth={1} />
       <line x1={740} y1={20} x2={740} y2={300} stroke="#1e1e2e" strokeWidth={1} />
@@ -346,6 +384,157 @@ function Diagram({ trx, phase }) {
       <text x={CX} y={295} textAnchor="middle" fill="#3f3f46" fontSize={9}>
         Both EMFs in phase (ideal transformer — zero leakage flux)   |   f = {trx.freq} Hz
       </text>
+    </svg>
+  );
+}
+
+// ── SVG Diagrams for Theory ──────────────────────────────────────────────────
+function TransformerCrossSectionSVG() {
+  return (
+    <svg viewBox="0 0 520 320" style={{ width: '100%', maxWidth: 520, height: 'auto', margin: '16px auto', display: 'block' }}>
+      <defs>
+        <linearGradient id="coreGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#3f3f46" />
+          <stop offset="100%" stopColor="#27272a" />
+        </linearGradient>
+        <marker id="fluxArrowT" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0,0 7,2.5 0,5" fill="#818cf8" />
+        </marker>
+        <marker id="leakArrow" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">
+          <polygon points="0,0 6,2 0,4" fill="#f59e0b" opacity="0.7" />
+        </marker>
+      </defs>
+
+      {/* Title */}
+      <text x={260} y={18} textAnchor="middle" fill="#71717a" fontSize={11} fontWeight={600}>Transformer Core Cross-Section (Shell Type)</text>
+
+      {/* Outer core - top yoke */}
+      <rect x={60} y={35} width={400} height={30} rx={3} fill="url(#coreGrad)" stroke="#4b5563" strokeWidth={1.5} />
+      {/* Bottom yoke */}
+      <rect x={60} y={255} width={400} height={30} rx={3} fill="url(#coreGrad)" stroke="#4b5563" strokeWidth={1.5} />
+      {/* Left limb */}
+      <rect x={60} y={65} width={40} height={190} fill="url(#coreGrad)" stroke="#4b5563" strokeWidth={1.5} />
+      {/* Right limb */}
+      <rect x={420} y={65} width={40} height={190} fill="url(#coreGrad)" stroke="#4b5563" strokeWidth={1.5} />
+      {/* Center limb */}
+      <rect x={230} y={65} width={60} height={190} fill="url(#coreGrad)" stroke="#4b5563" strokeWidth={1.5} />
+
+      {/* Windows */}
+      <rect x={100} y={65} width={130} height={190} rx={4} fill="#09090b" stroke="#1e1e2e" strokeWidth={1} />
+      <rect x={290} y={65} width={130} height={190} rx={4} fill="#09090b" stroke="#1e1e2e" strokeWidth={1} />
+
+      {/* Primary winding (left window, on center limb) */}
+      {[0,1,2,3,4,5,6,7].map(i => (
+        <g key={`pw${i}`}>
+          <rect x={218} y={75 + i * 22} width={12} height={16} rx={3} fill="none" stroke="#6366f1" strokeWidth={1.8} />
+          <circle cx={224} cy={83 + i * 22} r={1.5} fill="#818cf8" />
+        </g>
+      ))}
+      <text x={210} y={265} textAnchor="middle" fill="#818cf8" fontSize={10} fontWeight={600}>Primary (N1)</text>
+
+      {/* Secondary winding (right side of center limb) */}
+      {[0,1,2,3,4,5].map(i => (
+        <g key={`sw${i}`}>
+          <rect x={290} y={82 + i * 28} width={12} height={20} rx={3} fill="none" stroke="#f59e0b" strokeWidth={1.8} />
+          <text x={296} y={96 + i * 28} textAnchor="middle" fill="#fbbf24" fontSize={6}>x</text>
+        </g>
+      ))}
+      <text x={310} y={265} textAnchor="middle" fill="#f59e0b" fontSize={10} fontWeight={600}>Secondary (N2)</text>
+
+      {/* Mutual flux arrows (through center limb) */}
+      <line x1={260} y1={58} x2={260} y2={30} stroke="#818cf8" strokeWidth={1.5} markerEnd="url(#fluxArrowT)" opacity={0.8} />
+      <text x={275} y={52} fill="#a78bfa" fontSize={8}>Mutual</text>
+      <text x={275} y={62} fill="#a78bfa" fontSize={8}>Flux (Phi_m)</text>
+
+      {/* Flux path arrows in core */}
+      {/* Top yoke left to right */}
+      <line x1={110} y1={50} x2={400} y2={50} stroke="#818cf8" strokeWidth={1.2} markerEnd="url(#fluxArrowT)" opacity={0.6} />
+      {/* Right limb down */}
+      <line x1={440} y1={72} x2={440} y2={248} stroke="#818cf8" strokeWidth={1.2} markerEnd="url(#fluxArrowT)" opacity={0.6} />
+      {/* Bottom yoke right to left */}
+      <line x1={400} y1={270} x2={110} y2={270} stroke="#818cf8" strokeWidth={1.2} markerEnd="url(#fluxArrowT)" opacity={0.6} />
+      {/* Left limb up */}
+      <line x1={80} y1={248} x2={80} y2={72} stroke="#818cf8" strokeWidth={1.2} markerEnd="url(#fluxArrowT)" opacity={0.6} />
+
+      {/* Leakage flux (dashed, from primary winding into air) */}
+      <path d="M 215,120 C 180,120 170,140 180,160" fill="none" stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 3" markerEnd="url(#leakArrow)" opacity={0.6} />
+      <path d="M 215,180 C 175,180 165,200 175,215" fill="none" stroke="#f59e0b" strokeWidth={1} strokeDasharray="4 3" markerEnd="url(#leakArrow)" opacity={0.6} />
+      <text x={140} y={145} fill="#f59e0b" fontSize={8} opacity={0.7}>Leakage</text>
+      <text x={140} y={155} fill="#f59e0b" fontSize={8} opacity={0.7}>flux (Phi_l)</text>
+
+      {/* Labels */}
+      <text x={80} y={168} textAnchor="middle" fill="#52525b" fontSize={8} transform="rotate(-90,80,168)">CORE (Fe-Si)</text>
+      <text x={440} y={168} textAnchor="middle" fill="#52525b" fontSize={8} transform="rotate(90,440,168)">CORE (Fe-Si)</text>
+
+      {/* Legend */}
+      <rect x={20} y={295} width={480} height={22} rx={4} fill="#18181b" stroke="#27272a" strokeWidth={0.5} />
+      <line x1={30} y1={306} x2={50} y2={306} stroke="#818cf8" strokeWidth={2} />
+      <text x={55} y={310} fill="#a1a1aa" fontSize={9}>Mutual flux path (through core)</text>
+      <line x1={230} y1={306} x2={250} y2={306} stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="4 3" />
+      <text x={255} y={310} fill="#a1a1aa" fontSize={9}>Leakage flux (through air)</text>
+    </svg>
+  );
+}
+
+function FluxPathDiagramSVG() {
+  return (
+    <svg viewBox="0 0 520 200" style={{ width: '100%', maxWidth: 520, height: 'auto', margin: '16px auto', display: 'block' }}>
+      <defs>
+        <marker id="fpArrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <polygon points="0,0 7,2.5 0,5" fill="#818cf8" />
+        </marker>
+      </defs>
+      <text x={260} y={16} textAnchor="middle" fill="#71717a" fontSize={11} fontWeight={600}>EMF Equation Derivation & Transformer Ratio</text>
+
+      {/* Left side: derivation flow */}
+      <rect x={10} y={30} width={240} height={160} rx={8} fill="#0d0d10" stroke="#27272a" strokeWidth={1} />
+      <text x={130} y={48} textAnchor="middle" fill="#818cf8" fontSize={10} fontWeight={600}>Derivation Steps</text>
+
+      {/* Step boxes */}
+      <rect x={20} y={56} width={220} height={22} rx={4} fill="#18181b" stroke="#27272a" strokeWidth={0.5} />
+      <text x={130} y={71} textAnchor="middle" fill="#c4b5fd" fontSize={9} fontFamily="monospace">1. Phi(t) = Phi_max sin(2pi ft)</text>
+
+      <line x1={130} y1={78} x2={130} y2={86} stroke="#818cf8" strokeWidth={1} markerEnd="url(#fpArrow)" />
+
+      <rect x={20} y={88} width={220} height={22} rx={4} fill="#18181b" stroke="#27272a" strokeWidth={0.5} />
+      <text x={130} y={103} textAnchor="middle" fill="#c4b5fd" fontSize={9} fontFamily="monospace">2. e = -N dPhi/dt = -N w Phi_max cos(wt)</text>
+
+      <line x1={130} y1={110} x2={130} y2={118} stroke="#818cf8" strokeWidth={1} markerEnd="url(#fpArrow)" />
+
+      <rect x={20} y={120} width={220} height={22} rx={4} fill="#18181b" stroke="#27272a" strokeWidth={0.5} />
+      <text x={130} y={135} textAnchor="middle" fill="#c4b5fd" fontSize={9} fontFamily="monospace">3. E_max = N 2pi f Phi_max</text>
+
+      <line x1={130} y1={142} x2={130} y2={150} stroke="#818cf8" strokeWidth={1} markerEnd="url(#fpArrow)" />
+
+      <rect x={20} y={152} width={220} height={28} rx={4} fill="rgba(99,102,241,0.1)" stroke="#6366f1" strokeWidth={1} />
+      <text x={130} y={167} textAnchor="middle" fill="#818cf8" fontSize={10} fontWeight={700} fontFamily="monospace">4. E_rms = 4.44 f N Phi_max</text>
+      <text x={130} y={178} textAnchor="middle" fill="#52525b" fontSize={8}>(2pi / sqrt(2) = 4.4429)</text>
+
+      {/* Right side: transformer ratio illustration */}
+      <rect x={270} y={30} width={240} height={160} rx={8} fill="#0d0d10" stroke="#27272a" strokeWidth={1} />
+      <text x={390} y={48} textAnchor="middle" fill="#f59e0b" fontSize={10} fontWeight={600}>Voltage Transformation</text>
+
+      {/* Primary side */}
+      <rect x={290} y={60} width={80} height={50} rx={6} fill="rgba(99,102,241,0.08)" stroke="#6366f1" strokeWidth={1} />
+      <text x={330} y={78} textAnchor="middle" fill="#818cf8" fontSize={10} fontWeight={600}>Primary</text>
+      <text x={330} y={92} textAnchor="middle" fill="#818cf8" fontSize={9} fontFamily="monospace">E1 = 4.44fN1Phi</text>
+      <text x={330} y={104} textAnchor="middle" fill="#52525b" fontSize={9}>N1 turns</text>
+
+      {/* Arrow between */}
+      <line x1={370} y1={85} x2={400} y2={85} stroke="#a78bfa" strokeWidth={1.5} markerEnd="url(#fpArrow)" />
+      <text x={385} y={78} textAnchor="middle" fill="#a78bfa" fontSize={8}>Same Phi</text>
+
+      {/* Secondary side */}
+      <rect x={410} y={60} width={80} height={50} rx={6} fill="rgba(245,158,11,0.08)" stroke="#f59e0b" strokeWidth={1} />
+      <text x={450} y={78} textAnchor="middle" fill="#f59e0b" fontSize={10} fontWeight={600}>Secondary</text>
+      <text x={450} y={92} textAnchor="middle" fill="#f59e0b" fontSize={9} fontFamily="monospace">E2 = 4.44fN2Phi</text>
+      <text x={450} y={104} textAnchor="middle" fill="#52525b" fontSize={9}>N2 turns</text>
+
+      {/* Result box */}
+      <rect x={290} y={125} width={200} height={55} rx={6} fill="rgba(34,197,94,0.06)" stroke="#22c55e" strokeWidth={1} />
+      <text x={390} y={142} textAnchor="middle" fill="#22c55e" fontSize={10} fontWeight={600}>Turns Ratio</text>
+      <text x={390} y={158} textAnchor="middle" fill="#22c55e" fontSize={11} fontWeight={700} fontFamily="monospace">E2/E1 = N2/N1 = a</text>
+      <text x={390} y={172} textAnchor="middle" fill="#52525b" fontSize={9}>V2 = V1 x a (ideal transformer)</text>
     </svg>
   );
 }
@@ -363,6 +552,8 @@ function Theory() {
         iron core; this flux links the secondary winding and induces an EMF proportional to
         the number of secondary turns.
       </p>
+
+      <TransformerCrossSectionSVG />
 
       <h3 style={S.h3}>Faraday's Law and Lenz's Law</h3>
       <p style={S.p}>
@@ -385,6 +576,7 @@ function Theory() {
       </p>
 
       <h3 style={S.h3}>EMF Equation Derivation — The 4.44 Factor</h3>
+      <FluxPathDiagramSVG />
       <p style={S.p}>
         The peak (maximum) value of the induced EMF is:
       </p>

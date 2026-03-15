@@ -223,6 +223,123 @@ function Diagram({ d, span, condKey, vKV, support, hDiff }) {
   );
 }
 
+function TheorySVGCatenary() {
+  return (
+    <svg viewBox="0 0 760 300" style={{ width: '100%', maxWidth: 760, height: 'auto', margin: '20px 0' }}>
+      <rect width="760" height="300" rx="12" fill="#111114" stroke="#27272a" />
+      <text x="380" y="28" textAnchor="middle" fill="#d4d4d8" fontSize={14} fontWeight={700}>Catenary Curve — Sag, Span, and Tension</text>
+
+      {/* Left tower */}
+      <rect x="110" y="60" width="8" height="170" rx="2" fill="#27272a" />
+      <rect x="104" y="56" width="20" height="8" rx="2" fill="#3f3f46" />
+      {/* Cross-arm */}
+      <line x1="88" y1="66" x2="140" y2="66" stroke="#3f3f46" strokeWidth={2} />
+      {/* Insulator */}
+      <line x1="114" y1="66" x2="114" y2="80" stroke="#52525b" strokeWidth={1.5} />
+
+      {/* Right tower */}
+      <rect x="642" y="60" width="8" height="170" rx="2" fill="#27272a" />
+      <rect x="636" y="56" width="20" height="8" rx="2" fill="#3f3f46" />
+      <line x1="620" y1="66" x2="672" y2="66" stroke="#3f3f46" strokeWidth={2} />
+      <line x1="646" y1="66" x2="646" y2="80" stroke="#52525b" strokeWidth={1.5} />
+
+      {/* Ground line */}
+      <line x1="60" y1="236" x2="700" y2="236" stroke="#1e1e2e" strokeWidth={1} strokeDasharray="8,4" />
+      <text x="380" y="254" textAnchor="middle" fill="#27272a" fontSize={9}>GROUND LEVEL</text>
+
+      {/* Catenary conductor */}
+      <path d="M114,80 Q380,195 646,80" fill="none" stroke="#818cf8" strokeWidth={2.5} />
+
+      {/* Sag vertical */}
+      <line x1="380" y1="80" x2="380" y2="178" stroke="#ef4444" strokeWidth={1} strokeDasharray="4,3" />
+      <line x1="370" y1="80" x2="390" y2="80" stroke="#ef4444" strokeWidth={0.8} />
+      <line x1="370" y1="178" x2="390" y2="178" stroke="#ef4444" strokeWidth={0.8} />
+      <text x="400" y="135" fill="#ef4444" fontSize={11} fontWeight={700}>Sag (S)</text>
+
+      {/* Span horizontal */}
+      <line x1="114" y1="270" x2="646" y2="270" stroke="#22d3ee" strokeWidth={1} />
+      <line x1="114" y1="265" x2="114" y2="275" stroke="#22d3ee" strokeWidth={1} />
+      <line x1="646" y1="265" x2="646" y2="275" stroke="#22d3ee" strokeWidth={1} />
+      <text x="380" y="284" textAnchor="middle" fill="#22d3ee" fontSize={11} fontWeight={700}>Span (L)</text>
+
+      {/* Tension arrows */}
+      <defs>
+        <marker id="sArr" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+          <path d="M0,0 L7,2.5 L0,5 Z" fill="#f59e0b" />
+        </marker>
+      </defs>
+      {/* T at support A */}
+      <line x1="114" y1="80" x2="80" y2="62" stroke="#f59e0b" strokeWidth={1.5} markerEnd="url(#sArr)" />
+      <text x="72" y="56" fill="#f59e0b" fontSize={10} fontWeight={600}>T_A</text>
+      {/* T at support B */}
+      <line x1="646" y1="80" x2="680" y2="62" stroke="#f59e0b" strokeWidth={1.5} markerEnd="url(#sArr)" />
+      <text x="686" y="56" fill="#f59e0b" fontSize={10} fontWeight={600}>T_B</text>
+      {/* Horizontal tension at lowest point */}
+      <line x1="380" y1="178" x2="340" y2="178" stroke="#22c55e" strokeWidth={1.5} markerEnd="url(#sArr)" />
+      <text x="310" y="175" fill="#22c55e" fontSize={10} fontWeight={600}>T_H</text>
+
+      {/* Clearance */}
+      <line x1="520" y1="178" x2="520" y2="236" stroke="#a5b4fc" strokeWidth={1} strokeDasharray="3,2" />
+      <text x="530" y="210" fill="#a5b4fc" fontSize={9}>Clearance</text>
+
+      {/* Key equation */}
+      <rect x="180" y="42" width="400" height="18" rx="4" fill="#18181b" stroke="#27272a" />
+      <text x="380" y="55" textAnchor="middle" fill="#c4b5fd" fontSize={10} fontFamily="monospace">S = wL² / (8T_H)  (parabolic approx.)</text>
+    </svg>
+  );
+}
+
+function TheorySVGIceWind() {
+  return (
+    <svg viewBox="0 0 760 220" style={{ width: '100%', maxWidth: 760, height: 'auto', margin: '20px 0' }}>
+      <rect width="760" height="220" rx="12" fill="#111114" stroke="#27272a" />
+      <text x="380" y="28" textAnchor="middle" fill="#d4d4d8" fontSize={13} fontWeight={700}>Ice and Wind Loading on Conductor Cross-Section</text>
+
+      {/* Normal conductor */}
+      <text x="190" y="56" textAnchor="middle" fill="#a5b4fc" fontSize={11} fontWeight={600}>No Loading</text>
+      <circle cx="190" cy="110" r="16" fill="#52525b" stroke="#71717a" strokeWidth={1.5} />
+      <text x="190" y="114" textAnchor="middle" fill="#e4e4e7" fontSize={8}>d</text>
+      <line x1="190" y1="130" x2="190" y2="170" stroke="#52525b" strokeWidth={0.7} strokeDasharray="3,2" />
+      <text x="190" y="182" textAnchor="middle" fill="#71717a" fontSize={9}>w = self-weight</text>
+
+      {/* With ice */}
+      <text x="400" y="56" textAnchor="middle" fill="#22d3ee" fontSize={11} fontWeight={600}>Ice Loading</text>
+      <circle cx="400" cy="110" r="28" fill="rgba(34,211,238,0.1)" stroke="#22d3ee" strokeWidth={1} strokeDasharray="4,2" />
+      <circle cx="400" cy="110" r="16" fill="#52525b" stroke="#71717a" strokeWidth={1.5} />
+      <text x="400" y="114" textAnchor="middle" fill="#e4e4e7" fontSize={8}>d</text>
+      <text x="432" y="100" fill="#22d3ee" fontSize={8}>t_ice</text>
+      <line x1="416" y1="110" x2="428" y2="110" stroke="#22d3ee" strokeWidth={0.5} />
+      <line x1="400" y1="142" x2="400" y2="170" stroke="#52525b" strokeWidth={0.7} strokeDasharray="3,2" />
+      <text x="400" y="182" textAnchor="middle" fill="#71717a" fontSize={9}>w_total = w + w_ice</text>
+
+      {/* With ice + wind */}
+      <text x="600" y="56" textAnchor="middle" fill="#f59e0b" fontSize={11} fontWeight={600}>Ice + Wind</text>
+      <circle cx="600" cy="110" r="28" fill="rgba(34,211,238,0.1)" stroke="#22d3ee" strokeWidth={1} strokeDasharray="4,2" />
+      <circle cx="600" cy="110" r="16" fill="#52525b" stroke="#71717a" strokeWidth={1.5} />
+      {/* Wind arrow */}
+      <defs>
+        <marker id="wArr" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <path d="M0,0 L6,2.5 L0,5 Z" fill="#f59e0b" />
+        </marker>
+      </defs>
+      <line x1="540" y1="110" x2="565" y2="110" stroke="#f59e0b" strokeWidth={1.5} markerEnd="url(#wArr)" />
+      <text x="540" y="102" fill="#f59e0b" fontSize={8}>Wind</text>
+      {/* Resultant downward-right */}
+      <line x1="600" y1="110" x2="622" y2="142" stroke="#ef4444" strokeWidth={1.5} markerEnd="url(#wArr)" />
+      <text x="630" y="135" fill="#ef4444" fontSize={8}>w_eff</text>
+      {/* Vertical component */}
+      <line x1="600" y1="110" x2="600" y2="142" stroke="#71717a" strokeWidth={0.8} strokeDasharray="3,2" />
+      {/* Horizontal component */}
+      <line x1="600" y1="142" x2="622" y2="142" stroke="#71717a" strokeWidth={0.8} strokeDasharray="3,2" />
+      <text x="600" y="182" textAnchor="middle" fill="#71717a" fontSize={9}>w_eff = sqrt(w_t² + w_w²)</text>
+
+      {/* Formula */}
+      <rect x="180" y="194" width="400" height="18" rx="4" fill="#18181b" stroke="#27272a" />
+      <text x="380" y="207" textAnchor="middle" fill="#c4b5fd" fontSize={9} fontFamily="monospace">w_ice = pi*rho_ice*(d + t_ice)*t_ice  |  w_wind = P_w*(d + 2*t_ice)</text>
+    </svg>
+  );
+}
+
 function Theory() {
   return (
     <div style={S.theory}>
@@ -234,6 +351,8 @@ function Theory() {
         safe working load. This balance must hold across all operating temperatures, wind speeds, and
         ice loading conditions throughout the line's 40–50 year design life.
       </p>
+
+      <TheorySVGCatenary />
 
       <h3 style={S.h3}>Catenary vs Parabolic Approximation</h3>
       <p style={S.p}>
@@ -252,6 +371,8 @@ function Theory() {
         All sag-tension calculations in standard practice (IS 802, CEA manuals) use the parabolic
         approximation. The simulation above uses this method.
       </p>
+
+      <TheorySVGIceWind />
 
       <h3 style={S.h3}>Sag Formula Derivation</h3>
       <p style={S.p}>

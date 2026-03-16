@@ -1252,36 +1252,45 @@ function FinFETTheory() {
   return (
     <div style={S.theory}>
       <h2 style={S.h2}>FinFET (Fin Field-Effect Transistor)</h2>
-      <p style={S.p}>As planar MOSFETs scaled below ~30 nm, the gate lost electrostatic control over the channel. Leakage current increased dramatically, power consumption rose, and the devices became unreliable. The <strong>FinFET</strong> solved this by going 3D.</p>
+      <p style={S.p}>As planar MOSFET channel lengths shrank below ~30 nm, the gate electrode sitting on top of a flat channel lost electrostatic control. The drain's field began "punching through" to the source region — a phenomenon called <strong>Drain-Induced Barrier Lowering (DIBL)</strong> — causing excessive off-state leakage. The <strong>FinFET</strong> solved this by moving the channel into a vertical 3D fin and wrapping the gate around it on three sides.</p>
 
-      <h3 style={S.h3}>Why Planar Failed</h3>
-      <p style={S.p}>In a planar MOSFET, the gate sits on top of a flat channel. At small dimensions, the drain's electric field "reaches through" to the source (drain-induced barrier lowering, DIBL), and the gate can't fully control the channel. This causes:</p>
+      <h3 style={S.h3}>Why Planar MOSFETs Failed Below 22nm</h3>
       <ul style={S.ul}>
-        <li style={S.li}>Increased off-state leakage (subthreshold current)</li>
-        <li style={S.li}>Threshold voltage roll-off (Vt drops with shorter channel)</li>
-        <li style={S.li}>Degraded subthreshold slope (SS &gt; 100 mV/dec vs ideal 60)</li>
+        <li style={S.li}><strong>DIBL:</strong> Drain's electric field lowers the source-channel potential barrier, reducing Vt and increasing off-state current</li>
+        <li style={S.li}><strong>Vt roll-off:</strong> Source and drain depletion regions extend into the channel, reducing the gate's share of charge control ("natural length" scales with gate oxide and channel thickness)</li>
+        <li style={S.li}><strong>Degraded subthreshold slope:</strong> SS exceeds the 60 mV/dec ideal due to poor gate electrostatic control — device can't turn off sharply</li>
+        <li style={S.li}><strong>Random dopant fluctuation:</strong> With only ~100 dopant atoms in a short channel, statistical variation causes device-to-device Vt mismatch</li>
       </ul>
 
-      <h3 style={S.h3}>The Fin Solution</h3>
-      <p style={S.p}>A FinFET raises the channel into a vertical "fin" of silicon, and the gate wraps around it on three sides (tri-gate). This gives the gate far superior electrostatic control:</p>
+      <h3 style={S.h3}>The FinFET Solution: Tri-Gate Control</h3>
+      <p style={S.p}>A silicon fin (typically 5–10 nm wide, 30–50 nm tall) rises vertically from the substrate. The gate metal wraps over the top and down both sides — controlling the channel from <em>three</em> surfaces simultaneously. This dramatically improves the gate's electrostatic leverage over the channel.</p>
       <code style={S.eq}>Weff = 2 × Hfin + Wfin</code>
-      <p style={S.p}>For a 40 nm tall, 7 nm wide fin: Weff = 87 nm — much more effective width than a planar device of the same footprint. Multiple fins can be placed in parallel for higher drive current.</p>
+      <p style={S.p}>For Hfin = 40 nm, Wfin = 7 nm: Weff = 87 nm. Multiple fins placed side-by-side multiply drive current while sharing source/drain and gate contacts. This lets designers trade off width in discrete steps (multiples of fin pitch, typically 27–42 nm).</p>
 
       <h3 style={S.h3}>Subthreshold Slope</h3>
       <code style={S.eq}>SS = (kT/q) · ln(10) · (1 + Cd/Cox) ≈ 60–70 mV/decade</code>
-      <p style={S.p}>The ideal subthreshold slope is 60 mV/dec at 300 K (one decade of current per 60 mV of gate voltage). FinFETs achieve 65–70 mV/dec, much closer to ideal than planar devices at equivalent scaling.</p>
+      <p style={S.p}>The ideal subthreshold slope (60 mV/dec at 300 K) means each decade of current change requires 60 mV change in gate voltage. FinFETs achieve 65–70 mV/dec vs. 90–110 mV/dec for equivalent planar devices, enabling sharper switching with better off-state leakage control.</p>
 
-      <h3 style={S.h3}>Technology Nodes</h3>
+      <h3 style={S.h3}>Technology Adoption</h3>
       <table style={S.tbl}>
-        <thead><tr><th style={S.th}>Company</th><th style={S.th}>First FinFET Node</th><th style={S.th}>Year</th></tr></thead>
+        <thead><tr><th style={S.th}>Company</th><th style={S.th}>First FinFET Node</th><th style={S.th}>Year</th><th style={S.th}>Notable Products</th></tr></thead>
         <tbody>
-          <tr><td style={S.td}>Intel</td><td style={S.td}>22 nm (Ivy Bridge)</td><td style={S.td}>2012</td></tr>
-          <tr><td style={S.td}>TSMC</td><td style={S.td}>16 nm</td><td style={S.td}>2014</td></tr>
-          <tr><td style={S.td}>Samsung</td><td style={S.td}>14 nm</td><td style={S.td}>2015</td></tr>
+          <tr><td style={S.td}>Intel</td><td style={S.td}>22 nm (Ivy Bridge)</td><td style={S.td}>2012</td><td style={S.td}>Core i-series 3rd gen</td></tr>
+          <tr><td style={S.td}>TSMC</td><td style={S.td}>16 nm</td><td style={S.td}>2014</td><td style={S.td}>Apple A9, Nvidia Pascal</td></tr>
+          <tr><td style={S.td}>Samsung</td><td style={S.td}>14 nm</td><td style={S.td}>2015</td><td style={S.td}>Exynos 7420, Snapdragon 820</td></tr>
         </tbody>
       </table>
 
-      <div style={S.ctx}><span style={S.ctxT}>Where this matters</span><p style={S.ctxP}>FinFETs enabled the continuation of Moore's Law from 22 nm to ~5 nm. The successor — Gate-All-Around (GAA) nanosheet transistors — wraps the gate on all 4 sides. Samsung and Intel introduced GAA at the 3 nm node. Understanding FinFET is understanding why your phone's chip is simultaneously fast and power-efficient.</p></div>
+      <h3 style={S.h3}>Next Generation: Gate-All-Around (GAA) Nanosheets</h3>
+      <p style={S.p}>FinFETs reach their electrostatic limit at ~3–5 nm nodes — the fin becomes too narrow for high drive current. <strong>Gate-All-Around (GAA) nanosheet transistors</strong> stack horizontal Si or SiGe nanosheets and wrap the gate on all four sides, achieving even better electrostatic control. Key advantages over FinFET:</p>
+      <ul style={S.ul}>
+        <li style={S.li}>Continuous gate-width tunability (by varying nanosheet width/count)</li>
+        <li style={S.li}>Further DIBL and SS improvement</li>
+        <li style={S.li}><strong>CFET</strong> (Complementary FET): NMOS and PMOS stacked vertically on same footprint, potentially 2× density over lateral CMOS</li>
+      </ul>
+      <p style={S.p}>Samsung and Intel introduced GAA at their 3 nm node (2022–2023). TSMC adopted GAA at N2 (2025). This is the transistor architecture that will define AI accelerators and mobile chips through the 2030s.</p>
+
+      <div style={S.ctx}><span style={S.ctxT}>Where this matters</span><p style={S.ctxP}>Every modern high-performance chip — iPhone processors (TSMC N3E), NVIDIA GPUs (TSMC N4), AMD Ryzen CPUs (TSMC N4P) — uses FinFET technology. The transition from planar to FinFET was as significant as going from vacuum tubes to transistors. Without FinFET, Moore's Law would have stalled in 2012. Without GAA, it would have stalled at ~3 nm. The physics of electrostatic control in nanoscale channels directly determines the pace of AI hardware advancement.</p></div>
     </div>
   );
 }
@@ -1410,28 +1419,37 @@ function CMOSTheory() {
   return (
     <div style={S.theory}>
       <h2 style={S.h2}>CMOS Inverter</h2>
-      <p style={S.p}>The CMOS inverter is the fundamental building block of all digital logic. It uses one PMOS (pull-up) and one NMOS (pull-down) transistor in series between VDD and ground, with their gates connected.</p>
+      <p style={S.p}>The CMOS inverter uses one PMOS (pull-up) and one NMOS (pull-down) transistor connected in series between VDD and GND with their gates tied together. It is the foundation of all digital logic and the reason modern chips can integrate billions of transistors without melting.</p>
 
       <h3 style={S.h3}>Operation</h3>
-      <p style={S.p}><strong>Input LOW (Vin = 0):</strong> PMOS is on (|Vgs| = VDD &gt; |Vtp|), NMOS is off (Vgs = 0 &lt; Vtn). Output is pulled to VDD through PMOS → <strong>Vout = HIGH</strong>.</p>
-      <p style={S.p}><strong>Input HIGH (Vin = VDD):</strong> NMOS is on (Vgs = VDD &gt; Vtn), PMOS is off (Vgs = 0). Output is pulled to GND through NMOS → <strong>Vout = LOW</strong>.</p>
+      <p style={S.p}><strong>Input LOW (Vin = 0):</strong> PMOS gate-source voltage Vgs = −VDD, so |Vgs| &gt; |Vtp| — PMOS is ON and pulls output to VDD. NMOS has Vgs = 0 &lt; Vtn — NMOS is OFF. No DC path from VDD to GND. Vout = HIGH = VDD.</p>
+      <p style={S.p}><strong>Input HIGH (Vin = VDD):</strong> NMOS has Vgs = VDD &gt; Vtn — ON and pulls output to GND. PMOS has Vgs = 0, |Vgs| &lt; |Vtp| — OFF. Vout = LOW = 0. In both stable states, exactly one transistor is off — <strong>zero DC current path, zero static power</strong>.</p>
+      <p style={S.p}><strong>During transition:</strong> Both transistors are momentarily ON — a short-circuit current (crowbar current) flows for ~100 ps. This &ldquo;short-circuit power&rdquo; is typically a small fraction of total.</p>
 
-      <h3 style={S.h3}>Voltage Transfer Characteristic (VTC)</h3>
-      <p style={S.p}>The VTC plots Vout vs Vin. It shows the sharp transition between HIGH and LOW states. The switching threshold Vm is ideally at VDD/2, giving equal noise margins. The P/N sizing ratio adjusts Vm.</p>
+      <h3 style={S.h3}>Voltage Transfer Characteristic &amp; Noise Margins</h3>
+      <p style={S.p}>The VTC plots Vout vs Vin. A well-designed CMOS inverter has a sharp transition at the switching threshold Vm ≈ VDD/2. The <strong>noise margins</strong> quantify how much noise can be tolerated at inputs/outputs:</p>
+      <code style={S.eq}>NMH = VOH − VIH   |   NML = VIL − VOL</code>
+      <p style={S.p}>Where VOH = VDD (output high), VOL = 0 (output low), and VIH/VIL are the input voltages where gain = −1 on the VTC (the "unity-gain" threshold points). For a symmetric CMOS inverter with P/N ratio = 1: VM = VDD/2 and NMH = NML ≈ VDD/2 − Vt. Typical: ~0.4–0.45 × VDD noise margin at each rail.</p>
 
       <h3 style={S.h3}>Key Advantages of CMOS</h3>
       <ul style={S.ul}>
-        <li style={S.li}><strong>Zero static power:</strong> In steady state, exactly one transistor is off → no DC current path</li>
-        <li style={S.li}><strong>Full output swing:</strong> Output reaches 0 and VDD (not VDD − Vt like NMOS-only)</li>
-        <li style={S.li}><strong>High noise margins:</strong> Sharp VTC means wide tolerance for noise</li>
-        <li style={S.li}><strong>Scalability:</strong> Principles work from 10 μm down to 3 nm</li>
+        <li style={S.li}><strong>Zero static power:</strong> In steady state, exactly one transistor is off at all times — no DC current path from VDD to GND</li>
+        <li style={S.li}><strong>Full rail-to-rail swing:</strong> Output reaches precisely 0 and VDD (unlike NMOS-only logic which is limited to VDD − Vt)</li>
+        <li style={S.li}><strong>High noise margins:</strong> Sharp VTC transition allows large tolerance for noise on input signals</li>
+        <li style={S.li}><strong>Scalability:</strong> The principles work from 10 μm feature sizes down to 2 nm nodes — the fundamental circuit topology has not changed in 50 years</li>
       </ul>
 
       <h3 style={S.h3}>Power Consumption</h3>
-      <code style={S.eq}>P_dynamic = α · C_L · VDD² · f      P_static = I_leak · VDD</code>
-      <p style={S.p}>Dynamic power dominates (switching capacitance charging). Leakage power (subthreshold + gate leakage) has become significant at nanoscale nodes.</p>
+      <code style={S.eq}>P_dynamic = α · CL · VDD² · f</code>
+      <code style={S.eq}>P_static = Ileak · VDD</code>
+      <p style={S.p}><strong>Dynamic power</strong> dominates in active circuits — proportional to switching activity α (fraction of nodes switching per clock cycle), load capacitance CL (mostly gate + wire), supply voltage squared, and clock frequency. This is why reducing VDD from 1.2 V to 0.9 V gives a 44% dynamic power reduction.</p>
+      <p style={S.p}><strong>Static (leakage) power</strong> has grown with scaling: thinner gate oxides allow tunneling current; shorter channels allow subthreshold current even when &ldquo;off.&rdquo; At 5 nm nodes, leakage can approach 30–50% of total chip power, driving techniques like multi-threshold CMOS (high-Vt cells for leakage-sensitive paths), power gating, and back-biasing.</p>
 
-      <div style={S.ctx}><span style={S.ctxT}>Where this matters</span><p style={S.ctxP}>CMOS is the reason modern electronics are possible. Without near-zero standby power, a chip with 10 billion transistors would melt. The CMOS inverter principle extends to ALL logic gates: NAND, NOR, XOR, flip-flops, SRAMs, and complete microprocessors.</p></div>
+      <h3 style={S.h3}>Propagation Delay</h3>
+      <code style={S.eq}>tpd ≈ 0.69 · Ron · CL   (RC delay model)</code>
+      <p style={S.p}>Where Ron is the on-resistance of the driving transistor. Reducing CL (smaller devices, shorter wires) and increasing drive strength (wider transistors, lower Ron) both reduce delay. The fundamental tension in digital design: larger devices → lower Ron and faster drive, but larger Cgate loading on the previous stage — optimum balancing is performed by automatic timing-driven place-and-route tools.</p>
+
+      <div style={S.ctx}><span style={S.ctxT}>Where this matters</span><p style={S.ctxP}>CMOS is the technology that makes modern computing possible. Without near-zero static power, a 10-billion transistor chip would dissipate thousands of watts at rest. The CMOS inverter principle extends to ALL gates (NAND, NOR, XOR), flip-flops, SRAMs, and complete microprocessors. Every digital system — from a $0.10 microcontroller to a $30,000 AI accelerator — is built from this same PMOS+NMOS complementary pair.</p></div>
     </div>
   );
 }
@@ -1535,28 +1553,45 @@ function LogicTheory() {
   return (
     <div style={S.theory}>
       <h2 style={S.h2}>Logic Gates from Transistors</h2>
-      <p style={S.p}>Digital logic gates implement Boolean functions using transistors as switches. In CMOS, every gate has a <strong>pull-up network</strong> (PMOS, connects output to VDD for logic HIGH) and a <strong>pull-down network</strong> (NMOS, connects output to GND for logic LOW). These networks are complementary — exactly one is on at any time.</p>
+      <p style={S.p}>Digital logic gates implement Boolean functions using transistors as switches. In CMOS, every gate has a complementary pair of networks: a <strong>pull-up network</strong> (PMOS, connects output to VDD for logic HIGH) and a <strong>pull-down network</strong> (NMOS, connects output to GND for logic LOW). The key constraint is that exactly one network is conducting in every static input state — guaranteeing full rail-to-rail output and zero static power.</p>
+
+      <h3 style={S.h3}>Complementary Network Duality Rule</h3>
+      <p style={S.p}>The PMOS pull-up network is always the <strong>topological dual</strong> of the NMOS pull-down network:</p>
+      <ul style={S.ul}>
+        <li style={S.li}>Wherever NMOS transistors are in <strong>series</strong> (implementing AND), PMOS transistors are in <strong>parallel</strong> (implementing NAND pull-up)</li>
+        <li style={S.li}>Wherever NMOS transistors are in <strong>parallel</strong> (implementing OR), PMOS transistors are in <strong>series</strong> (implementing NOR pull-up)</li>
+      </ul>
+      <p style={S.p}>This duality means every combinational CMOS gate is inherently inverting — it implements Y = NOT(f(A,B,...)), which is why NAND and NOR are the primitive building blocks rather than AND and OR.</p>
 
       <h3 style={S.h3}>CMOS NAND Gate</h3>
-      <p style={S.p}>Two NMOS transistors in <strong>series</strong> (pull-down) and two PMOS transistors in <strong>parallel</strong> (pull-up). Output is LOW only when BOTH inputs are HIGH (both NMOS on, series path complete). Otherwise, at least one PMOS is on pulling output HIGH.</p>
-      <code style={S.eq}>Y = NOT(A AND B) = (A·B)̄</code>
+      <p style={S.p}>Two NMOS in <strong>series</strong> (pull-down) + two PMOS in <strong>parallel</strong> (pull-up):</p>
+      <code style={S.eq}>Y = ‾(A · B)   (NAND)</code>
+      <p style={S.p}>Pull-down path completes (Y = LOW) only when BOTH A and B are HIGH — both series NMOS transistors ON. Otherwise, at least one PMOS is ON pulling Y HIGH. For a 3-input NAND: three NMOS in series. Note: series transistors must be upsized for equal drive strength (each NMOS has only 1/N of its normal width contribution).</p>
 
       <h3 style={S.h3}>CMOS NOR Gate</h3>
-      <p style={S.p}>Two NMOS in <strong>parallel</strong> (pull-down), two PMOS in <strong>series</strong> (pull-up). Output is LOW when ANY input is HIGH. Output is HIGH only when BOTH inputs are LOW.</p>
-      <code style={S.eq}>Y = NOT(A OR B) = (A+B)̄</code>
+      <p style={S.p}>Two NMOS in <strong>parallel</strong> (pull-down) + two PMOS in <strong>series</strong> (pull-up):</p>
+      <code style={S.eq}>Y = ‾(A + B)   (NOR)</code>
+      <p style={S.p}>Pull-down completes (Y = LOW) when ANY input is HIGH. Y is HIGH only when ALL inputs are LOW (both series PMOS ON). Series PMOS must be upsized — PMOS already has ~2–3× the width of NMOS for equal drive current, so NOR gates scale poorly for many inputs.</p>
 
-      <h3 style={S.h3}>Universal Gates</h3>
-      <p style={S.p}>NAND and NOR are called <strong>universal gates</strong> because any Boolean function can be implemented using only NAND gates (or only NOR gates). This is proven by showing that NOT, AND, and OR can all be constructed from NAND alone:</p>
+      <h3 style={S.h3}>Universal Gates &amp; De Morgan&apos;s Theorem</h3>
+      <p style={S.p}>NAND and NOR are <strong>universal</strong> — any Boolean function can be built from only NAND (or only NOR) gates. This is proven via De Morgan&apos;s theorems:</p>
+      <code style={S.eq}>‾(A · B) = ‾A + ‾B   (NAND De Morgan)</code>
+      <code style={S.eq}>‾(A + B) = ‾A · ‾B   (NOR De Morgan)</code>
+      <p style={S.p}>Constructing inverter, AND, and OR solely from NAND:</p>
       <ul style={S.ul}>
         <li style={S.li}>NOT(A) = NAND(A, A)</li>
-        <li style={S.li}>AND(A, B) = NOT(NAND(A, B)) = NAND(NAND(A,B), NAND(A,B))</li>
-        <li style={S.li}>OR(A, B) = NAND(NOT(A), NOT(B))</li>
+        <li style={S.li}>AND(A, B) = NAND(NAND(A,B), NAND(A,B)) — invert the NAND</li>
+        <li style={S.li}>OR(A, B) = NAND(NAND(A,A), NAND(B,B)) — De Morgan</li>
       </ul>
 
-      <h3 style={S.h3}>CMOS Design Rules</h3>
-      <p style={S.p}>The pull-up and pull-down networks are always <strong>duals</strong>: if NMOS are in series, PMOS are in parallel, and vice versa. This ensures complementary behavior — no static power, full rail-to-rail output swing.</p>
+      <h3 style={S.h3}>Fan-In, Fan-Out &amp; Drive Strength</h3>
+      <p style={S.p}><strong>Fan-in</strong> is the number of inputs a gate can accept. High fan-in (e.g., 8-input NAND) has a long series NMOS chain with high equivalent resistance — slow pull-down. Practical fan-in limit is 4–6 for standard cells.</p>
+      <p style={S.p}><strong>Fan-out</strong> is the number of gate inputs driven. Each additional load adds capacitance, increasing propagation delay: tpd ∝ fan-out. Beyond 4–6 loads, buffers (repeated inverter pairs) are inserted. <strong>Drive strength</strong> variants (1×, 2×, 4×, 8× width) in standard cell libraries allow the EDA tool to match drive strength to load.</p>
 
-      <div style={S.ctx}><span style={S.ctxT}>Where this matters</span><p style={S.ctxP}>Modern CPUs contain billions of logic gates. Logic synthesis tools (from Synopsys, Cadence) automatically convert RTL code (Verilog/VHDL) into optimized gate networks. Understanding how gates map to transistors is essential for VLSI design, timing analysis, and power optimization.</p></div>
+      <h3 style={S.h3}>From Gates to Chips: RTL to GDS</h3>
+      <p style={S.p}>Modern chip design uses RTL (Verilog/VHDL) → logic synthesis (convert to optimal gate netlist) → placement and routing (place standard cells, route wires) → signoff (timing, power, DRC). Synthesis tools map register-transfer logic to a library of characterized standard cells. A 5 nm standard cell library may contain 1000+ cell variants just for basic logic and flip-flops.</p>
+
+      <div style={S.ctx}><span style={S.ctxT}>Where this matters</span><p style={S.ctxP}>NAND/NOR universality means an entire CPU can be built from just one gate type. In practice, standard cell libraries balance many gate types for area/speed/power trade-offs. NAND-dominant logic is preferred because series NMOS is faster than series PMOS. AOI (And-Or-Invert) and OAI cells implement complex Boolean functions in a single gate stage, critical for critical-path timing. Every FPGA lookup table (LUT-4, LUT-6) is a small SRAM that implements any 4/6-input Boolean function — a software-configurable universal logic element.</p></div>
     </div>
   );
 }
@@ -1673,36 +1708,53 @@ function CPUTheory() {
   return (
     <div style={S.theory}>
       <h2 style={S.h2}>CPU Architecture</h2>
-      <p style={S.p}>A CPU (Central Processing Unit) is a general-purpose processor that executes instructions sequentially. Its major components are the <strong>control unit</strong> (orchestrates operations), <strong>ALU</strong> (arithmetic/logic), <strong>register file</strong> (fast storage), and <strong>cache</strong> (fast memory).</p>
+      <p style={S.p}>A CPU (Central Processing Unit) is a general-purpose processor that executes a sequential stream of instructions. Its fundamental challenge is bridging the gap between the fast arithmetic logic and slow memory access — every architectural innovation from pipelining to out-of-order execution is motivated by this <strong>memory wall</strong>.</p>
 
       <h3 style={S.h3}>The 5-Stage Pipeline</h3>
-      <p style={S.p}>Most modern CPUs use pipelining to overlap instruction execution:</p>
+      <p style={S.p}>Pipelining overlaps multiple instruction executions like an assembly line — while one instruction executes, the next one decodes, and the one after fetches. This achieves throughput approaching 1 instruction per cycle (IPC = 1) for a simple in-order pipeline:</p>
       <ul style={S.ul}>
-        <li style={S.li}><strong>Fetch:</strong> Read the next instruction from memory (using the program counter)</li>
-        <li style={S.li}><strong>Decode:</strong> Determine the operation, identify source/destination registers</li>
-        <li style={S.li}><strong>Execute:</strong> Perform the operation in the ALU (add, subtract, compare, shift)</li>
-        <li style={S.li}><strong>Memory:</strong> Access data memory for load/store instructions</li>
-        <li style={S.li}><strong>Writeback:</strong> Write the result back to the register file</li>
+        <li style={S.li}><strong>Fetch (IF):</strong> Read the next instruction from I-cache using the Program Counter (PC)</li>
+        <li style={S.li}><strong>Decode (ID):</strong> Identify the operation, read register operands from the register file, expand immediate fields</li>
+        <li style={S.li}><strong>Execute (EX):</strong> ALU performs the operation (add, shift, compare, multiply). Floating-point may take multiple cycles</li>
+        <li style={S.li}><strong>Memory (MEM):</strong> Load/Store operations access the D-cache. On cache miss, the pipeline stalls</li>
+        <li style={S.li}><strong>Writeback (WB):</strong> Write the result back to the destination register</li>
+      </ul>
+      <p style={S.p}><strong>Pipeline hazards</strong> hurt ideal throughput: data hazards (instruction needs result of earlier in-flight instruction), structural hazards (two instructions need same resource), and control hazards (branch target unknown until Execute).</p>
+
+      <h3 style={S.h3}>Branch Prediction</h3>
+      <p style={S.p}>When the pipeline encounters a conditional branch, it doesn&apos;t know the next PC until the Execute stage — 2–3 cycles later. Without prediction, the pipeline stalls. Modern CPUs use <strong>dynamic branch predictors</strong> to guess the outcome and speculatively fetch/decode along the predicted path:</p>
+      <ul style={S.ul}>
+        <li style={S.li}><strong>Bimodal predictor:</strong> 2-bit saturating counter per branch — predicts taken/not-taken based on recent history</li>
+        <li style={S.li}><strong>TAGE predictor:</strong> Tagged geometric history length predictor — uses multiple tables indexed by different lengths of global history. &gt;95% accuracy on typical workloads</li>
+        <li style={S.li}><strong>Misprediction penalty:</strong> On a wrong prediction, all speculatively-fetched instructions must be flushed (15–20 cycle penalty on modern deep pipelines like Intel Golden Cove)</li>
       </ul>
 
+      <h3 style={S.h3}>Out-of-Order Execution (OoO)</h3>
+      <p style={S.p}>Modern CPUs can execute instructions out of their programmed order to hide latency. A large <strong>Reorder Buffer (ROB)</strong> (typically 256–512 entries) tracks in-flight instructions and commits results in-order to maintain the illusion of sequential semantics. Key components:</p>
+      <ul style={S.ul}>
+        <li style={S.li}><strong>Rename registers:</strong> Physical register file (e.g., 280 registers) mapped to architectural registers (e.g., 16) eliminates false data dependencies</li>
+        <li style={S.li}><strong>Instruction scheduler:</strong> Selects ready instructions (all operands available) from the reservation stations and dispatches to execution units</li>
+        <li style={S.li}><strong>Superscalar dispatch:</strong> Modern CPUs can issue 4–8 instructions per cycle to multiple parallel ALUs, load/store units, and FPUs</li>
+      </ul>
+      <code style={S.eq}>Effective IPC = min(Dispatch width, Instruction-level parallelism) × (1 − stall fraction)</code>
+
       <h3 style={S.h3}>Memory Hierarchy</h3>
-      <p style={S.p}>The speed gap between CPU and memory is enormous. The cache hierarchy bridges this gap by keeping frequently used data close to the CPU:</p>
       <table style={S.tbl}>
         <thead><tr><th style={S.th}>Level</th><th style={S.th}>Size</th><th style={S.th}>Latency</th><th style={S.th}>Bandwidth</th></tr></thead>
         <tbody>
-          <tr><td style={S.td}>Registers</td><td style={S.td}>~1 KB</td><td style={S.td}>0 cycles</td><td style={S.td}>—</td></tr>
-          <tr><td style={S.td}>L1 Cache</td><td style={S.td}>32–64 KB</td><td style={S.td}>~4 cycles</td><td style={S.td}>~1 TB/s</td></tr>
-          <tr><td style={S.td}>L2 Cache</td><td style={S.td}>256 KB–1 MB</td><td style={S.td}>~12 cycles</td><td style={S.td}>~500 GB/s</td></tr>
-          <tr><td style={S.td}>L3 Cache</td><td style={S.td}>8–64 MB</td><td style={S.td}>~40 cycles</td><td style={S.td}>~200 GB/s</td></tr>
-          <tr><td style={S.td}>DRAM</td><td style={S.td}>8–128 GB</td><td style={S.td}>~200 cycles</td><td style={S.td}>~50 GB/s</td></tr>
+          <tr><td style={S.td}>Registers</td><td style={S.td}>~1–2 KB</td><td style={S.td}>0 cycles</td><td style={S.td}>~20 TB/s</td></tr>
+          <tr><td style={S.td}>L1 I+D Cache</td><td style={S.td}>32–64 KB each</td><td style={S.td}>4–5 cycles</td><td style={S.td}>~2 TB/s</td></tr>
+          <tr><td style={S.td}>L2 Cache</td><td style={S.td}>256 KB–4 MB</td><td style={S.td}>12–14 cycles</td><td style={S.td}>~500 GB/s</td></tr>
+          <tr><td style={S.td}>L3 Cache (LLC)</td><td style={S.td}>8–96 MB</td><td style={S.td}>30–50 cycles</td><td style={S.td}>~200 GB/s</td></tr>
+          <tr><td style={S.td}>DRAM</td><td style={S.td}>8–512 GB</td><td style={S.td}>~200 cycles</td><td style={S.td}>50–100 GB/s</td></tr>
         </tbody>
       </table>
 
-      <h3 style={S.h3}>Performance Metrics</h3>
+      <h3 style={S.h3}>Performance Equation</h3>
       <code style={S.eq}>Execution Time = Instructions × CPI / Clock Frequency</code>
-      <p style={S.p}>CPI (Cycles Per Instruction) depends on the instruction mix, cache hit rates, and pipeline hazards (data dependencies, branches). Modern out-of-order CPUs achieve CPI close to 0.25 (IPC = 4) by executing multiple instructions per cycle.</p>
+      <p style={S.p}>Reducing any of the three factors improves performance. Compiler optimizations reduce instruction count; branch predictors and OoO execution reduce CPI; process technology scaling increases clock frequency. Modern CPUs achieve effective CPI close to 0.25 (4 IPC) on many workloads through wide superscalar, OoO, and deep speculation.</p>
 
-      <div style={S.ctx}><span style={S.ctxT}>Where this matters</span><p style={S.ctxP}>Understanding CPU architecture explains why software performance varies so much. Cache-friendly code (sequential access patterns) can be 100× faster than cache-unfriendly code (random access). Branch prediction accuracy affects pipeline efficiency. These concepts are essential for systems programming, embedded development, and performance optimization.</p></div>
+      <div style={S.ctx}><span style={S.ctxT}>Where this matters</span><p style={S.ctxP}>Understanding CPU architecture explains why software performance varies so widely. Cache-friendly sequential access patterns can be 100× faster than random access. Branch-heavy code (JIT compilers, interpreters) suffers from mispredictions. SIMD instructions (AVX-512) vectorize loops for 8–16× speedup on throughput-bound code. These principles guide systems programming, performance-critical embedded firmware, operating system scheduler design, and hardware-software co-design for AI inference engines.</p></div>
     </div>
   );
 }

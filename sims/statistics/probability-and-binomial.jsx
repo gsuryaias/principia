@@ -41,14 +41,8 @@ const Mistake = ({text}) => (
   </div>
 );
 
-const comb = (n, k) => {
-  if (k > n || k < 0) return 0;
-  if (k === 0 || k === n) return 1;
-  let r = 1;
-  for (let i = 0; i < Math.min(k, n - k); i++) r = r * (n - i) / (i + 1);
-  return Math.round(r);
-};
-const binPmf = (k, n, p) => comb(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k);
+const comb = (n,k) => { if(k>n||k<0) return 0; if(k===0||k===n) return 1; let r=1; for(let i=0;i<Math.min(k,n-k);i++) r=r*(n-i)/(i+1); return Math.round(r); };
+const binPmf = (k,n,p) => comb(n,k)*Math.pow(p,k)*Math.pow(1-p,n-k);
 
 /* ── Tab 1: Probability Rules ─────────────────────────────── */
 function ProbRules() {
@@ -67,42 +61,24 @@ function ProbRules() {
     <div style={S.svgWrap}>
       <svg viewBox="0 0 400 270" style={{width:'100%', maxWidth:420}}>
         <rect width="400" height="270" rx="12" fill={C.surfaceAlt} />
-        <text x="390" y="20" fill={C.faint} fontSize="11" textAnchor="end">
-          Sample Space S
-        </text>
-        <circle cx={cx - sep / 2} cy={cy} r={r}
-          fill="rgba(99,102,241,0.22)" stroke={C.accent} strokeWidth="1.5" />
-        <circle cx={cx + sep / 2} cy={cy} r={r}
-          fill="rgba(236,72,153,0.18)" stroke={C.pink} strokeWidth="1.5" />
-        <text x={cx - sep / 2 - 28} y={cy + 5} fill={C.accentLight}
-          fontSize="14" fontWeight="700" textAnchor="middle">A</text>
-        <text x={cx + sep / 2 + 28} y={cy + 5} fill={C.pink}
-          fontSize="14" fontWeight="700" textAnchor="middle">B</text>
-        <text x={cx} y={cy - 4} fill={C.text} fontSize="11" textAnchor="middle">
-          A{'\u2229'}B
-        </text>
-        <text x={cx} y={cy + 12} fill={C.amber} fontSize="12" fontWeight="600"
-          textAnchor="middle">{pAB.toFixed(2)}</text>
-        <text x={cx - sep / 2 - 28} y={cy + 22} fill={C.muted} fontSize="10"
-          textAnchor="middle">{(pA - pAB).toFixed(2)}</text>
-        <text x={cx + sep / 2 + 28} y={cy + 22} fill={C.muted} fontSize="10"
-          textAnchor="middle">{(pB - pAB).toFixed(2)}</text>
+        <text x="390" y="20" fill={C.faint} fontSize="11" textAnchor="end">Sample Space S</text>
+        <circle cx={cx-sep/2} cy={cy} r={r} fill="rgba(99,102,241,0.22)" stroke={C.accent} strokeWidth="1.5"/>
+        <circle cx={cx+sep/2} cy={cy} r={r} fill="rgba(236,72,153,0.18)" stroke={C.pink} strokeWidth="1.5"/>
+        <text x={cx-sep/2-28} y={cy+5} fill={C.accentLight} fontSize="14" fontWeight="700" textAnchor="middle">A</text>
+        <text x={cx+sep/2+28} y={cy+5} fill={C.pink} fontSize="14" fontWeight="700" textAnchor="middle">B</text>
+        <text x={cx} y={cy-4} fill={C.text} fontSize="11" textAnchor="middle">A{'\u2229'}B</text>
+        <text x={cx} y={cy+12} fill={C.amber} fontSize="12" fontWeight="600" textAnchor="middle">{pAB.toFixed(2)}</text>
+        <text x={cx-sep/2-28} y={cy+22} fill={C.muted} fontSize="10" textAnchor="middle">{(pA-pAB).toFixed(2)}</text>
+        <text x={cx+sep/2+28} y={cy+22} fill={C.muted} fontSize="10" textAnchor="middle">{(pB-pAB).toFixed(2)}</text>
         <text x={cx} y={240} fill={C.dim} fontSize="11" textAnchor="middle">
-          P(A{'\u222A'}B) = {pUnion.toFixed(3)}  |  P(A') = {(1 - pA).toFixed(2)}
-          |  P(neither) = {Math.max(0, 1 - pUnion).toFixed(3)}
+          P(A{'\u222A'}B) = {pUnion.toFixed(3)}  |  P(A') = {(1-pA).toFixed(2)}  |  P(neither) = {Math.max(0,1-pUnion).toFixed(3)}
         </text>
       </svg>
     </div>
-    <code style={S.eq}>
-      P(A{'\u222A'}B) = P(A) + P(B) - P(A{'\u2229'}B) = {pA.toFixed(2)} + {pB.toFixed(2)} - {pAB.toFixed(2)} = {pUnion.toFixed(3)}
-    </code>
+    <code style={S.eq}>P(A{'\u222A'}B) = P(A) + P(B) - P(A{'\u2229'}B) = {pA.toFixed(2)} + {pB.toFixed(2)} - {pAB.toFixed(2)} = {pUnion.toFixed(3)}</code>
     <div style={S.note}>
       <span style={S.noteT}>Practical Insight</span>
-      <p style={S.noteP}>
-        If Campaign A reaches {(pA * 100).toFixed(0)}% and B reaches {(pB * 100).toFixed(0)}% of
-        customers with {(pAB * 100).toFixed(0)}% overlap, total unique reach
-        is {(pUnion * 100).toFixed(1)}% -- not {((pA + pB) * 100).toFixed(0)}%.
-      </p>
+      <p style={S.noteP}>If Campaign A reaches {(pA*100).toFixed(0)}% and B reaches {(pB*100).toFixed(0)}% of customers with {(pAB*100).toFixed(0)}% overlap, total unique reach is {(pUnion*100).toFixed(1)}% -- not {((pA+pB)*100).toFixed(0)}%.</p>
     </div>
     <Mistake text="Forgetting to subtract P(A\u2229B) when computing the union. Without it you double-count the overlap, inflating your reach estimate." />
     <div style={S.controls}>

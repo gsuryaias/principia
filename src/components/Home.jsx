@@ -186,10 +186,7 @@ function BentoCard({ sim, index }) {
   const IconComponent = CATEGORY_ICONS[sim.categorySlug] || Box;
 
   return (
-    <div
-      className="animate-fade-in-up group h-full"
-      style={{ animationDelay: `${index * 40}ms` }}
-    >
+    <div className="group h-full">
       <Link to={`/sim/${sim.slug}`} className="block h-full">
         <div className="sim-card relative h-full flex flex-col justify-center p-5 overflow-hidden min-h-[5.5rem]">
           <div className="flex items-center gap-4">

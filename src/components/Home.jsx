@@ -19,7 +19,8 @@ import {
   Cog,
   Cable,
   Network,
-  Shield
+  Shield,
+  BarChart3
 } from 'lucide-react';
 import { getSimulations, getCategories } from '../utils/loader';
 import { hashIndex } from '../lib/utils';
@@ -43,6 +44,7 @@ const CATEGORY_ICONS = {
   'transmission-distribution': Cable,
   'power-systems': Network,
   'basic-principles': Zap,
+  statistics: BarChart3,
 };
 
 const GRADIENTS = [

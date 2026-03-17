@@ -502,7 +502,7 @@ function Theory() {
         Using the equivalent circuit (all referred to primary), with V2 as reference and load current
         I at angle -phi (lagging), the primary voltage phasor is:
       </p>
-      <div style={S.eq}>V1 = V2 + I(R_eq cos phi + X_eq sin phi) + jI(X_eq cos phi - R_eq sin phi)</div>
+      <div style={S.eq}>V1 = V2 + I(R_eq + jX_eq)</div>
       <p style={S.p}>
         Taking the magnitude and subtracting V₂, and normalising by the rated values (per-unit), the
         approximate formula in terms of load fraction x is:
@@ -532,8 +532,9 @@ function Theory() {
           <strong style={{ color: '#60a5fa' }}>Leading PF (capacitive load):</strong> sinφ is effectively
           negative. The Xpu·sinφ term subtracts from Rpu·cosφ, and can dominate to give{' '}
           <strong style={{ color: '#e4e4e7' }}>negative VR</strong> — meaning the secondary voltage at
-          full-load exceeds the no-load voltage. This is analogous to the Ferranti effect but in a
-          transformer context, caused by capacitive load feeding reactive power back into the system.
+          full-load exceeds the no-load voltage. This occurs when capacitive current pushes reactive power
+          back into the system, not because of transmission-line Ferranti dispersion but simply because the
+          leakage reactance is being over-compensated.
         </li>
       </ul>
 

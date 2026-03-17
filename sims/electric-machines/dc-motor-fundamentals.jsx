@@ -544,10 +544,11 @@ function Theory() {
       <div style={S.ctx}>
         <span style={S.ctxT}>Key Insight</span>
         <p style={S.ctxP}>
-          The commutator is essentially a mechanical frequency converter {'\u2014'} a rotary switch
-          synchronized to the rotor position. It converts the AC nature of the rotating armature
-          into DC at the terminals. Without it, Michael Faraday's 1831 motor would simply
-          oscillate rather than rotate continuously.
+        The commutator is essentially a mechanical frequency converter {'\u2014'} a rotary switch
+        synchronized to the rotor position. It rectifies the AC nature of the rotating armature
+        into DC at the terminals. (Faraday's 1831 homopolar motor already ran continuously
+        without a commutator; the switching network shown here is needed only for the
+        conventional multi-turn armature.)
         </p>
       </div>
 

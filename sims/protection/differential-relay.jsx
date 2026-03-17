@@ -92,7 +92,17 @@ function computeState({ equipment, scenario, throughCurrent, mismatch, slope1, s
   const ir = (Math.abs(i1) + Math.abs(i2)) / 2;
   const pickup = equipment === 'Transformer' ? 120 : 80;
   const operateBoundary = biasPickup(ir, slope1, slope2, knee, pickup);
-  const harmonicBlocked = harmonicBlock && scenario === 'Inrush' && secondHarmonic >= 15;
+  const harmonicBlocked =
+    harmonicBlock && (
+      (scenario === 'Inrush' && secondHarmonic >= 15) ||
+      (scenario === 'Overexcitation' && fifthHarmonic >= 20)
+    );
+  const harmonicReason =
+    scenario === 'Inrush' && secondHarmonic >= 15
+      ? '2nd harmonic inrush restraint'
+      : scenario === 'Overexcitation' && fifthHarmonic >= 20
+        ? '5th harmonic overexcitation restraint'
+        : null;
   const operate = !harmonicBlocked && id > operateBoundary;
 
   return {
@@ -105,6 +115,7 @@ function computeState({ equipment, scenario, throughCurrent, mismatch, slope1, s
     secondHarmonic,
     fifthHarmonic,
     harmonicBlocked,
+    harmonicReason,
     operate,
     vectorGroup: equipment === 'Transformer' ? 'Dyn11 compensated' : 'No phase-shift compensation',
   };
@@ -806,7 +817,18 @@ export default function DifferentialRelay() {
             <Tooltip text={`Second harmonic content = ${state.secondHarmonic.toFixed(1)}%. Inrush blocking threshold typically 15-20%. Current value: ${state.secondHarmonic >= 15 ? 'above' : 'below'} threshold.`}>
               <div style={S.ri}><span style={S.rl}>2nd harmonic</span><span style={S.rv}>{state.secondHarmonic.toFixed(1)}%</span></div>
             </Tooltip>
-            <div style={S.ri}><span style={S.rl}>Decision</span><span style={{ ...S.rv, color: state.operate ? '#ef4444' : '#22c55e' }}>{state.operate ? 'Trip' : state.harmonicBlocked ? 'Blocked' : 'Restrain'}</span></div>
+            <Tooltip text={`Fifth harmonic content = ${state.fifthHarmonic.toFixed(1)}%. Overexcitation restraint commonly uses 5th harmonic supervision.`}>
+              <div style={S.ri}><span style={S.rl}>5th harmonic</span><span style={S.rv}>{state.fifthHarmonic.toFixed(1)}%</span></div>
+            </Tooltip>
+            <div style={S.ri}>
+              <span style={S.rl}>Decision</span>
+              <span style={{ ...S.rv, color: state.operate ? '#ef4444' : state.harmonicBlocked ? '#f59e0b' : '#22c55e' }}>
+                {state.operate ? 'Trip' : state.harmonicBlocked ? 'Blocked' : 'Restrain'}
+              </span>
+              {state.harmonicBlocked && (
+                <span style={{ fontSize: 10, color: '#71717a' }}>{state.harmonicReason}</span>
+              )}
+            </div>
             <div style={S.ri}>
               <span style={S.rl}>Margin</span>
               <span style={{ ...S.rv, color: marginColor }}>

@@ -148,29 +148,43 @@ function computePhasors(isGenerator, P, phiDeg, Ef, Xs, Ra) {
   const deltaAngle = cAngleDeg(EfVec); // angle of Ef relative to V (V is at 0°)
   const IaAngle = cAngleDeg(Ia);
 
-  // Q = V * Ia * sin(phi), positive = lagging (absorbing Q)
+  // Q uses the lagging-current sign convention. Physical VAr flow depends on generator/motor mode.
   const Q = 1.0 * IaMag * sinPhi;
 
   return { V, Ia, IaRa, jXsIa, EfVec, EfMag, deltaAngle, IaAngle, IaMag, Q, cosPhi };
 }
 
+function getPfMode(isGenerator, phiDeg) {
+  if (phiDeg > 1) {
+    return isGenerator
+      ? { label: 'Lagging PF', sub: 'Over-excited (supplies Q)', border: '#fb923c' }
+      : { label: 'Lagging PF', sub: 'Under-excited (absorbs Q)', border: '#fb923c' };
+  }
+  if (phiDeg < -1) {
+    return isGenerator
+      ? { label: 'Leading PF', sub: 'Under-excited (absorbs Q)', border: '#22d3ee' }
+      : { label: 'Leading PF', sub: 'Over-excited (supplies Q)', border: '#22d3ee' };
+  }
+  return { label: 'Unity PF', sub: 'No reactive exchange', border: '#d4d4d8' };
+}
+
+function getReactiveFlowText(isGenerator, Q) {
+  if (Q > 0.01) {
+    return isGenerator ? '→ Lagging: generator supplies VArs' : '→ Lagging: motor absorbs VArs';
+  }
+  if (Q < -0.01) {
+    return isGenerator ? '→ Leading: generator absorbs VArs' : '→ Leading: motor supplies VArs';
+  }
+  return '→ Unity PF: no VAr exchange';
+}
+
 /* ── Operating Region Annotation on SVG ── */
 function OperatingRegionBadge({ cx, cy, phiDeg, isGenerator, deltaAngle }) {
   const stable = Math.abs(deltaAngle) < 90;
-  let regionLabel, regionColor, regionBg;
-  if (phiDeg > 1) {
-    regionLabel = isGenerator ? 'LAGGING PF / UNDER-EXCITED' : 'LAGGING PF / OVER-EXCITED';
-    regionColor = '#fb923c';
-    regionBg = 'rgba(251,146,60,0.08)';
-  } else if (phiDeg < -1) {
-    regionLabel = isGenerator ? 'LEADING PF / OVER-EXCITED' : 'LEADING PF / UNDER-EXCITED';
-    regionColor = '#22d3ee';
-    regionBg = 'rgba(34,211,238,0.08)';
-  } else {
-    regionLabel = 'UNITY PF';
-    regionColor = '#d4d4d8';
-    regionBg = 'rgba(212,212,216,0.06)';
-  }
+  const pfMode = getPfMode(isGenerator, phiDeg);
+  const regionLabel = `${pfMode.label.toUpperCase()} / ${pfMode.sub.split(' ')[0].toUpperCase()}`;
+  const regionColor = pfMode.border;
+  const regionBg = pfMode.border === '#d4d4d8' ? 'rgba(212,212,216,0.06)' : `${pfMode.border}14`;
   const stabColor = stable ? '#22c55e' : '#ef4444';
   const stabLabel = stable ? 'STABLE' : 'UNSTABLE';
   return (
@@ -383,16 +397,13 @@ function SimTab() {
 
   const pfStr = Math.abs(cosPhi).toFixed(3);
   const pfLabel = phiDeg > 1 ? 'lag' : phiDeg < -1 ? 'lead' : 'unity';
-  const qAbs = Math.abs(Q).toFixed(3);
-  const qLabel = Q > 0.01 ? 'absorbing' : Q < -0.01 ? 'supplying' : 'zero';
+  const qLabel = Q > 0.01
+    ? (isGenerator ? 'supplying' : 'absorbing')
+    : Q < -0.01
+    ? (isGenerator ? 'absorbing' : 'supplying')
+    : 'zero';
   const stable = Math.abs(deltaAngle) < 90;
-
-  const pfMode =
-    phiDeg > 1
-      ? { label: 'Lagging PF', sub: 'Under-excited (absorbs Q)', border: '#fb923c' }
-      : phiDeg < -1
-      ? { label: 'Leading PF', sub: 'Over-excited (supplies Q)', border: '#22d3ee' }
-      : { label: 'Unity PF', sub: 'No reactive exchange', border: '#d4d4d8' };
+  const pfMode = getPfMode(isGenerator, phiDeg);
 
   return (
     <div style={S.simBody}>
@@ -410,12 +421,14 @@ function SimTab() {
       {/* PF mode quick buttons */}
       <div style={{ display: 'flex', gap: 10, padding: '8px 24px', background: '#0d0d10', borderTop: '1px solid #1e1e2e', flexWrap: 'wrap' }}>
         {[
-          { label: 'Lagging PF', phi: 30, sub: 'Under-excited (absorbs Q)', color: '#fb923c' },
-          { label: 'Unity PF', phi: 0, sub: 'No reactive exchange', color: '#d4d4d8' },
-          { label: 'Leading PF', phi: -30, sub: 'Over-excited (supplies Q)', color: '#22d3ee' },
-        ].map(({ label, phi, sub, color }) => (
+          { phi: 30, color: '#fb923c' },
+          { phi: 0, color: '#d4d4d8' },
+          { phi: -30, color: '#22d3ee' },
+        ].map(({ phi, color }) => {
+          const mode = getPfMode(isGenerator, phi);
+          return (
           <button
-            key={label}
+            key={mode.label}
             onClick={() => setPhiDeg(phi)}
             style={{
               padding: '7px 16px', borderRadius: 8,
@@ -425,10 +438,11 @@ function SimTab() {
               fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
             }}
           >
-            {label}
-            <span style={{ display: 'block', fontSize: 10, fontWeight: 400, marginTop: 1, color: phiDeg === phi ? color : '#52525b' }}>{sub}</span>
+            {mode.label}
+            <span style={{ display: 'block', fontSize: 10, fontWeight: 400, marginTop: 1, color: phiDeg === phi ? color : '#52525b' }}>{mode.sub}</span>
           </button>
-        ))}
+          );
+        })}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           {['Generator', 'Motor'].map((m) => (
             <button
@@ -518,7 +532,7 @@ function SimTab() {
             Q = V\u00B7Ia\u00B7sin(\u03C6){'\n'}
             Q = 1.0 \u00D7 {IaMag.toFixed(3)} \u00D7 sin({phiDeg}\u00B0){'\n'}
             Q = {Q.toFixed(3)} pu{'\n'}
-            {Q > 0.01 ? '\u2192 Lagging: machine absorbs VArs' : Q < -0.01 ? '\u2192 Leading: machine supplies VArs' : '\u2192 Unity PF: no VAr exchange'}
+            {getReactiveFlowText(isGenerator, Q)}
           </span>
         </div>
         <div style={S.box}>
@@ -785,8 +799,8 @@ function TheoryTab() {
       </p>
       <code style={S.eq}>\u0116f = V\u0307 + \u0130a(Ra + jXs)</code>
       <p style={S.p}>
-        Ef leads V by the power angle \u03B4. A larger field current increases Ef, pushing the machine into leading PF
-        (over-excited, supplies reactive power to the grid).
+        Ef leads V by the power angle \u03B4. In generator operation, a larger field current increases Ef and pushes the
+        stator current toward lagging PF, which corresponds to over-excited operation and reactive-power export to the grid.
       </p>
 
       <h3 style={S.h3}>Motor Convention</h3>
@@ -820,19 +834,17 @@ function TheoryTab() {
       </p>
       <ul style={S.ul}>
         <li style={S.li}>
-          <strong style={{ color: '#22d3ee' }}>Over-excited (Ef &gt; V\u00B7cos(\u03B4)):</strong> Machine operates at leading
-          power factor \u2014 it supplies reactive power (VArs) to the grid, acting like a capacitor bank. This raises
-          nearby bus voltages and improves system voltage profile.
+          <strong style={{ color: '#22d3ee' }}>Generator, over-excited:</strong> stator current is typically lagging and
+          the machine supplies reactive power to the grid, raising nearby bus voltages.
         </li>
         <li style={S.li}>
-          <strong style={{ color: '#fb923c' }}>Under-excited (Ef &lt; V\u00B7cos(\u03B4)):</strong> Machine operates at lagging
-          power factor \u2014 it absorbs reactive power from the grid. This can be useful to suppress over-voltages on
-          lightly loaded lines.
+          <strong style={{ color: '#fb923c' }}>Generator, under-excited:</strong> stator current is typically leading and
+          the machine absorbs reactive power from the grid. This can be useful to suppress over-voltages on lightly loaded lines.
         </li>
         <li style={S.li}>
-          <strong style={{ color: '#d4d4d8' }}>Unity PF:</strong> Field current set so Ef and V magnitudes are
-          matched (approximately). No reactive power exchanged with the grid; armature current is minimised for
-          a given active power, so copper losses are at their lowest.
+          <strong style={{ color: '#d4d4d8' }}>Motor / condenser note:</strong> the synchronous-motor convention is the
+          opposite: over-excited motors draw leading current and supply VArs, while under-excited motors draw lagging
+          current and absorb VArs.
         </li>
       </ul>
       <p style={S.p}>
@@ -877,13 +889,13 @@ function TheoryTab() {
           \u00B1200\u2013300 MVAr.
           <br /><br />
           <strong>BEA/CEA Regulatory Requirements:</strong> The Central Electricity Authority (CEA) grid code
-          mandates that large generators maintain a capability from 0.85 power factor lag (absorbing) to 0.95 power
-          factor lead (supplying), ensuring the machine can flexibly support system voltage under varying load
+          mandates that large generators maintain a capability from 0.85 power factor lag (supplying reactive power)
+          to 0.95 power factor lead (absorbing reactive power), ensuring the machine can flexibly support system voltage under varying load
           conditions.
           <br /><br />
           <strong>Large Hydro \u2014 Salient Pole Machines:</strong> Bhakra (1,325 MW, Himachal Pradesh) and Tehri
           (1,000 MW, Uttarakhand) use salient pole generators with prominent leading PF capability. During light
-          monsoon loads, these machines operate over-excited to absorb the reactive power produced by long lightly
+          monsoon loads, these machines operate under-excited to absorb the reactive power produced by long lightly
           loaded 400 kV lines (the Ferranti effect), preventing dangerous voltage rise at receiving-end substations.
         </p>
       </div>

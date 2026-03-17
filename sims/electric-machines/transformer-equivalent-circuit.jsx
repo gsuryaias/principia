@@ -103,9 +103,15 @@ function compute({ I2, PF, R1, X1, R2, X2, Rc, Xm, a, side }) {
   const Rcs = Rc / (a * a);
   const Xms = Xm / (a * a);
 
+  const Req = R1s + R2;
+  const Xeq = X1s + X2;
+  const sinPhi = Math.sin(phi);
+  const vrDrop = I2mag * (Req * PF + Xeq * sinPhi);
+  const VRpct = (vrDrop / V2mag) * 100;
+
   return {
     V1mag, V2mag, I1mag, I2mag,
-    Pcu, Pfe, P2, P1, efficiency, VR,
+    Pcu, Pfe, P2, P1, efficiency, VR: VRpct,
     Pcu1, Pcu2,
     I1c, I2c, I2p, Ish,
     V1c, V2p, Vmid,
@@ -393,7 +399,7 @@ function CircuitSecondary({ data, params }) {
       <line x1={xX1s + 34} y1={yt} x2={xMid} y2={yt} stroke="#d4d4d8" strokeWidth={1.8} />
 
       {/* I1'' label (I1 referred to secondary = a*I1) */}
-      <text x={(xR1s + xX1s) / 2 + 17} y={yt - 14} textAnchor="middle" fill="#60a5fa" fontSize="9">I1/a={( data.I1mag).toFixed(1)}A</text>
+      <text x={(xR1s + xX1s) / 2 + 17} y={yt - 14} textAnchor="middle" fill="#60a5fa" fontSize="9">a·I1={ (a * data.I1mag).toFixed(1)}A</text>
 
       {/* Shunt node */}
       <line x1={xMid} y1={yt} x2={xMid} y2={yb} stroke="#d4d4d8" strokeWidth={1.8} />

@@ -557,7 +557,8 @@ export default function OvercurrentRelay() {
   const psm = faultCurrent / Math.max(pickup, 1);
   const operatingTime = relayTime(curveType, psm, tms);
   const pickupState = psm > 1;
-  const tripState = pickupState && operatingTime < 10;
+  const tripState = pickupState && operatingTime < Infinity;
+  const delayedTrip = tripState && operatingTime >= 10;
 
   // I2t energy calculation
   const i2tRaw = operatingTime === Infinity ? 0 : faultCurrent * faultCurrent * operatingTime;
@@ -619,7 +620,12 @@ export default function OvercurrentRelay() {
               <div style={S.ri}><span style={S.rl}>Operate time</span><span style={S.rv}>{operatingTime === Infinity ? 'No trip' : `${operatingTime.toFixed(3)} s`}</span></div>
             </Tooltip>
             <div style={S.ri}><span style={S.rl}>Pickup</span><span style={{ ...S.rv, color: pickupState ? '#f59e0b' : '#71717a' }}>{pickupState ? 'Yes' : 'No'}</span></div>
-            <div style={S.ri}><span style={S.rl}>Trip decision</span><span style={{ ...S.rv, color: tripState ? '#ef4444' : '#71717a' }}>{tripState ? 'Trip' : 'Restrain'}</span></div>
+            <div style={S.ri}>
+              <span style={S.rl}>Trip decision</span>
+              <span style={{ ...S.rv, color: tripState ? (delayedTrip ? '#f59e0b' : '#ef4444') : '#71717a' }}>
+                {tripState ? (delayedTrip ? 'Trip (delayed)' : 'Trip') : 'Restrain'}
+              </span>
+            </div>
           </div>
 
           {/* I2t Energy Row */}

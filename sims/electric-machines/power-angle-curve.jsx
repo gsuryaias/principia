@@ -58,10 +58,10 @@ function Preluctance(delta_rad, V, Xd, Xq) {
 }
 
 function findDelta(Pm, Pmax, salient, V, Ef, Xd, Xq) {
-  if (Pm > Pmax || Pm < 0) return null;
+  if (Math.abs(Pm) > Pmax) return null;
 
   if (!salient) {
-    return Math.asin(Math.min(Pm / Pmax, 1));
+    return Math.asin(Math.max(-1, Math.min(Pm / Pmax, 1)));
   }
 
   let peakDelta = 0;
@@ -70,14 +70,16 @@ function findDelta(Pm, Pmax, salient, V, Ef, Xd, Xq) {
     const p = Psalient(d, V, Ef, Xd, Xq);
     if (p > peakP) { peakP = p; peakDelta = d; }
   }
-  if (Pm > peakP) return null;
+  if (Math.abs(Pm) > peakP) return null;
 
+  const sign = Pm >= 0 ? 1 : -1;
   let lo = 0, hi = peakDelta;
   for (let i = 0; i < 60; i++) {
     const mid = (lo + hi) / 2;
-    if (Psalient(mid, V, Ef, Xd, Xq) < Pm) lo = mid; else hi = mid;
+    const p = sign * Psalient(sign * mid, V, Ef, Xd, Xq);
+    if (p < Math.abs(Pm)) lo = mid; else hi = mid;
   }
-  return (lo + hi) / 2;
+  return sign * ((lo + hi) / 2);
 }
 
 /* ─────────────────────────── coordinate mappers ─────────────────────────── */
@@ -100,15 +102,19 @@ function buildCurvePath(points) {
 
 /* ─────────────────────────── Stability Margin Arc ─────────────────────────── */
 
-function StabilityMarginIndicator({ deltaDeg, pmaxCyl }) {
-  if (deltaDeg === null || deltaDeg <= 0) return null;
-  const margin = 90 - deltaDeg;
+function StabilityMarginIndicator({ deltaDeg, maxDeltaDeg, opPower, maxPower, powerScale }) {
+  if (deltaDeg === null) return null;
+  const margin = maxDeltaDeg - Math.abs(deltaDeg);
   if (margin <= 0) return null;
 
   const opX = degToX(deltaDeg);
-  const opY = puToY(pmaxCyl * Math.sin(deltaDeg * DEG), pmaxCyl);
-  const maxX = degToX(90);
-  const maxY = puToY(pmaxCyl, pmaxCyl);
+  const limitDeg = deltaDeg >= 0 ? maxDeltaDeg : -maxDeltaDeg;
+  const limitPower = deltaDeg >= 0 ? maxPower : -maxPower;
+  const leftX = Math.min(opX, degToX(limitDeg));
+  const rightX = Math.max(opX, degToX(limitDeg));
+  const opY = puToY(opPower, powerScale);
+  const maxX = degToX(limitDeg);
+  const maxY = puToY(limitPower, powerScale);
 
   // Color based on margin
   const color = margin > 40 ? '#22c55e' : margin > 20 ? '#f59e0b' : '#ef4444';
@@ -116,14 +122,14 @@ function StabilityMarginIndicator({ deltaDeg, pmaxCyl }) {
   return (
     <g>
       {/* Bracket showing margin */}
-      <line x1={opX} y1={MT + 4} x2={opX} y2={MT + 14} stroke={color} strokeWidth={1.5} />
-      <line x1={maxX} y1={MT + 4} x2={maxX} y2={MT + 14} stroke={color} strokeWidth={1.5} />
-      <line x1={opX} y1={MT + 9} x2={maxX} y2={MT + 9} stroke={color} strokeWidth={1.5} />
+      <line x1={leftX} y1={MT + 4} x2={leftX} y2={MT + 14} stroke={color} strokeWidth={1.5} />
+      <line x1={rightX} y1={MT + 4} x2={rightX} y2={MT + 14} stroke={color} strokeWidth={1.5} />
+      <line x1={leftX} y1={MT + 9} x2={rightX} y2={MT + 9} stroke={color} strokeWidth={1.5} />
       {/* Arrow tips */}
-      <polygon points={`${opX},${MT + 9} ${opX + 5},${MT + 6} ${opX + 5},${MT + 12}`} fill={color} />
-      <polygon points={`${maxX},${MT + 9} ${maxX - 5},${MT + 6} ${maxX - 5},${MT + 12}`} fill={color} />
+      <polygon points={`${leftX},${MT + 9} ${leftX + 5},${MT + 6} ${leftX + 5},${MT + 12}`} fill={color} />
+      <polygon points={`${rightX},${MT + 9} ${rightX - 5},${MT + 6} ${rightX - 5},${MT + 12}`} fill={color} />
       {/* Label */}
-      <text x={(opX + maxX) / 2} y={MT + 6} textAnchor="middle" fill={color} fontSize={9} fontWeight={700} fontFamily="monospace">
+      <text x={(leftX + rightX) / 2} y={MT + 6} textAnchor="middle" fill={color} fontSize={9} fontWeight={700} fontFamily="monospace">
         Margin: {margin.toFixed(0)}\u00B0
       </text>
     </g>
@@ -264,18 +270,22 @@ function SimTab() {
   const [flashLoss, setFlashLoss] = useState(false);
   const flashRef = useRef(null);
 
-  const Pmax = useMemo(() => {
-    if (!salient) return V * Ef / Xs;
+  const { Pmax, maxDeltaDeg } = useMemo(() => {
+    if (!salient) return { Pmax: V * Ef / Xs, maxDeltaDeg: 90 };
     let peak = 0;
+    let peakDelta = 0;
     for (let d = 0; d <= 90 * DEG; d += 0.001) {
       const p = Psalient(d, V, Ef, Xd, Xq);
-      if (p > peak) peak = p;
+      if (p > peak) {
+        peak = p;
+        peakDelta = d / DEG;
+      }
     }
-    return peak;
+    return { Pmax: peak, maxDeltaDeg: peakDelta };
   }, [salient, V, Ef, Xs, Xd, Xq]);
 
   const PmMax = Math.min(1.5 * Pmax, 3.0);
-  const PmClamped = Math.min(Pm, PmMax);
+  const PmClamped = Math.max(-PmMax, Math.min(Pm, PmMax));
 
   const deltaRad = useMemo(
     () => findDelta(PmClamped, Pmax, salient, V, Ef, Xd, Xq),
@@ -291,7 +301,7 @@ function SimTab() {
   }, [deltaRad, salient, V, Ef, Xs, Xd, Xq]);
 
   const stable = Ks > 0;
-  const stabilityMarginPct = deltaDeg !== null ? Math.max(0, ((90 - deltaDeg) / 90) * 100) : 0;
+  const stabilityMarginPct = deltaDeg !== null ? Math.max(0, ((maxDeltaDeg - Math.abs(deltaDeg)) / maxDeltaDeg) * 100) : 0;
 
   useEffect(() => {
     if (deltaRad === null) {
@@ -313,7 +323,7 @@ function SimTab() {
     const N = 720;
     const cyl = [], sail = [], rel = [];
     const pmaxCyl = V * Ef / Xs;
-    const scale = pmaxCyl;
+    const scale = salient ? Pmax : pmaxCyl;
 
     for (let i = 0; i <= N; i++) {
       const deg = -180 + (360 * i) / N;
@@ -326,24 +336,25 @@ function SimTab() {
       sail.push([px, puToY(ps, scale)]);
       rel.push([px, puToY(pr, scale)]);
     }
-    return { cylPoints: cyl, sailPoints: sail, relPoints: rel, pmaxScale: pmaxCyl };
-  }, [V, Ef, Xs, Xd, Xq]);
+    return { cylPoints: cyl, sailPoints: sail, relPoints: rel };
+  }, [V, Ef, Xs, Xd, Xq, salient, Pmax]);
 
   const pmaxCyl = V * Ef / Xs;
+  const pmaxRef = salient ? Pmax : pmaxCyl;
 
   const opX = deltaDeg !== null ? degToX(deltaDeg) : null;
-  const opY = deltaRad !== null ? puToY(PmClamped, pmaxCyl) : null;
-  const pmLineY = puToY(PmClamped, pmaxCyl);
+  const opY = deltaRad !== null ? puToY(PmClamped, pmaxRef) : null;
+  const pmLineY = puToY(PmClamped, pmaxRef);
 
   const yTicks = useMemo(() => {
-    const step = pmaxCyl <= 0.5 ? 0.25 : pmaxCyl <= 1.0 ? 0.5 : 1.0;
+    const step = pmaxRef <= 0.5 ? 0.25 : pmaxRef <= 1.0 ? 0.5 : 1.0;
     const ticks = [];
-    for (let v = -Math.ceil(pmaxCyl / step) * step; v <= Math.ceil(pmaxCyl / step) * step + 0.001; v += step) {
-      const y = puToY(v, pmaxCyl);
+    for (let v = -Math.ceil(pmaxRef / step) * step; v <= Math.ceil(pmaxRef / step) * step + 0.001; v += step) {
+      const y = puToY(v, pmaxRef);
       if (y >= MT - 5 && y <= MT + PH + 5) ticks.push({ v, y });
     }
     return ticks;
-  }, [pmaxCyl]);
+  }, [pmaxRef]);
 
   const xTicks = [-180, -135, -90, -45, 0, 45, 90, 135, 180];
 
@@ -363,37 +374,37 @@ function SimTab() {
           {/* Stable generator: 0-90 */}
           <rect
             x={degToX(0)} y={MT}
-            width={degToX(90) - degToX(0)} height={PH}
+            width={degToX(maxDeltaDeg) - degToX(0)} height={PH}
             fill="rgba(34,197,94,0.04)"
           />
           {/* Stable motor: -90 to 0 */}
           <rect
-            x={degToX(-90)} y={MT}
-            width={degToX(0) - degToX(-90)} height={PH}
+            x={degToX(-maxDeltaDeg)} y={MT}
+            width={degToX(0) - degToX(-maxDeltaDeg)} height={PH}
             fill="rgba(99,102,241,0.04)"
           />
           {/* Unstable generator: 90-180 */}
           <rect
-            x={degToX(90)} y={MT}
-            width={degToX(180) - degToX(90)} height={PH}
+            x={degToX(maxDeltaDeg)} y={MT}
+            width={degToX(180) - degToX(maxDeltaDeg)} height={PH}
             fill="rgba(239,68,68,0.06)"
           />
           {/* Unstable motor: -180 to -90 */}
           <rect
             x={degToX(-180)} y={MT}
-            width={degToX(-90) - degToX(-180)} height={PH}
+            width={degToX(-maxDeltaDeg) - degToX(-180)} height={PH}
             fill="rgba(239,68,68,0.06)"
           />
 
           {/* Region labels */}
-          <text x={degToX(45)} y={MT + 16} textAnchor="middle" fill="#22c55e" fontSize={10} opacity={0.6} fontWeight={600}>STABLE GEN</text>
-          <text x={degToX(45)} y={MT + 28} textAnchor="middle" fill="#22c55e" fontSize={8} opacity={0.4}>0\u00B0 \u2013 90\u00B0</text>
-          <text x={degToX(-45)} y={MT + 16} textAnchor="middle" fill="#6366f1" fontSize={10} opacity={0.7} fontWeight={600}>STABLE MOTOR</text>
-          <text x={degToX(-45)} y={MT + 28} textAnchor="middle" fill="#6366f1" fontSize={8} opacity={0.4}>-90\u00B0 \u2013 0\u00B0</text>
-          <text x={degToX(135)} y={MT + 16} textAnchor="middle" fill="#ef4444" fontSize={10} opacity={0.6} fontWeight={600}>UNSTABLE</text>
-          <text x={degToX(135)} y={MT + 28} textAnchor="middle" fill="#ef4444" fontSize={8} opacity={0.4}>90\u00B0 \u2013 180\u00B0</text>
-          <text x={degToX(-135)} y={MT + 16} textAnchor="middle" fill="#ef4444" fontSize={10} opacity={0.6} fontWeight={600}>UNSTABLE</text>
-          <text x={degToX(-135)} y={MT + 28} textAnchor="middle" fill="#ef4444" fontSize={8} opacity={0.4}>-180\u00B0 \u2013 -90\u00B0</text>
+          <text x={degToX(maxDeltaDeg / 2)} y={MT + 16} textAnchor="middle" fill="#22c55e" fontSize={10} opacity={0.6} fontWeight={600}>STABLE GEN</text>
+          <text x={degToX(maxDeltaDeg / 2)} y={MT + 28} textAnchor="middle" fill="#22c55e" fontSize={8} opacity={0.4}>0\u00B0 \u2013 {maxDeltaDeg.toFixed(0)}\u00B0</text>
+          <text x={degToX(-maxDeltaDeg / 2)} y={MT + 16} textAnchor="middle" fill="#6366f1" fontSize={10} opacity={0.7} fontWeight={600}>STABLE MOTOR</text>
+          <text x={degToX(-maxDeltaDeg / 2)} y={MT + 28} textAnchor="middle" fill="#6366f1" fontSize={8} opacity={0.4}>-{maxDeltaDeg.toFixed(0)}\u00B0 \u2013 0\u00B0</text>
+          <text x={degToX((180 + maxDeltaDeg) / 2)} y={MT + 16} textAnchor="middle" fill="#ef4444" fontSize={10} opacity={0.6} fontWeight={600}>UNSTABLE</text>
+          <text x={degToX((180 + maxDeltaDeg) / 2)} y={MT + 28} textAnchor="middle" fill="#ef4444" fontSize={8} opacity={0.4}>{maxDeltaDeg.toFixed(0)}\u00B0 \u2013 180\u00B0</text>
+          <text x={degToX((-180 - maxDeltaDeg) / 2)} y={MT + 16} textAnchor="middle" fill="#ef4444" fontSize={10} opacity={0.6} fontWeight={600}>UNSTABLE</text>
+          <text x={degToX((-180 - maxDeltaDeg) / 2)} y={MT + 28} textAnchor="middle" fill="#ef4444" fontSize={8} opacity={0.4}>-180\u00B0 \u2013 -{maxDeltaDeg.toFixed(0)}\u00B0</text>
 
           {/* Grid lines */}
           {yTicks.map(({ v, y }) => (
@@ -406,7 +417,7 @@ function SimTab() {
           ))}
 
           {/* Axes */}
-          <line x1={ML} x2={ML + PW} y1={puToY(0, pmaxCyl)} y2={puToY(0, pmaxCyl)} stroke="#3f3f46" strokeWidth={1.5} />
+          <line x1={ML} x2={ML + PW} y1={puToY(0, pmaxRef)} y2={puToY(0, pmaxRef)} stroke="#3f3f46" strokeWidth={1.5} />
           <line x1={ML} x2={ML} y1={MT} y2={MT + PH} stroke="#3f3f46" strokeWidth={1.5} />
           <line x1={ML + PW} x2={ML + PW} y1={MT} y2={MT + PH} stroke="#3f3f46" strokeWidth={1} />
 
@@ -468,37 +479,20 @@ function SimTab() {
 
           {/* Key point markers */}
           {/* No-load point */}
-          <circle cx={degToX(0)} cy={puToY(0, pmaxCyl)} r={5} fill="#27272a" stroke="#6366f1" strokeWidth={2} />
-          <text x={degToX(0) + 8} y={puToY(0, pmaxCyl) - 8} fill="#6366f1" fontSize={10} fontFamily="monospace">No Load</text>
+          <circle cx={degToX(0)} cy={puToY(0, pmaxRef)} r={5} fill="#27272a" stroke="#6366f1" strokeWidth={2} />
+          <text x={degToX(0) + 8} y={puToY(0, pmaxRef) - 8} fill="#6366f1" fontSize={10} fontFamily="monospace">No Load</text>
 
           {/* Pmax point */}
-          <circle cx={degToX(90)} cy={puToY(pmaxCyl, pmaxCyl)} r={5} fill="#27272a" stroke="#22c55e" strokeWidth={2} />
-          <text x={degToX(90) - 4} y={puToY(pmaxCyl, pmaxCyl) - 10} fill="#22c55e" fontSize={10} fontFamily="monospace" textAnchor="middle">
-            P_max  \u03B4=90\u00B0
+          <circle cx={degToX(maxDeltaDeg)} cy={puToY(Pmax, pmaxRef)} r={5} fill="#27272a" stroke="#22c55e" strokeWidth={2} />
+          <text x={degToX(maxDeltaDeg)} y={puToY(Pmax, pmaxRef) - 10} fill="#22c55e" fontSize={10} fontFamily="monospace" textAnchor="middle">
+            P_max  \u03B4={maxDeltaDeg.toFixed(0)}\u00B0
           </text>
 
           {/* Max motoring power */}
-          <circle cx={degToX(-90)} cy={puToY(-pmaxCyl, pmaxCyl)} r={5} fill="#27272a" stroke="#818cf8" strokeWidth={2} />
-          <text x={degToX(-90) + 4} y={puToY(-pmaxCyl, pmaxCyl) + 16} fill="#818cf8" fontSize={10} fontFamily="monospace" textAnchor="middle">
+          <circle cx={degToX(-maxDeltaDeg)} cy={puToY(-Pmax, pmaxRef)} r={5} fill="#27272a" stroke="#818cf8" strokeWidth={2} />
+          <text x={degToX(-maxDeltaDeg) + 4} y={puToY(-Pmax, pmaxRef) + 16} fill="#818cf8" fontSize={10} fontFamily="monospace" textAnchor="middle">
             Max Motor Power
           </text>
-
-          {/* Salient pole peak marker */}
-          {salient && (() => {
-            let pd = 0, pp = 0;
-            for (let d = 0; d <= 90; d += 0.5) {
-              const p = Psalient(d * DEG, V, Ef, Xd, Xq);
-              if (p > pp) { pp = p; pd = d; }
-            }
-            return (
-              <>
-                <circle cx={degToX(pd)} cy={puToY(pp, pmaxCyl)} r={5} fill="#27272a" stroke="#f59e0b" strokeWidth={2} />
-                <text x={degToX(pd)} y={puToY(pp, pmaxCyl) - 10} fill="#f59e0b" fontSize={10} fontFamily="monospace" textAnchor="middle">
-                  Salient P_max  \u03B4={pd.toFixed(0)}\u00B0
-                </text>
-              </>
-            );
-          })()}
 
           {/* Mechanical power line Pm */}
           <line
@@ -512,7 +506,7 @@ function SimTab() {
           </text>
 
           {/* Stability margin indicator */}
-          <StabilityMarginIndicator deltaDeg={deltaDeg} pmaxCyl={pmaxCyl} />
+          <StabilityMarginIndicator deltaDeg={deltaDeg} maxDeltaDeg={maxDeltaDeg} opPower={PmClamped} maxPower={Pmax} powerScale={pmaxRef} />
 
           {/* Operating point dot */}
           {opX !== null && opY !== null && (
@@ -686,7 +680,7 @@ function SimTab() {
         )}
         <div style={S.cg}>
           <label style={S.label}>Pm (pu)</label>
-          <input type="range" min={0} max={PmMax} step={0.01} value={PmClamped}
+          <input type="range" min={-PmMax} max={PmMax} step={0.01} value={PmClamped}
             onChange={e => setPm(+e.target.value)} style={{ ...S.slider, width: 160 }} />
           <span style={S.val}>{PmClamped.toFixed(2)}</span>
         </div>
@@ -720,11 +714,13 @@ function SimTab() {
       {/* Info boxes */}
       <div style={S.strip}>
         <div style={S.box}>
-          <span style={S.boxT}>Generator Operation</span>
+          <span style={S.boxT}>Operating Interpretation</span>
           <span style={S.boxV}>
-            Steam / water \u2192 mechanical torque \u2192 rotor pulls ahead (\u03B4 \u2191)<br />
-            More steam/water \u2192 \u03B4 increases \u2192 more P exported to grid<br />
-            Danger: excessive load \u2192 \u03B4 \u2192 90\u00B0 \u2192 synchronism lost
+            {PmClamped >= 0
+              ? `Prime-mover torque drives the rotor ahead (\u03B4 > 0).\nMore mechanical input raises \u03B4 and increases generator output.`
+              : `Electrical input dominates and the machine operates as a motor (\u03B4 < 0).\nLarger motoring load increases |\u03B4| while power is absorbed from the bus.`}
+            <br />
+            Critical angle magnitude \u2248 {maxDeltaDeg.toFixed(1)}\u00B0 for the selected model
           </span>
         </div>
         <div style={S.box}>

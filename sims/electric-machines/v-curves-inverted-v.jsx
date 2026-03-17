@@ -213,7 +213,7 @@ function SimTab({ P, setP, If, setIf, Xs, setXs }) {
   const qSign = opPoint ? (opPoint.Q < 0 ? 'Supplying' : 'Absorbing') : '';
   const qColor = opPoint ? (opPoint.Q < 0 ? '#14b8a6' : '#f97316') : '#e4e4e7';
 
-  const scQ = opPoint ? ((opPoint.Ef - 1) / Xs).toFixed(3) : '\u2014';
+  const scQ = opPoint ? ((1 - opPoint.Ef) / Xs).toFixed(3) : '\u2014';
   const qMVAR = opPoint ? (Math.abs(opPoint.Q) * 10).toFixed(1) : '\u2014';
 
   return (
@@ -529,9 +529,9 @@ function SimTab({ P, setP, If, setIf, Xs, setXs }) {
         <div style={S.box}>
           <span style={S.boxT}>Synchronous Condenser (P = 0)</span>
           <span style={S.boxV}>
-            {`Q = (Ef\u00B7V \u2212 V\u00B2) / Xs\n`}
-            {`   = (${opPoint ? opPoint.Ef.toFixed(3) : '?'} \u00D7 1 \u2212 1) / ${Xs.toFixed(2)}\n`}
-            {`   = ${opPoint ? ((opPoint.Ef - 1) / Xs).toFixed(3) : '?'} pu\n`}
+            {`Q = (V\u00B2 \u2212 Ef\u00B7V) / Xs\n`}
+            {`   = (1 \u2212 ${opPoint ? opPoint.Ef.toFixed(3) : '?'} \u00D7 1) / ${Xs.toFixed(2)}\n`}
+            {`   = ${scQ} pu\n`}
             {P < 0.05 ? '\u2192 Pure VAr compensator mode' : `\u2192 At P=${P.toFixed(2)} pu: combined load + VAr`}
           </span>
         </div>
@@ -919,7 +919,7 @@ function TheoryTab() {
 
       <h3 style={S.h3}>Key Equations</h3>
       <code style={S.eq}>Ia = \u221A[(P/V)\u00B2 + (Q/V)\u00B2]</code>
-      <code style={S.eq}>Q = (V \u00B7 Ef / Xs) \u00B7 cos(\u03B4) \u2212 V\u00B2 / Xs</code>
+      <code style={S.eq}>Q = (V\u00B2 \u2212 V \u00B7 Ef \u00B7 cos(\u03B4)) / Xs</code>
       <code style={S.eq}>Ef = \u221A[(V \u2212 Xs \u00B7 Q / V)\u00B2 + (Xs \u00B7 P / V)\u00B2]</code>
       <p style={S.p}>
         In per-unit with V = 1, these simplify to:
@@ -953,7 +953,7 @@ function TheoryTab() {
         purely for reactive power control. It can supply or absorb reactive power continuously and
         smoothly by varying field current.
       </p>
-      <code style={S.eq}>Q = (V \u00B7 Ef \u2212 V\u00B2) / Xs  \u2190  synchronous condenser reactive output</code>
+      <code style={S.eq}>Q = (V\u00B2 \u2212 V \u00B7 Ef) / Xs  \u2190  synchronous condenser reactive output</code>
       <ul style={S.ul}>
         <li style={S.li}><strong style={{ color: '#e4e4e7' }}>Continuously variable:</strong> unlike fixed capacitor banks, Q can be adjusted in real-time.</li>
         <li style={S.li}><strong style={{ color: '#e4e4e7' }}>Bidirectional:</strong> can supply (over-excited) or absorb (under-excited) reactive power from the same machine.</li>

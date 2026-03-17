@@ -63,6 +63,23 @@ function torqueAtSlip(s, Vll, freq, R2eff, poles) {
   return (3 * cAbs(Vth) ** 2 * rOverS) / (ws * denom);
 }
 
+function sampleCurve(freq, Vll, R2eff, poles) {
+  const ns = (120 * freq) / poles;
+  const samples = [];
+  for (let i = 0; i <= 220; i += 1) {
+    const speed = (i / 220) * 1500;
+    const slip = Math.max((ns - speed) / ns, 0.001);
+    const torque = speed > ns ? 0 : torqueAtSlip(slip, Vll, freq, R2eff, poles);
+    samples.push({ speed, torque, slip });
+  }
+  return { ns, samples };
+}
+
+const REFERENCE_LOAD_TORQUE = (() => {
+  const { samples } = sampleCurve(BASE.f, BASE.V, BASE.R2, BASE.poles);
+  return Math.max(...samples.map((p) => p.torque)) * 0.42;
+})();
+
 function buildMethodCurve(method, param) {
   let freq = BASE.f;
   let Vll = BASE.V;
@@ -83,16 +100,9 @@ function buildMethodCurve(method, param) {
     note = 'Ideal cumulative cascade, coupling losses neglected.';
   }
 
-  const ns = (120 * freq) / poles;
-  const samples = [];
-  for (let i = 0; i <= 220; i += 1) {
-    const speed = (i / 220) * 1500;
-    const slip = Math.max((ns - speed) / ns, 0.001);
-    const torque = speed > ns ? 0 : torqueAtSlip(slip, Vll, freq, R2eff, poles);
-    samples.push({ speed, torque, slip });
-  }
+  const { ns, samples } = sampleCurve(freq, Vll, R2eff, poles);
   const maxTorque = Math.max(...samples.map((p) => p.torque));
-  const loadTorque = maxTorque * 0.42;
+  const loadTorque = REFERENCE_LOAD_TORQUE;
   let operating = samples[0];
   for (const point of samples.filter((p) => p.speed <= ns)) {
     if (Math.abs(point.torque - loadTorque) < Math.abs(operating.torque - loadTorque)) operating = point;
@@ -373,7 +383,7 @@ function ComparativeTNCurveSVG() {
           pts.push({ n, T: T * 3.5 / 1.0 });
         }
         const maxT = Math.max(...pts.map(p => p.T));
-        const normPts = pts.map(p => ({ n: p.n, T: p.T / (maxT * 1.3 * (1 + i * 0.05)) }));
+        const normPts = pts.map(p => ({ n: p.n, T: p.T / (maxT * 1.3) }));
         const d = normPts.map((p, j) => `${j === 0 ? 'M' : 'L'}${xS(p.n).toFixed(1)},${yS(p.T).toFixed(1)}`).join(' ');
         return (
           <path key={`rr${rExt}`} d={d} fill="none" stroke="#f59e0b" strokeWidth="1.5" opacity={0.9 - i * 0.15} strokeDasharray={i > 0 ? '6 3' : 'none'} />
@@ -538,7 +548,7 @@ export default function InductionMotorSpeedControl() {
           <ul style={S.ul}>
             <li style={S.li}>Each colored curve is a torque-speed characteristic for one speed-control method.</li>
             <li style={S.li}>The dashed vertical marker indicates synchronous speed for that method.</li>
-            <li style={S.li}>The operating point is the intersection of the method-specific torque curve with a representative load-torque line.</li>
+            <li style={S.li}>The operating point is the intersection of each method-specific torque curve with the same representative load-torque line, so the speed comparison stays like-for-like.</li>
             <li style={S.li}>Comparing the operating slip across methods shows why rotor-resistance control is lossy and why V/f control is preferred in modern drives.</li>
           </ul>
 

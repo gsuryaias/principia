@@ -373,13 +373,13 @@ function EnergyBandsTheory() {
    ═══════════════════════════════════════════════════════════════════ */
 function DopingSimulate() {
   const [type, setType] = useState('N');
-  const [logNd, setLogNd] = useState(16);
+  const [logDoping, setLogDoping] = useState(16);
   const [T, setT] = useState(300);
 
   const ni = 1.5e10 * Math.pow(T / 300, 1.5) * Math.exp(-1.12 * q / (2 * k_B) * (1/T - 1/300));
-  const Nd = Math.pow(10, logNd);
-  const majority = type === 'N' ? Nd : Nd;
-  const minority = ni * ni / majority;
+  const dopantDensity = Math.pow(10, logDoping);
+  const majority = dopantDensity;
+  const minority = ni * ni / dopantDensity;
 
   const logMaj = Math.log10(Math.max(majority, 1));
   const logMin = Math.log10(Math.max(minority, 1));
@@ -435,7 +435,7 @@ function DopingSimulate() {
             <text x={300} y={235} fill={C.muted} fontSize={10}>nᵢ² = 10^{(2 * logNi).toFixed(1)}</text>
           </svg>
         </div>
-        <span style={S.eq}>n · p = nᵢ²   |   {type === 'N' ? 'nₙ ≈ Nd' : 'pₚ ≈ Na'} = 10^{logNd}   |   {type === 'N' ? 'pₙ' : 'nₚ'} = nᵢ²/N = {minority.toExponential(2)} cm⁻³</span>
+        <span style={S.eq}>n · p = nᵢ²   |   {type === 'N' ? 'nₙ ≈ Nd' : 'pₚ ≈ Na'} = 10^{logDoping}   |   {type === 'N' ? 'pₙ' : 'nₚ'} = nᵢ²/{type === 'N' ? 'Nd' : 'Na'} = {minority.toExponential(2)} cm⁻³</span>
         <div style={S.note}><span style={S.noteT}>Where this matters</span><p style={S.noteP}>Doping is the most fundamental tool in semiconductor engineering. By controlling Nd or Na, engineers set the conductivity and type of each region in a device — the N and P sides of a diode, the base of a BJT, the channel of a MOSFET. The mass-action law n·p = nᵢ² governs minority carrier injection.</p></div>
       </div>
       <div style={S.results}>
@@ -452,7 +452,7 @@ function DopingSimulate() {
             <option value="P">P-type (Acceptor)</option>
           </select>
         </div>
-        <CG label="log₁₀(Nd)" min={14} max={18} step={0.5} value={logNd} set={setLogNd} unit=" cm⁻³"/>
+        <CG label={`log₁₀(${type === 'N' ? 'Nd' : 'Na'})`} min={14} max={18} step={0.5} value={logDoping} set={setLogDoping} unit=" cm⁻³"/>
         <CG label="Temperature" min={200} max={600} step={10} value={T} set={setT} unit=" K"/>
       </div>
     </div>
@@ -524,9 +524,11 @@ function TransportSimulate() {
     return () => { cancelAnimationFrame(af.current); lt.current = 0; };
   }, []);
 
-  const Jdrift = q * 1e16 * mu * E * 1e-4;
+  const electronDensity = 1e16;
+  const dnDx = -gradN;
+  const Jdrift = q * electronDensity * mu * E;
   const D = mu * kT300;
-  const Jdiff = q * D * gradN * 1e-4;
+  const Jdiff = -q * D * dnDx;
 
   return (
     <div style={S.body}>
@@ -543,11 +545,11 @@ function TransportSimulate() {
             <text x={245} y={74} fill={C.amber} fontSize={10}>E</text>
             {/* Drifting electrons */}
             {Array.from({ length: 6 }, (_, i) => {
-              const x = 40 + ((phase * 2 + i * 40) % 220);
+              const x = 240 - ((phase * 2 + i * 40) % 200);
               const y = 55 + (i % 3) * 15 + Math.sin(phase + i) * 3;
               return <circle key={i} cx={x} cy={y} r={3.5} fill={C.cyan} opacity={0.8}/>;
             })}
-            <text x={140} y={132} fill={C.muted} fontSize={11} textAnchor="middle">J_drift = qnμE → carriers move along E field</text>
+            <text x={140} y={132} fill={C.muted} fontSize={11} textAnchor="middle">J_drift = qnμE → e⁻ drift opposite E; current follows E</text>
 
             {/* Diffusion region */}
             <text x={420} y={18} fill={C.green} fontSize={12} fontWeight={600} textAnchor="middle">DIFFUSION (Concentration Gradient)</text>
@@ -629,7 +631,7 @@ function TransportTheory() {
       <p style={S.p}>When a magnetic field B is applied perpendicular to current flow, the Lorentz force deflects carriers sideways, building up a <strong>Hall voltage</strong> VH transverse to both current and B. The Hall coefficient RH = 1/(q·n) lets us directly measure carrier concentration and type from a simple four-probe measurement — the primary technique for characterizing doped wafers:</p>
       <code style={S.eq}>VH = I · B / (q · n · t)   →   n = I · B / (q · VH · t)</code>
 
-      <div style={S.ctx}><span style={S.ctxT}>Where this matters</span><p style={S.ctxC}>In a MOSFET channel, carriers drift under the lateral gate-induced field — channel conductance is proportional to μ × Cox × (W/L). In a forward-biased PN junction, minority carriers diffuse across the neutral regions — the diffusion length determines base width limits in BJTs. In a solar cell, photogenerated carriers must diffuse to the junction before recombining — longer L means better efficiency. Velocity saturation is why aggressive node scaling eventually stops improving transistor speed.</p></div>
+      <div style={S.ctx}><span style={S.ctxT}>Where this matters</span><p style={S.ctxP}>In a MOSFET channel, carriers drift under the lateral gate-induced field — channel conductance is proportional to μ × Cox × (W/L). In a forward-biased PN junction, minority carriers diffuse across the neutral regions — the diffusion length determines base width limits in BJTs. In a solar cell, photogenerated carriers must diffuse to the junction before recombining — longer L means better efficiency. Velocity saturation is why aggressive node scaling eventually stops improving transistor speed.</p></div>
     </div>
   );
 }
@@ -641,12 +643,25 @@ function TransportTheory() {
 function DiodeSimulate() {
   const [Vbias, setVbias] = useState(0.3);
   const [T, setT] = useState(300);
-  const [logNd, setLogNd] = useState(16);
+  const [logDoping, setLogDoping] = useState(16);
   const [n, setN] = useState(1.6);
   const [Rs, setRs] = useState(10);
 
   const Vt = k_B * T / q;
-  const Is = 1e-14;
+  const ni = 1.5e10 * Math.pow(T / 300, 1.5) * Math.exp(-1.12 * q / (2 * k_B) * (1/T - 1/300));
+  const Nd = Math.pow(10, logDoping);
+  const Na = Nd;
+  const Is300 = 1e-14;
+  const EgSi = 1.12 * q;
+  const Is = Is300 * Math.pow(T / 300, 3) * Math.exp(-(EgSi / k_B) * (1 / T - 1 / 300));
+  const Vbi = Vt * Math.log((Na * Nd) / (ni * ni));
+  const barrierV = Math.max(Vbi - Vbias, 1e-4);
+  const eps0 = 8.854e-14;
+  const epsSi = 11.7 * eps0;
+  const Wcm = Math.sqrt((2 * epsSi * barrierV * (1 / Na + 1 / Nd)) / q);
+  const W = Wcm * 1e4;
+  const depletionPx = Math.max(3, W * 30);
+  const bandBend = Math.max(Vbi - Vbias, 0) * 40;
 
   // Solve I = Is * (exp((V - I*Rs)/(n*Vt)) - 1) with fixed-point iteration.
   const diodeCurrent = useMemo(() => {
@@ -659,9 +674,6 @@ function DiodeSimulate() {
     }
     return current;
   }, [Is, Rs, Vbias, Vt, n]);
-
-  const Vbi = Vt * Math.log(Math.pow(10, logNd) * Math.pow(10, logNd) / (1.5e10 * 1.5e10));
-  const W = Math.max(0.1, (1 - Vbias / Math.max(Vbi, 0.1))) * 2;
 
   // I-V curve points in log(|I|) for readability over decades of current.
   const ivPoints = useMemo(() => {
@@ -698,12 +710,12 @@ function DiodeSimulate() {
             <rect x={140} y={30} width={100} height={120} rx={4} fill={C.cyan} opacity={0.06}/>
             <text x={190} y={50} fill={C.cyan} fontSize={11} textAnchor="middle" fontWeight={600}>N-type</text>
             {/* Depletion region */}
-            <rect x={120 - W * 15} y={30} width={W * 30} height={120} fill={C.amber} opacity={0.08} stroke={C.amber} strokeWidth={1} strokeDasharray="3 3"/>
+            <rect x={130 - depletionPx / 2} y={30} width={depletionPx} height={120} fill={C.amber} opacity={0.08} stroke={C.amber} strokeWidth={1} strokeDasharray="3 3"/>
             <text x={130} y={165} fill={C.amber} fontSize={10} textAnchor="middle">W ∝ √(Vbi − V)</text>
             {/* Band bending */}
-            <path d={`M20,80 L${110 - W * 10},80 Q130,${80 + (Vbi - Vbias) * 30} ${150 + W * 10},${80 + (Vbi - Vbias) * 40} L240,${80 + (Vbi - Vbias) * 40}`} fill="none" stroke={C.cyan} strokeWidth={2}/>
+            <path d={`M20,80 L${130 - depletionPx / 2},80 Q130,${80 + bandBend * 0.75} ${130 + depletionPx / 2},${80 + bandBend} L240,${80 + bandBend}`} fill="none" stroke={C.cyan} strokeWidth={2}/>
             <text x={250} y={78} fill={C.cyan} fontSize={10}>Ec</text>
-            <path d={`M20,120 L${110 - W * 10},120 Q130,${120 + (Vbi - Vbias) * 30} ${150 + W * 10},${120 + (Vbi - Vbias) * 40} L240,${120 + (Vbi - Vbias) * 40}`} fill="none" stroke={C.violet} strokeWidth={2}/>
+            <path d={`M20,120 L${130 - depletionPx / 2},120 Q130,${120 + bandBend * 0.75} ${130 + depletionPx / 2},${120 + bandBend} L240,${120 + bandBend}`} fill="none" stroke={C.violet} strokeWidth={2}/>
             <text x={250} y={118} fill={C.violet} fontSize={10}>Ev</text>
 
             {/* I-V curve */}
@@ -757,7 +769,7 @@ function DiodeSimulate() {
       <div style={S.controls}>
         <CG label="V bias" min={-2} max={0.75} step={0.01} value={Vbias} set={setVbias} unit=" V"/>
         <CG label="Temperature" min={200} max={500} step={10} value={T} set={setT} unit=" K"/>
-        <CG label="log₁₀(Nd)" min={14} max={18} step={0.5} value={logNd} set={setLogNd}/>
+        <CG label="log₁₀(Na = Nd)" min={14} max={18} step={0.5} value={logDoping} set={setLogDoping}/>
         <CG label="Ideality n" min={1} max={2} step={0.05} value={n} set={setN}/>
         <CG label="Series R" min={0} max={50} step={1} value={Rs} set={setRs} unit=" Ω"/>
       </div>
@@ -817,6 +829,7 @@ function BJTSimulate() {
   const [beta, setBeta] = useState(100);
   const [type, setType] = useState('NPN');
 
+  const isPNP = type === 'PNP';
   const Vt = 0.02585;
   const Is = 1e-15;
   const Ib = Is * (Math.exp(Vbe / Vt) - 1);
@@ -826,6 +839,13 @@ function BJTSimulate() {
   const Ic = inSat ? Vce / 0.2 * IcIdeal * 0.5 : IcIdeal;
   const Ie = Ic + Ib;
   const mode = Vbe < 0.5 ? 'Cutoff' : inSat ? 'Saturation' : 'Active';
+  const carrierColor = isPNP ? C.pink : C.cyan;
+  const emitterType = isPNP ? 'P' : 'N';
+  const baseType = isPNP ? 'N' : 'P';
+  const collectorType = emitterType;
+  const carrierLabel = isPNP ? 'h⁺' : 'e⁻';
+  const vbeLabel = isPNP ? 'Veb' : 'Vbe';
+  const vceLabel = isPNP ? 'Vec' : 'Vce';
 
   // Output characteristics
   const curves = [0.6, 0.65, 0.7, 0.72];
@@ -833,19 +853,19 @@ function BJTSimulate() {
   return (
     <div style={S.body}>
       <div style={S.section}>
-        <div><p style={S.title}>Bipolar Junction Transistor (BJT)</p><p style={S.sub}>Current-controlled amplifier — Ic = β·Ib in active region</p></div>
+        <div><p style={S.title}>Bipolar Junction Transistor (BJT)</p><p style={S.sub}>Current-controlled transistor — current magnitudes follow |Ic| = β·|Ib| in active region</p></div>
         <div style={S.svgWrap}>
           <svg viewBox="0 0 560 300" style={{ width:'100%', maxWidth:560 }}>
             {/* NPN cross-section */}
             <text x={105} y={18} fill={C.text} fontSize={12} fontWeight={600} textAnchor="middle">{type} Structure</text>
-            <rect x={20} y={30} width={60} height={80} rx={4} fill={C.cyan} opacity={0.15} stroke={C.cyan} strokeWidth={1}/>
-            <text x={50} y={55} fill={C.cyan} fontSize={11} textAnchor="middle" fontWeight={600}>{type === 'NPN' ? 'N' : 'P'}</text>
+            <rect x={20} y={30} width={60} height={80} rx={4} fill={carrierColor} opacity={0.15} stroke={carrierColor} strokeWidth={1}/>
+            <text x={50} y={55} fill={carrierColor} fontSize={11} textAnchor="middle" fontWeight={600}>{emitterType}</text>
             <text x={50} y={72} fill={C.dim} fontSize={9} textAnchor="middle">Emitter</text>
-            <rect x={80} y={30} width={50} height={80} rx={4} fill={type === 'NPN' ? C.pink : C.cyan} opacity={0.15} stroke={type === 'NPN' ? C.pink : C.cyan} strokeWidth={1}/>
-            <text x={105} y={55} fill={type === 'NPN' ? C.pink : C.cyan} fontSize={11} textAnchor="middle" fontWeight={600}>{type === 'NPN' ? 'P' : 'N'}</text>
+            <rect x={80} y={30} width={50} height={80} rx={4} fill={isPNP ? C.cyan : C.pink} opacity={0.15} stroke={isPNP ? C.cyan : C.pink} strokeWidth={1}/>
+            <text x={105} y={55} fill={isPNP ? C.cyan : C.pink} fontSize={11} textAnchor="middle" fontWeight={600}>{baseType}</text>
             <text x={105} y={72} fill={C.dim} fontSize={9} textAnchor="middle">Base</text>
-            <rect x={130} y={30} width={60} height={80} rx={4} fill={C.cyan} opacity={0.15} stroke={C.cyan} strokeWidth={1}/>
-            <text x={160} y={55} fill={C.cyan} fontSize={11} textAnchor="middle" fontWeight={600}>{type === 'NPN' ? 'N' : 'P'}</text>
+            <rect x={130} y={30} width={60} height={80} rx={4} fill={carrierColor} opacity={0.15} stroke={carrierColor} strokeWidth={1}/>
+            <text x={160} y={55} fill={carrierColor} fontSize={11} textAnchor="middle" fontWeight={600}>{collectorType}</text>
             <text x={160} y={72} fill={C.dim} fontSize={9} textAnchor="middle">Collector</text>
 
             {/* Carrier flow arrows in active mode */}
@@ -853,11 +873,11 @@ function BJTSimulate() {
               <g>
                 {Array.from({ length: 4 }, (_, i) => (
                   <g key={i}>
-                    <circle cx={85 + i * 12} cy={48 + (i % 2) * 10} r={2.5} fill={C.cyan} opacity={0.8}/>
-                    <line x1={82 + i * 12} y1={48 + (i % 2) * 10} x2={92 + i * 12} y2={48 + (i % 2) * 10} stroke={C.cyan} strokeWidth={0.8} markerEnd="url(#arrowC)"/>
+                    <circle cx={85 + i * 12} cy={48 + (i % 2) * 10} r={2.5} fill={carrierColor} opacity={0.8}/>
+                    <line x1={82 + i * 12} y1={48 + (i % 2) * 10} x2={92 + i * 12} y2={48 + (i % 2) * 10} stroke={carrierColor} strokeWidth={0.8}/>
                   </g>
                 ))}
-                <text x={105} y={100} fill={C.green} fontSize={9} textAnchor="middle">→ e⁻ injected from E to C</text>
+                <text x={105} y={100} fill={C.green} fontSize={9} textAnchor="middle">→ {carrierLabel} injected from E to C</text>
               </g>
             )}
 
@@ -867,11 +887,11 @@ function BJTSimulate() {
 
             {/* Output characteristics */}
             <g transform="translate(260, 10)">
-              <text x={130} y={10} fill={C.text} fontSize={12} fontWeight={600} textAnchor="middle">Ic vs Vce</text>
+              <text x={130} y={10} fill={C.text} fontSize={12} fontWeight={600} textAnchor="middle">|Ic| vs {vceLabel}</text>
               <line x1={30} y1={230} x2={270} y2={230} stroke={C.borderLight} strokeWidth={1}/>
               <line x1={30} y1={20} x2={30} y2={230} stroke={C.borderLight} strokeWidth={1}/>
-              <text x={265} y={248} fill={C.dim} fontSize={9}>Vce</text>
-              <text x={12} y={25} fill={C.dim} fontSize={9}>Ic</text>
+              <text x={265} y={248} fill={C.dim} fontSize={9}>{vceLabel}</text>
+              <text x={8} y={25} fill={C.dim} fontSize={9}>|Ic|</text>
 
               {curves.map((vb, idx) => {
                 const ib = Is * (Math.exp(vb / Vt) - 1);
@@ -895,19 +915,19 @@ function BJTSimulate() {
 
               {/* Labels */}
               {curves.map((vb, idx) => (
-                <text key={idx} x={262} y={230 - Math.min(beta * Is * (Math.exp(vb / Vt) - 1) * 1e3 * 50, 200) + 4} fill={C.muted} fontSize={8}>Vbe={vb}</text>
+                <text key={idx} x={262} y={230 - Math.min(beta * Is * (Math.exp(vb / Vt) - 1) * 1e3 * 50, 200) + 4} fill={C.muted} fontSize={8}>{vbeLabel}={vb}</text>
               ))}
             </g>
           </svg>
         </div>
-        <span style={S.eq}>Ic = β · Ib   |   β = {beta}   |   Ib = {(Ib * 1e6).toFixed(2)} μA   |   Ic = {(Ic * 1e3).toFixed(2)} mA</span>
+        <span style={S.eq}>|Ic| = β · |Ib|   |   β = {beta}   |   |Ib| = {(Ib * 1e6).toFixed(2)} μA   |   |Ic| = {(Ic * 1e3).toFixed(2)} mA</span>
         <div style={S.note}><span style={S.noteT}>Where this matters</span><p style={S.noteP}>BJTs are the original transistor — still used in analog amplifiers, RF circuits, high-speed ECL logic, and power applications. A small base current controls a much larger collector current (current gain β = 50–300). Understanding active/cutoff/saturation modes is essential for circuit design.</p></div>
       </div>
       <div style={S.results}>
         <RI label="Mode" value={mode} color={mode === 'Active' ? C.green : mode === 'Saturation' ? C.amber : C.red}/>
-        <RI label="Ib" value={`${(Ib * 1e6).toFixed(2)} μA`} color={C.pink}/>
-        <RI label="Ic" value={`${(Ic * 1e3).toFixed(2)} mA`} color={C.cyan}/>
-        <RI label="Ie" value={`${(Ie * 1e3).toFixed(2)} mA`} color={C.green}/>
+        <RI label="|Ib|" value={`${(Ib * 1e6).toFixed(2)} μA`} color={C.pink}/>
+        <RI label="|Ic|" value={`${(Ic * 1e3).toFixed(2)} mA`} color={carrierColor}/>
+        <RI label="|Ie|" value={`${(Ie * 1e3).toFixed(2)} mA`} color={C.green}/>
       </div>
       <div style={S.controls}>
         <div style={S.cg}>
@@ -916,8 +936,8 @@ function BJTSimulate() {
             <option value="NPN">NPN</option><option value="PNP">PNP</option>
           </select>
         </div>
-        <CG label="Vbe" min={0} max={0.75} step={0.01} value={Vbe} set={setVbe} unit=" V"/>
-        <CG label="Vce" min={0} max={10} step={0.1} value={Vce} set={setVce} unit=" V"/>
+        <CG label={vbeLabel} min={0} max={0.75} step={0.01} value={Vbe} set={setVbe} unit=" V"/>
+        <CG label={vceLabel} min={0} max={10} step={0.1} value={Vce} set={setVce} unit=" V"/>
         <CG label="β" min={20} max={300} step={10} value={beta} set={setBeta}/>
       </div>
     </div>
@@ -980,6 +1000,7 @@ function MOSFETSimulate() {
   const [Vds, setVds] = useState(3.0);
   const [Vt, setVth] = useState(1.0);
   const [kn, setKn] = useState(0.5);
+  const knA = kn * 1e-3;
 
   const isOff = Vgs < Vt;
   const inTriode = !isOff && Vds < (Vgs - Vt);
@@ -987,8 +1008,8 @@ function MOSFETSimulate() {
   const mode = isOff ? 'Cutoff' : inTriode ? 'Triode' : 'Saturation';
 
   const Id = isOff ? 0 : inTriode
-    ? kn * ((Vgs - Vt) * Vds - 0.5 * Vds * Vds)
-    : 0.5 * kn * (Vgs - Vt) * (Vgs - Vt);
+    ? knA * ((Vgs - Vt) * Vds - 0.5 * Vds * Vds)
+    : 0.5 * knA * (Vgs - Vt) * (Vgs - Vt);
 
   // I-V family
   const vgsValues = [1.5, 2.0, 2.5, 3.0];
@@ -1035,10 +1056,10 @@ function MOSFETSimulate() {
                 const pts = [];
                 for (let vd = 0; vd <= 5; vd += 0.05) {
                   const id = vd < (vg - Vt)
-                    ? kn * ((vg - Vt) * vd - 0.5 * vd * vd)
-                    : 0.5 * kn * (vg - Vt) * (vg - Vt);
+                    ? knA * ((vg - Vt) * vd - 0.5 * vd * vd)
+                    : 0.5 * knA * (vg - Vt) * (vg - Vt);
                   const px = 30 + vd * 44;
-                  const py = 230 - Math.min(id * 40, 200);
+                  const py = 230 - Math.min(id * 1e3 * 40, 200);
                   pts.push(`${px.toFixed(1)},${py.toFixed(1)}`);
                 }
                 return <polyline key={idx} points={pts.join(' ')} fill="none" stroke={C.accent} strokeWidth={1.5} opacity={0.3 + idx * 0.2}/>;
@@ -1054,14 +1075,14 @@ function MOSFETSimulate() {
               {/* Operating point */}
               {(() => {
                 const px = 30 + Vds * 44;
-                const py = 230 - Math.min(Id * 40, 200);
+                const py = 230 - Math.min(Id * 1e3 * 40, 200);
                 return <circle cx={Math.min(px, 245)} cy={Math.max(py, 25)} r={5} fill={C.amber} stroke="#fff" strokeWidth={1.5}/>;
               })()}
 
               {vgsValues.map((vg, idx) => {
                 if (vg <= Vt) return null;
-                const id = 0.5 * kn * (vg - Vt) * (vg - Vt);
-                return <text key={idx} x={252} y={230 - Math.min(id * 40, 200) + 4} fill={C.muted} fontSize={8}>Vgs={vg}</text>;
+                const id = 0.5 * knA * (vg - Vt) * (vg - Vt);
+                return <text key={idx} x={252} y={230 - Math.min(id * 1e3 * 40, 200) + 4} fill={C.muted} fontSize={8}>Vgs={vg}</text>;
               })}
             </g>
 
@@ -1070,7 +1091,7 @@ function MOSFETSimulate() {
             <text x={130} y={235} fill={mode === 'Saturation' ? C.green : mode === 'Triode' ? C.amber : C.red} fontSize={11} textAnchor="middle" fontWeight={700}>{mode} (Vgs−Vt = {(Vgs - Vt).toFixed(2)} V)</text>
           </svg>
         </div>
-        <span style={S.eq}>{mode === 'Triode' ? `Id = kn[(Vgs−Vt)Vds − Vds²/2] = ${Id.toFixed(3)} A` : mode === 'Saturation' ? `Id = ½kn(Vgs−Vt)² = ${Id.toFixed(3)} A` : 'Id = 0  (Vgs < Vt)'}</span>
+        <span style={S.eq}>{mode === 'Triode' ? `Id = kn[(Vgs−Vt)Vds − Vds²/2] = ${(Id * 1e3).toFixed(3)} mA` : mode === 'Saturation' ? `Id = ½kn(Vgs−Vt)² = ${(Id * 1e3).toFixed(3)} mA` : 'Id = 0  (Vgs < Vt)'}</span>
         <div style={S.note}><span style={S.noteT}>Where this matters</span><p style={S.noteP}>The MOSFET is the dominant device in modern ICs — billions per chip. It's a voltage-controlled switch with near-zero gate current, enabling CMOS logic with minimal static power. Understanding triode vs saturation is essential for both digital (switching) and analog (amplification) design.</p></div>
       </div>
       <div style={S.results}>
@@ -1128,7 +1149,7 @@ function MOSFETTheory() {
       <h3 style={S.h3}>Scaling with Moore's Law</h3>
       <p style={S.p}>Dennard scaling (1974) predicted that shrinking all dimensions by 1/k: doubles transistor density, improves speed by k, and keeps power density constant. This held until ~2004 when static leakage power exploded with thinner gates. Modern scaling innovations include: <strong>strained silicon</strong> (+50% mobility), <strong>high-k/metal gate</strong> (reduces leakage), <strong>FinFETs</strong> (better electrostatics), and <strong>EUV lithography</strong> (defining 5 nm features).</p>
 
-      <div style={S.ctx}><span style={S.ctxT}>Where this matters</span><p style={S.ctxP}>Every digital IC — CPUs, GPUs, FPGAs, memory — is built from MOSFETs. An Apple M2 chip contains 20 billion MOSFETs in ~5 nm² footprint. Power MOSFETs (LDMOS, Super-Junction) handle 600+ V / 100+ A in EV inverters, solar converters, and industrial motor drives. RF MOSFETs in antenna switches handle GHz signals in every smartphone. Understanding MOSFET operation is the foundation for digital design, analog IC design, and power electronics.</p></div>
+      <div style={S.ctx}><span style={S.ctxT}>Where this matters</span><p style={S.ctxP}>Every digital IC — CPUs, GPUs, FPGAs, memory — is built from MOSFETs. An Apple M2-class chip contains tens of billions of MOSFETs on a 5 nm-class process. Power MOSFETs (LDMOS, Super-Junction) handle 600+ V / 100+ A in EV inverters, solar converters, and industrial motor drives. RF MOSFETs in antenna switches handle GHz signals in every smartphone. Understanding MOSFET operation is the foundation for digital design, analog IC design, and power electronics.</p></div>
     </div>
   );
 }

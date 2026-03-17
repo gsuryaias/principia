@@ -30,12 +30,76 @@ const S = {
   td: { padding: '10px 12px', borderBottom: '1px solid #27272a', color: '#a1a1aa' },
 };
 
-/* ── CT calculation (unchanged physics) ── */
-function ctData(primary, burden) {
-  const vk = 400;
-  const vsec = primary / 100 * burden;
-  const err = vsec > vk ? Math.min(25, (vsec - vk) / 20) : Math.max(0.5, burden / 8);
-  return { vk, vsec, err };
+/* ── Simplified instrument transformer model (assumed nameplate values) ── */
+const CT_SPEC = {
+  ratioPrimaryA: 2000,
+  ratioSecondaryA: 1,
+  kneeVoltageV: 400,
+  secondaryResistanceOhm: 4.0,
+  ratedBurdenVA: 15,
+  ratedALF: 20,
+};
+
+const PT_SPEC = {
+  secondaryVoltageV: 110,
+  ratedBurdenVA: 100,
+  nameplateClass: '0.5',
+};
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function ctData(primaryA, burdenVA) {
+  const ratio = CT_SPEC.ratioPrimaryA / CT_SPEC.ratioSecondaryA;
+  const secondaryCurrentA = primaryA / ratio;
+  const burdenOhm = burdenVA / (CT_SPEC.ratioSecondaryA ** 2);
+  const totalSecondaryOhm = burdenOhm + CT_SPEC.secondaryResistanceOhm;
+  const secondaryVoltageV = secondaryCurrentA * totalSecondaryOhm;
+  const vOverVk = secondaryVoltageV / CT_SPEC.kneeVoltageV;
+  const ratedTotalOhm = CT_SPEC.ratedBurdenVA / (CT_SPEC.ratioSecondaryA ** 2) + CT_SPEC.secondaryResistanceOhm;
+  const effectiveAlf = CT_SPEC.ratedALF * (ratedTotalOhm / totalSecondaryOhm);
+  const requiredMultiple = primaryA / CT_SPEC.ratioPrimaryA;
+  const excitationCurrentmA = clamp(6 * (Math.exp(secondaryVoltageV / 120) - 1), 0, 320);
+  const saturationLikely = vOverVk >= 1 || requiredMultiple > effectiveAlf;
+  const ratioErrorPct = clamp(
+    0.2 + Math.max(0, vOverVk - 0.5) * 3.2 + Math.max(0, requiredMultiple - effectiveAlf) * 2.5,
+    0.2,
+    25,
+  );
+
+  return {
+    ...CT_SPEC,
+    burdenOhm,
+    totalSecondaryOhm,
+    secondaryCurrentA,
+    vsec: secondaryVoltageV,
+    vk: CT_SPEC.kneeVoltageV,
+    vOverVk,
+    requiredMultiple,
+    effectiveAlf,
+    excitationCurrentmA,
+    saturationLikely,
+    ratioErrorPct,
+  };
+}
+
+function ptData(ptBurdenVA) {
+  const utilization = ptBurdenVA / PT_SPEC.ratedBurdenVA;
+  const secondaryCurrentA = ptBurdenVA / PT_SPEC.secondaryVoltageV;
+  const burdenOhm = ptBurdenVA > 0 ? (PT_SPEC.secondaryVoltageV ** 2) / ptBurdenVA : Infinity;
+  const ratioErrorEstimatePct = clamp(0.1 + 0.4 * utilization ** 1.3, 0.1, 1.2);
+  const phaseDisplacementMin = clamp(3 + 7 * utilization, 2, 20);
+  return {
+    ...PT_SPEC,
+    utilization,
+    utilizationPct: utilization * 100,
+    secondaryCurrentA,
+    burdenOhm,
+    ratioErrorEstimatePct,
+    phaseDisplacementMin,
+    withinRatedBurden: utilization <= 1,
+  };
 }
 
 function useAnimationPulse(interval = 900) {
@@ -47,19 +111,19 @@ function useAnimationPulse(interval = 900) {
   return pulse;
 }
 
-/* ── B-H Magnetization Curve SVG ── */
+/* ── Approximate CT Excitation Curve SVG ── */
 function MagnetizationCurve() {
   return (
     <svg viewBox="0 0 500 340" style={{ width: '100%', maxWidth: 500, height: 'auto', margin: '18px 0' }}>
-      <text x="250" y="18" textAnchor="middle" fill="#71717a" fontSize="11" fontWeight="700">B-H Magnetization Curve (CT Core)</text>
+      <text x="250" y="18" textAnchor="middle" fill="#71717a" fontSize="11" fontWeight="700">Approximate CT Excitation Curve (Iexc vs Vsec)</text>
 
       {/* axes */}
       <line x1="60" y1="170" x2="460" y2="170" stroke="#3f3f46" strokeWidth="1.5" />
       <line x1="250" y1="20" x2="250" y2="320" stroke="#3f3f46" strokeWidth="1.5" />
-      <text x="465" y="175" fill="#71717a" fontSize="10">H (A/m)</text>
-      <text x="260" y="25" fill="#71717a" fontSize="10">B (T)</text>
+      <text x="465" y="175" fill="#71717a" fontSize="10">Vsec (V)</text>
+      <text x="260" y="25" fill="#71717a" fontSize="10">Iexc (mA)</text>
 
-      {/* B-H curve (S-shaped hysteresis) */}
+      {/* Excitation curve (nonlinear rise near knee) */}
       <path d="M100,280 C150,270 200,220 250,170 C280,145 310,90 340,65 C370,48 400,42 440,38" fill="none" stroke="#60a5fa" strokeWidth="2.5" />
       {/* return path */}
       <path d="M440,38 C400,42 370,48 340,65 C310,90 280,145 250,170 C200,220 150,270 100,280" fill="none" stroke="#60a5fa" strokeWidth="2.5" opacity="0.3" strokeDasharray="4 3" />
@@ -68,20 +132,20 @@ function MagnetizationCurve() {
       <circle cx="320" cy="80" r="6" fill="#ef4444" />
       <line x1="320" y1="80" x2="370" y2="55" stroke="#ef4444" strokeWidth="1" />
       <text x="375" y="52" fill="#ef4444" fontSize="10" fontWeight="700">Knee Point (Vk)</text>
-      <text x="375" y="66" fill="#a1a1aa" fontSize="8">Core enters saturation</text>
+      <text x="375" y="66" fill="#a1a1aa" fontSize="8">Excitation current rises rapidly</text>
 
       {/* linear region */}
       <line x1="200" y1="200" x2="250" y2="170" stroke="#22c55e" strokeWidth="2" strokeDasharray="5 4" />
       <text x="145" y="215" fill="#22c55e" fontSize="9" fontWeight="600">Linear region</text>
-      <text x="145" y="228" fill="#71717a" fontSize="8">(accurate reproduction)</text>
+      <text x="145" y="228" fill="#71717a" fontSize="8">(low magnetizing current)</text>
 
       {/* saturation region */}
       <rect x="330" y="30" width="120" height="30" rx="6" fill="rgba(239,68,68,0.08)" stroke="#ef4444" strokeDasharray="3 3" />
       <text x="390" y="50" textAnchor="middle" fill="#ef4444" fontSize="9">Saturation region</text>
 
-      {/* permeability annotation */}
+      {/* annotation */}
       <text x="250" y="330" textAnchor="middle" fill="#52525b" fontSize="9">
-        Permeability (mu) = dB/dH — highest in linear region, drops in saturation
+        Conceptual curve for burden checks; not a material-specific B-H test plot
       </text>
     </svg>
   );
@@ -243,35 +307,38 @@ function BurdenEffectDiagram() {
 }
 
 /* ── Simulation Diagram ── */
-function SimDiagram({ primary, burden, ptBurden, ct, pulse }) {
-  const saturated = ct.vsec > ct.vk;
-  const satRatio = Math.min(ct.vsec / ct.vk, 2.5);
+function SimDiagram({ ptBurden, ct, pulse }) {
+  const pt = ptData(ptBurden);
+  const saturated = ct.saturationLikely;
 
-  // generate magnetization curve points
+  // generate excitation curve points (approximate, based on assumed model)
   const magPoints = [];
-  for (let h = 0; h <= 100; h++) {
-    const x = 80 + h * 3;
-    // S-curve: B = Bsat * tanh(H/Hk)
-    const b = 1.8 * Math.tanh(h / 35);
-    const y = 260 - b * 80;
+  for (let v = 0; v <= 500; v += 5) {
+    const x = 80 + (v / 500) * 340;
+    const iexc = clamp(6 * (Math.exp(v / 120) - 1), 0, 320);
+    const y = 260 - (iexc / 320) * 180;
     magPoints.push(`${x},${y}`);
   }
 
   // operating point on the curve
-  const opH = Math.min((primary / 100) * 0.8, 95);
-  const opB = 1.8 * Math.tanh(opH / 35);
-  const opX = 80 + opH * 3;
-  const opY = 260 - opB * 80;
+  const opV = Math.min(ct.vsec, 500);
+  const opIexc = clamp(6 * (Math.exp(opV / 120) - 1), 0, 320);
+  const opX = 80 + (opV / 500) * 340;
+  const opY = 260 - (opIexc / 320) * 180;
+  const kneeIexc = clamp(6 * (Math.exp(ct.vk / 120) - 1), 0, 320);
+  const kneeY = 260 - (kneeIexc / 320) * 180;
 
   // secondary current waveform
   const secPoints = [];
+  const distortion = clamp((ct.vOverVk - 0.8) / 1.2, 0, 0.85);
   for (let t = 0; t <= 120; t++) {
     const x = 500 + t * 2.8;
     const angle = t * 0.25;
     const ideal = Math.sin(angle);
-    // clip if saturated
-    const clipped = saturated ? Math.sign(ideal) * Math.min(Math.abs(ideal), 1 / satRatio) : ideal;
-    const y = 160 - clipped * 60;
+    const clipped = saturated
+      ? Math.sign(ideal) * Math.min(Math.abs(ideal), 1 - distortion) + 0.08 * Math.sin(3 * angle)
+      : ideal;
+    const y = 160 - clipped * 58;
     secPoints.push(`${x},${y}`);
   }
 
@@ -282,40 +349,40 @@ function SimDiagram({ primary, burden, ptBurden, ct, pulse }) {
       </defs>
 
       <text x="480" y="22" textAnchor="middle" fill="#71717a" fontSize="12" fontWeight="700" letterSpacing="0.06em">
-        CT/PT CHARACTERISTICS — MAGNETIZATION AND SATURATION ANALYSIS
+        CT/PT CHARACTERISTICS — ASSUMED NAMEPLATE MODEL (SIMPLIFIED)
       </text>
 
       {/* ── CT Magnetization Curve ── */}
       <rect x="40" y="40" width="400" height="240" rx="12" fill="#101015" stroke="#27272a" />
-      <text x="240" y="60" textAnchor="middle" fill="#60a5fa" fontSize="10" fontWeight="700">CT Magnetization Curve</text>
+      <text x="240" y="60" textAnchor="middle" fill="#60a5fa" fontSize="10" fontWeight="700">CT Excitation Check (Approximate)</text>
 
       {/* axes */}
       <line x1="80" y1="260" x2="420" y2="260" stroke="#3f3f46" strokeWidth="1" />
       <line x1="80" y1="70" x2="80" y2="260" stroke="#3f3f46" strokeWidth="1" />
-      <text x="425" y="265" fill="#52525b" fontSize="8">I_exc (mA)</text>
-      <text x="60" y="75" fill="#52525b" fontSize="8">V_sec</text>
+      <text x="425" y="265" fill="#52525b" fontSize="8">Vsec (V)</text>
+      <text x="60" y="75" fill="#52525b" fontSize="8">Iexc</text>
 
       {/* magnetization curve */}
       <polyline points={magPoints.join(' ')} fill="none" stroke="#60a5fa" strokeWidth="2.5" />
 
       {/* knee point */}
-      <circle cx={80 + 35 * 3} cy={260 - 1.8 * Math.tanh(35 / 35) * 80} r="6" fill="#ef4444" filter="url(#ctglow)" />
-      <line x1={80 + 35 * 3} y1={260 - 1.8 * Math.tanh(35 / 35) * 80} x2={80 + 35 * 3 + 50} y2={260 - 1.8 * Math.tanh(35 / 35) * 80 - 25} stroke="#ef4444" strokeWidth="1" />
-      <text x={80 + 35 * 3 + 55} y={260 - 1.8 * Math.tanh(35 / 35) * 80 - 28} fill="#ef4444" fontSize="9" fontWeight="700">Knee Point</text>
-      <text x={80 + 35 * 3 + 55} y={260 - 1.8 * Math.tanh(35 / 35) * 80 - 16} fill="#ef4444" fontSize="8">Vk = {ct.vk} V</text>
+      <circle cx={80 + (ct.vk / 500) * 340} cy={kneeY} r="6" fill="#ef4444" filter="url(#ctglow)" />
+      <line x1={80 + (ct.vk / 500) * 340} y1={kneeY} x2={80 + (ct.vk / 500) * 340 + 40} y2={kneeY - 20} stroke="#ef4444" strokeWidth="1" />
+      <text x={80 + (ct.vk / 500) * 340 + 45} y={kneeY - 22} fill="#ef4444" fontSize="9" fontWeight="700">Knee Point</text>
+      <text x={80 + (ct.vk / 500) * 340 + 45} y={kneeY - 10} fill="#ef4444" fontSize="8">Vk = {ct.vk} V</text>
 
       {/* Vk horizontal line */}
-      <line x1="80" y1={260 - 1.8 * Math.tanh(35 / 35) * 80} x2="420" y2={260 - 1.8 * Math.tanh(35 / 35) * 80} stroke="#ef4444" strokeWidth="1" strokeDasharray="4 3" opacity="0.4" />
+      <line x1={80 + (ct.vk / 500) * 340} y1="80" x2={80 + (ct.vk / 500) * 340} y2="260" stroke="#ef4444" strokeWidth="1" strokeDasharray="4 3" opacity="0.4" />
 
       {/* operating point */}
       <circle cx={opX} cy={opY} r={saturated ? (pulse ? 8 : 6) : 5} fill={saturated ? '#ef4444' : '#22c55e'} filter="url(#ctglow)" />
       <text x={opX + 12} y={opY - 5} fill={saturated ? '#ef4444' : '#22c55e'} fontSize="9" fontWeight="600">
         {saturated ? 'SATURATED' : 'Normal'}
       </text>
-      <text x={opX + 12} y={opY + 8} fill="#a1a1aa" fontSize="8">Vsec = {ct.vsec.toFixed(1)} V</text>
+      <text x={opX + 12} y={opY + 8} fill="#a1a1aa" fontSize="8">Vsec = {ct.vsec.toFixed(1)} V | Iexc = {ct.excitationCurrentmA.toFixed(0)} mA</text>
 
       {/* Vsec operating line */}
-      <line x1="80" y1={260 - Math.min(ct.vsec * 0.4, 170)} x2="420" y2={260 - Math.min(ct.vsec * 0.4, 170)} stroke={saturated ? '#ef4444' : '#22c55e'} strokeWidth="1" strokeDasharray="5 4" />
+      <line x1={opX} y1="80" x2={opX} y2="260" stroke={saturated ? '#ef4444' : '#22c55e'} strokeWidth="1" strokeDasharray="5 4" />
 
       {/* linear region label */}
       <rect x="90" y="210" width="70" height="18" rx="4" fill="rgba(34,197,94,0.1)" />
@@ -358,15 +425,16 @@ function SimDiagram({ primary, burden, ptBurden, ct, pulse }) {
       <text x="700" y="280" textAnchor="middle" fill="#a78bfa" fontSize="10" fontWeight="700">PT / VT Burden Analysis</text>
 
       <text x="510" y="305" fill="#a1a1aa" fontSize="11">Secondary burden = <tspan fill="#c4b5fd" fontWeight="600">{ptBurden.toFixed(0)} VA</tspan></text>
-      <text x="510" y="328" fill="#a1a1aa" fontSize="11">Ratio error = <tspan fill="#c4b5fd" fontWeight="600">{(0.3 + ptBurden / 150).toFixed(2)}%</tspan></text>
-      <text x="510" y="351" fill="#a1a1aa" fontSize="11">Phase displacement = <tspan fill="#c4b5fd" fontWeight="600">{(5 + ptBurden / 10).toFixed(1)} min</tspan></text>
-      <text x="510" y="374" fill="#a1a1aa" fontSize="11">Ferroresonance risk = <tspan fill={ptBurden < 20 ? '#ef4444' : '#22c55e'} fontWeight="600">{ptBurden < 20 ? 'Higher (lightly loaded)' : 'Lower'}</tspan></text>
+      <text x="510" y="328" fill="#a1a1aa" fontSize="11">Burden loading = <tspan fill={pt.withinRatedBurden ? '#22c55e' : '#ef4444'} fontWeight="600">{pt.utilizationPct.toFixed(0)}%</tspan> of rated</text>
+      <text x="510" y="351" fill="#a1a1aa" fontSize="11">Estimated ratio error (load effect) = <tspan fill="#c4b5fd" fontWeight="600">{pt.ratioErrorEstimatePct.toFixed(2)}%</tspan></text>
+      <text x="510" y="374" fill="#a1a1aa" fontSize="11">Estimated phase displacement = <tspan fill="#c4b5fd" fontWeight="600">{pt.phaseDisplacementMin.toFixed(1)} min</tspan></text>
 
-      {/* PT accuracy class indicator */}
-      <rect x="780" y="295" width="120" height="70" rx="8" fill={ptBurden > 80 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)'} stroke={ptBurden > 80 ? '#ef4444' : '#22c55e'} />
-      <text x="840" y="318" textAnchor="middle" fill={ptBurden > 80 ? '#ef4444' : '#22c55e'} fontSize="10" fontWeight="700">Class {ptBurden > 80 ? '1.0' : ptBurden > 40 ? '0.5' : '0.2'}</text>
-      <text x="840" y="338" textAnchor="middle" fill="#a1a1aa" fontSize="8">Accuracy class</text>
-      <text x="840" y="355" textAnchor="middle" fill="#a1a1aa" fontSize="8">at current burden</text>
+      {/* PT nameplate indicator */}
+      <rect x="760" y="295" width="150" height="86" rx="8" fill={pt.withinRatedBurden ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'} stroke={pt.withinRatedBurden ? '#22c55e' : '#ef4444'} />
+      <text x="835" y="317" textAnchor="middle" fill="#a78bfa" fontSize="10" fontWeight="700">Nameplate Class {pt.nameplateClass}</text>
+      <text x="835" y="337" textAnchor="middle" fill="#a1a1aa" fontSize="8">110 V secondary, 100 VA</text>
+      <text x="835" y="352" textAnchor="middle" fill="#a1a1aa" fontSize="8">Status: {pt.withinRatedBurden ? 'Within rated burden' : 'Overburdened'}</text>
+      <text x="835" y="367" textAnchor="middle" fill="#71717a" fontSize="8">Ferroresonance is system-dependent</text>
 
       {/* ── CT connection schematic (bottom left) ── */}
       <rect x="40" y="300" width="400" height="105" rx="12" fill="#101015" stroke="#27272a" />
@@ -377,16 +445,16 @@ function SimDiagram({ primary, burden, ptBurden, ct, pulse }) {
         {saturated && <animate attributeName="opacity" values="1;0.3;1" dur="0.8s" repeatCount="indefinite" />}
       </circle>
       <text x="95" y="354" fill={saturated ? '#ef4444' : '#22c55e'} fontSize="11" fontWeight="600">
-        {saturated ? 'CT IN SATURATION — Protection may maloperate' : 'CT operating in linear region — Accurate reproduction'}
+        {saturated ? 'CT near/into saturation - protection margin reduced' : 'CT in linear operating region'}
       </text>
 
       <text x="80" y="380" fill="#a1a1aa" fontSize="10">
-        Operating V/Vk ratio: <tspan fill={saturated ? '#ef4444' : '#22c55e'} fontWeight="600">{(ct.vsec / ct.vk).toFixed(2)}</tspan>
-        {' '} (should be &lt; 1.0 for accurate protection)
+        Operating V/Vk ratio: <tspan fill={saturated ? '#ef4444' : '#22c55e'} fontWeight="600">{ct.vOverVk.toFixed(2)}</tspan>
+        {' '} | Effective ALF: <tspan fill="#c4b5fd" fontWeight="600">{ct.effectiveAlf.toFixed(1)}x</tspan>
       </text>
       <text x="80" y="395" fill="#a1a1aa" fontSize="10">
-        ALF required: <tspan fill="#c4b5fd" fontWeight="600">{Math.ceil(primary / 100)}</tspan>
-        {' '} times rated current
+        Required multiple at selected current: <tspan fill="#c4b5fd" fontWeight="600">{ct.requiredMultiple.toFixed(2)}x</tspan>
+        {' '} (assumed CT 2000/1A, Vk 400V, Rct 4ohm, rated burden 15VA, ALF 20)
       </text>
     </svg>
   );
@@ -396,7 +464,7 @@ function SimDiagram({ primary, burden, ptBurden, ct, pulse }) {
 function CTSaturationWaveformSVG() {
   return (
     <svg viewBox="0 0 600 320" style={{ width: '100%', maxWidth: 600, height: 'auto', margin: '18px 0' }}>
-      <text x="300" y="18" textAnchor="middle" fill="#71717a" fontSize="11" fontWeight="700">CT Saturation — Secondary Waveform Distortion</text>
+      <text x="300" y="18" textAnchor="middle" fill="#71717a" fontSize="11" fontWeight="700">CT Saturation (Conceptual) - Secondary Waveform Distortion</text>
 
       {/* primary current waveform (ideal) */}
       <rect x="30" y="35" width="540" height="120" rx="10" fill="#101015" stroke="#27272a" />
@@ -470,8 +538,8 @@ function CTSaturationWaveformSVG() {
 
 /* ── Saturation Warning Badge ── */
 function SaturationWarningBadge({ ct }) {
-  const saturated = ct.vsec > ct.vk;
-  const ratio = ct.vsec / ct.vk;
+  const saturated = ct.saturationLikely;
+  const ratio = ct.vOverVk;
   let color, bg, label;
   if (saturated) {
     color = '#ef4444'; bg = 'rgba(239,68,68,0.12)'; label = 'CT SATURATED';
@@ -484,7 +552,7 @@ function SaturationWarningBadge({ ct }) {
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', background: bg, border: `1px solid ${color}`, borderRadius: 8, marginRight: 12 }}>
       <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block' }} />
       <span style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: '0.05em' }}>{label}</span>
-      <span style={{ fontSize: 10, color: '#71717a' }}>V/Vk = {ratio.toFixed(2)} | Error = {ct.err.toFixed(1)}%</span>
+      <span style={{ fontSize: 10, color: '#71717a' }}>V/Vk = {ratio.toFixed(2)} | est error = {ct.ratioErrorPct.toFixed(1)}%</span>
     </div>
   );
 }
@@ -501,16 +569,15 @@ function Theory() {
         network transients.
       </p>
 
-      <h3 style={S.h3}>Magnetization Curve (B-H Characteristic)</h3>
+      <h3 style={S.h3}>Approximate Excitation Characteristic</h3>
       <p style={S.p}>
-        The CT core follows a nonlinear B-H curve. In the linear region below the knee point, the secondary
-        current accurately reproduces the primary current (divided by the turns ratio). Beyond the knee point,
-        the core enters saturation, the magnetizing current increases sharply, and the ratio error grows
-        unacceptably. Protection CTs must have sufficient knee-point voltage to remain unsaturated during
-        the maximum fault current they need to measure.
+        The simulation uses an assumed protection CT nameplate (2000/1 A, Vk 400 V, secondary winding
+        resistance 4 ohm, rated burden 15 VA, ALF 20). It checks operating Vsec against Vk and an approximate
+        excitation curve to indicate when magnetizing current rises sharply and ratio accuracy degrades.
+        This is a screening model for protection studies, not a factory excitation-test replacement.
       </p>
       <MagnetizationCurve />
-      <span style={S.eq}>Knee point voltage (Vk): Point where 10% increase in V_exc produces 50% increase in I_exc</span>
+      <span style={S.eq}>Isec = Iprimary / CT ratio,   Vsec = Isec x (Rct + Zburden)</span>
 
       <h3 style={S.h3}>CT Equivalent Circuit</h3>
       <p style={S.p}>
@@ -521,7 +588,7 @@ function Theory() {
       </p>
       <CTEquivalentCircuit />
       <span style={S.eq}>V_sec = I_sec * (Z_burden + Z_ct_secondary)</span>
-      <span style={S.eq}>Ratio error (%) = (I_mag / I_primary_referred) * 100</span>
+      <span style={S.eq}>Estimated error rises as Vsec/Vk approaches 1 and as required multiple exceeds effective ALF</span>
 
       <h3 style={S.h3}>CT Physical Connections</h3>
       <p style={S.p}>
@@ -552,7 +619,16 @@ function Theory() {
       </p>
       <CTSaturationWaveformSVG />
       <span style={S.eq}>Flux = integral(V_sec) dt — DC offset adds unidirectional flux that saturates the core</span>
-      <span style={S.eq}>Time to saturate: T_s = (Vk / V_sec) * (X/R) / (2 * pi * f) — lower Vk means faster saturation</span>
+      <span style={S.eq}>Saturation onset timing depends on remanence, X/R, burden resistance, point-on-wave, and core design</span>
+
+      <h3 style={S.h3}>PT / VT Burden Interpretation</h3>
+      <p style={S.p}>
+        PT/VT output in this simulation uses an assumed 110 V, 100 VA, class 0.5 nameplate and reports
+        burden loading plus indicative ratio/phase error growth with loading. The model does not estimate
+        ferroresonance probability from burden alone, because ferroresonance depends on network capacitance,
+        switching conditions, grounding, and VT type.
+      </p>
+      <span style={S.eq}>PT burden loading (%) = (Actual burden VA / Rated burden VA) x 100</span>
 
       <h3 style={S.h3}>CT Specification Classes</h3>
       <table style={S.tbl}>
@@ -610,6 +686,7 @@ export default function CtPtCharacteristics() {
   const [ptBurden, setPtBurden] = useState(50);
   const pulse = useAnimationPulse(800);
   const ct = useMemo(() => ctData(primary, burden), [primary, burden]);
+  const pt = useMemo(() => ptData(ptBurden), [ptBurden]);
 
   return (
     <div style={S.container}>
@@ -623,7 +700,7 @@ export default function CtPtCharacteristics() {
             <SaturationWarningBadge ct={ct} />
           </div>
           <div style={S.svgWrap}>
-            <SimDiagram primary={primary} burden={burden} ptBurden={ptBurden} ct={ct} pulse={pulse} />
+            <SimDiagram ptBurden={ptBurden} ct={ct} pulse={pulse} />
           </div>
           <div style={S.controls}>
             <div style={S.cg}>
@@ -649,17 +726,21 @@ export default function CtPtCharacteristics() {
             </div>
             <div style={S.ri}>
               <span style={S.rl}>Operating voltage</span>
-              <span style={{ ...S.rv, color: ct.vsec > ct.vk ? '#ef4444' : '#22c55e' }}>{ct.vsec.toFixed(1)} V</span>
+              <span style={{ ...S.rv, color: ct.saturationLikely ? '#ef4444' : '#22c55e' }}>{ct.vsec.toFixed(1)} V</span>
             </div>
             <div style={S.ri}>
-              <span style={S.rl}>CT ratio error</span>
-              <span style={{ ...S.rv, color: ct.err > 5 ? '#ef4444' : ct.err > 2 ? '#f59e0b' : '#22c55e' }}>{ct.err.toFixed(2)}%</span>
+              <span style={S.rl}>CT ratio error (est)</span>
+              <span style={{ ...S.rv, color: ct.ratioErrorPct > 5 ? '#ef4444' : ct.ratioErrorPct > 2 ? '#f59e0b' : '#22c55e' }}>{ct.ratioErrorPct.toFixed(2)}%</span>
             </div>
             <div style={S.ri}>
               <span style={S.rl}>Saturation status</span>
-              <span style={{ ...S.rv, color: ct.vsec > ct.vk ? '#ef4444' : '#22c55e' }}>
-                {ct.vsec > ct.vk ? 'SATURATED' : 'Normal'}
+              <span style={{ ...S.rv, color: ct.saturationLikely ? '#ef4444' : '#22c55e' }}>
+                {ct.saturationLikely ? 'SATURATED' : 'Normal'}
               </span>
+            </div>
+            <div style={S.ri}>
+              <span style={S.rl}>PT burden loading</span>
+              <span style={{ ...S.rv, color: pt.withinRatedBurden ? '#22c55e' : '#ef4444' }}>{pt.utilizationPct.toFixed(0)}%</span>
             </div>
           </div>
         </div>

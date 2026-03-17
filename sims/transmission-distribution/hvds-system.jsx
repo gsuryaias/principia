@@ -76,11 +76,11 @@ function compute(numC, totalKW, ltLen, pf, condKey) {
     const dist = frac * ltLen;
     const loadFrac = 1 - frac * 0.5;
     const iSec = iLT * loadFrac;
-    const dropSec = SQRT3 * iSec * c.rLT * (dist / 1000) * 0.3;
+    const dropSec = SQRT3 * iSec * c.rLT * (dist / 1000);
     const vLVDS = Math.max(300, 415 - dropSec);
     vProfileLVDS.push({ dist, v: vLVDS });
 
-    const dropHT = SQRT3 * iHT * c.rHT * (dist / 1000) * 0.3;
+    const dropHT = SQRT3 * iHT * c.rHT * (dist / 1000);
     const vHVDS = Math.max(390, 415 - dropHT - 2);
     vProfileHVDS.push({ dist, v: vHVDS });
   }
@@ -638,6 +638,12 @@ function TheoryTab() {
       </ul>
       <p style={S.p}>
         HVDS eliminates this problem: since the 11 kV HT line has negligible voltage drop (&lt; 1%), and LT lines are only 50–100 m long, all consumers receive voltage within 395–412 V — well within statutory limits.
+      </p>
+      <p style={S.p}>
+        In the interactive model, section-wise voltage drop is computed directly from{' '}
+        <strong style={{ color: '#d4d4d8' }}>ΔV = √3IR</strong>. The downstream current is tapered
+        linearly along the feeder to represent load pick-up, so the display is best read as a
+        comparative planning model rather than a full load-flow study.
       </p>
 
       <h2 style={S.h2}>8. Summary Comparison</h2>

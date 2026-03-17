@@ -31,14 +31,45 @@ const S = {
   td: { padding: '10px 12px', borderBottom: '1px solid #27272a', color: '#a1a1aa' },
 };
 
-/* ── calculation (unchanged physics) ── */
-function calc(breaker, current, xr) {
-  const trv = current * (breaker === 'Vacuum' ? 0.22 : breaker === 'SF6' ? 0.18 : 0.14) * (1 + xr / 20);
-  const time = breaker === 'Vacuum' ? 45 : breaker === 'SF6' ? 55 : 85;
-  return { trv, time, status: trv > 9 ? 'Re-strike risk' : 'Successful interruption' };
-}
-
 const BREAKER_COLORS = { SF6: '#22d3ee', Vacuum: '#a78bfa', Oil: '#f59e0b' };
+const BREAKER_DIELECTRIC = {
+  SF6: { withstandKV: 190, recoveryKVus: 2.0, timeMs: 55 },
+  Vacuum: { withstandKV: 165, recoveryKVus: 2.3, timeMs: 45 },
+  Oil: { withstandKV: 130, recoveryKVus: 1.1, timeMs: 85 },
+};
+
+/* ── simplified duty vs capability model ── */
+function calc(breaker, current, xr) {
+  const capability = BREAKER_DIELECTRIC[breaker] || BREAKER_DIELECTRIC.SF6;
+  const asymFactor = 1 + 0.7 * Math.exp(-Math.PI / xr);
+
+  // System TRV duty from fault/system conditions (independent of breaker medium)
+  const systemTrvPeakKV = 48 + current * 1.9 + xr * 1.0;
+  const dutyTimeUs = 42 + xr * 2.2;
+  const systemRrrvKVus = systemTrvPeakKV / dutyTimeUs;
+
+  const trvMarginKV = capability.withstandKV - systemTrvPeakKV;
+  const rrrvMarginKVus = capability.recoveryKVus - systemRrrvKVus;
+
+  let status = 'Successful interruption';
+  if (trvMarginKV < 0 || rrrvMarginKVus < 0) {
+    status = 'Re-strike risk';
+  } else if (trvMarginKV < 15 || rrrvMarginKVus < 0.2) {
+    status = 'Low dielectric margin';
+  }
+
+  return {
+    timeMs: capability.timeMs,
+    asymFactor,
+    systemTrvPeakKV,
+    systemRrrvKVus,
+    dielectricWithstandKV: capability.withstandKV,
+    dielectricRecoveryKVus: capability.recoveryKVus,
+    trvMarginKV,
+    rrrvMarginKVus,
+    status,
+  };
+}
 
 function useAnimationPulse(interval = 900) {
   const [pulse, setPulse] = useState(false);
@@ -140,20 +171,22 @@ function VacuumCrossSection() {
 }
 
 /* ── TRV Waveform SVG ── */
-function TRVWaveform({ trv, breaker }) {
+function TRVWaveform({ d, breaker }) {
   const color = BREAKER_COLORS[breaker] || '#22d3ee';
+  const trvScale = 0.5;
+
   // generate TRV waveform points
   const points = [];
   for (let t = 0; t <= 100; t++) {
     const x = 60 + t * 5.2;
-    const trvEnv = trv * (1 - Math.exp(-t / 15));
+    const trvEnv = d.systemTrvPeakKV * (1 - Math.exp(-t / 15));
     const osc = trvEnv * Math.sin(t * 0.3) * Math.exp(-t / 40);
-    const y = 120 - osc * 10;
+    const y = 120 - osc * trvScale;
     points.push(`${x},${y}`);
   }
 
-  // RRRV line (rate of rise of recovery voltage)
-  const rrrvSlope = trv / (breaker === 'Vacuum' ? 25 : breaker === 'SF6' ? 35 : 50);
+  const rrrvPlotSlope = d.systemRrrvKVus * 14;
+  const dielectricPlotSlope = d.dielectricRecoveryKVus * 14;
 
   return (
     <svg viewBox="0 0 620 240" style={{ width: '100%', maxWidth: 620, height: 'auto', margin: '18px 0' }}>
@@ -168,14 +201,14 @@ function TRVWaveform({ trv, breaker }) {
       {/* TRV envelope (upper) */}
       <path d={`M60,120 ${Array.from({ length: 100 }, (_, t) => {
         const x = 60 + t * 5.2;
-        const env = trv * (1 - Math.exp(-t / 15)) * 10;
+        const env = d.systemTrvPeakKV * (1 - Math.exp(-t / 15)) * trvScale;
         return `L${x},${120 - env}`;
       }).join(' ')}`} fill="none" stroke={color} strokeWidth="1" strokeDasharray="4 3" opacity="0.5" />
 
       {/* TRV envelope (lower) */}
       <path d={`M60,120 ${Array.from({ length: 100 }, (_, t) => {
         const x = 60 + t * 5.2;
-        const env = trv * (1 - Math.exp(-t / 15)) * 10;
+        const env = d.systemTrvPeakKV * (1 - Math.exp(-t / 15)) * trvScale;
         return `L${x},${120 + env}`;
       }).join(' ')}`} fill="none" stroke={color} strokeWidth="1" strokeDasharray="4 3" opacity="0.5" />
 
@@ -183,12 +216,12 @@ function TRVWaveform({ trv, breaker }) {
       <polyline points={points.join(' ')} fill="none" stroke={color} strokeWidth="2.5" />
 
       {/* RRRV line */}
-      <line x1="60" y1="120" x2={60 + 100} y2={120 - rrrvSlope * 100} stroke="#ef4444" strokeWidth="1.5" strokeDasharray="3 3" />
-      <text x={170} y={120 - rrrvSlope * 100 - 5} fill="#ef4444" fontSize="9">RRRV = {rrrvSlope.toFixed(2)} kV/us</text>
+      <line x1="60" y1="120" x2={60 + 100} y2={120 - rrrvPlotSlope} stroke="#ef4444" strokeWidth="1.5" strokeDasharray="3 3" />
+      <text x={170} y={120 - rrrvPlotSlope - 5} fill="#ef4444" fontSize="9">System RRRV = {d.systemRrrvKVus.toFixed(2)} kV/us</text>
 
       {/* dielectric recovery line */}
-      <line x1="60" y1="120" x2="350" y2="40" stroke="#22c55e" strokeWidth="1.5" strokeDasharray="5 4" />
-      <text x="280" y="50" fill="#22c55e" fontSize="9">Dielectric recovery</text>
+      <line x1="60" y1="120" x2="250" y2={120 - dielectricPlotSlope} stroke="#22c55e" strokeWidth="1.5" strokeDasharray="5 4" />
+      <text x="255" y={120 - dielectricPlotSlope - 4} fill="#22c55e" fontSize="9">Breaker recovery = {d.dielectricRecoveryKVus.toFixed(2)} kV/us</text>
 
       {/* labels */}
       <text x="310" y="230" textAnchor="middle" fill="#52525b" fontSize="9">
@@ -196,8 +229,8 @@ function TRVWaveform({ trv, breaker }) {
       </text>
 
       {/* TRV peak annotation */}
-      <line x1="160" y1={120 - trv * 10} x2="200" y2={120 - trv * 10 - 15} stroke={color} strokeWidth="1" />
-      <text x="205" y={120 - trv * 10 - 18} fill={color} fontSize="9" fontWeight="600">TRV peak = {trv.toFixed(2)} pu</text>
+      <line x1="160" y1={120 - d.systemTrvPeakKV * trvScale} x2="200" y2={120 - d.systemTrvPeakKV * trvScale - 15} stroke={color} strokeWidth="1" />
+      <text x="205" y={120 - d.systemTrvPeakKV * trvScale - 18} fill={color} fontSize="9" fontWeight="600">System TRV peak = {d.systemTrvPeakKV.toFixed(1)} kV</text>
     </svg>
   );
 }
@@ -264,7 +297,7 @@ function ArcQuenchingProcess() {
 /* ── Simulation Diagram ── */
 function SimDiagram({ breaker, current, xr, d, pulse }) {
   const bColor = BREAKER_COLORS[breaker] || '#22d3ee';
-  const isRisk = d.status.includes('risk');
+  const isRisk = d.status.toLowerCase().includes('risk');
 
   // generate current waveform (AC with DC offset decay)
   const currentPoints = [];
@@ -281,9 +314,9 @@ function SimDiagram({ breaker, current, xr, d, pulse }) {
   const trvPoints = [];
   for (let t = 0; t <= 80; t++) {
     const x = 500 + t * 2.8;
-    const env = d.trv * (1 - Math.exp(-t / 12));
+    const env = d.systemTrvPeakKV * (1 - Math.exp(-t / 12));
     const osc = env * Math.sin(t * 0.35) * Math.exp(-t / 35);
-    const y = 130 - osc * 8;
+    const y = 130 - osc * 0.42;
     trvPoints.push(`${x},${y}`);
   }
 
@@ -330,7 +363,7 @@ function SimDiagram({ breaker, current, xr, d, pulse }) {
         {isRisk && <animate attributeName="opacity" values="1;0.3;1" dur="0.8s" repeatCount="indefinite" />}
       </circle>
       <text x="695" y="100" fill={isRisk ? '#ef4444' : '#22c55e'} fontSize="9" fontWeight="700">{isRisk ? 'RISK' : 'OK'}</text>
-      <text x="680" y="118" textAnchor="middle" fill="#a1a1aa" fontSize="7">{d.time} ms</text>
+      <text x="680" y="118" textAnchor="middle" fill="#a1a1aa" fontSize="7">{d.timeMs} ms</text>
 
       {/* Source line */}
       <line x1="100" y1="120" x2="340" y2="120" stroke="#60a5fa" strokeWidth="5" />
@@ -387,26 +420,26 @@ function SimDiagram({ breaker, current, xr, d, pulse }) {
       {/* TRV envelope */}
       <path d={`M500,320 ${Array.from({ length: 80 }, (_, t) => {
         const x = 500 + t * 2.8;
-        const env = d.trv * (1 - Math.exp(-t / 12)) * 8;
+        const env = d.systemTrvPeakKV * (1 - Math.exp(-t / 12)) * 0.42;
         return `L${x},${320 - env}`;
       }).join(' ')}`} fill="none" stroke={bColor} strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
 
       {/* dielectric line */}
-      <line x1="500" y1="320" x2="700" y2="260" stroke="#22c55e" strokeWidth="1.5" strokeDasharray="5 4" />
-      <text x="620" y="275" fill="#22c55e" fontSize="8">Dielectric recovery</text>
+      <line x1="500" y1="320" x2="700" y2={320 - d.dielectricRecoveryKVus * 48} stroke="#22c55e" strokeWidth="1.5" strokeDasharray="5 4" />
+      <text x="620" y={320 - d.dielectricRecoveryKVus * 48 - 6} fill="#22c55e" fontSize="8">Recovery slope {d.dielectricRecoveryKVus.toFixed(2)} kV/us</text>
 
       {/* TRV peak label */}
       <text x="700" y="410" textAnchor="middle" fill={isRisk ? '#ef4444' : bColor} fontSize="9" fontWeight="600">
-        TRV peak = {d.trv.toFixed(2)} pu {isRisk ? '(exceeds withstand)' : '(within withstand)'}
+        System TRV peak = {d.systemTrvPeakKV.toFixed(1)} kV | Breaker withstand = {d.dielectricWithstandKV.toFixed(0)} kV
       </text>
 
       {/* ── Timing strip ── */}
       <rect x="40" y="425" width="880" height="20" rx="6" fill="#101015" stroke="#27272a" />
       <text x="60" y="439" fill="#818cf8" fontSize="8" fontWeight="700">Timeline:</text>
       <text x="150" y="439" fill="#a1a1aa" fontSize="8">t=0: Trip command</text>
-      <text x="310" y="439" fill="#a1a1aa" fontSize="8">t={Math.round(d.time * 0.3)}: Contacts part</text>
-      <text x="480" y="439" fill="#a1a1aa" fontSize="8">t={Math.round(d.time * 0.6)}: Arc at current zero</text>
-      <text x="680" y="439" fill={isRisk ? '#ef4444' : '#22c55e'} fontSize="8" fontWeight="600">t={d.time}: {d.status}</text>
+      <text x="310" y="439" fill="#a1a1aa" fontSize="8">t={Math.round(d.timeMs * 0.3)}: Contacts part</text>
+      <text x="480" y="439" fill="#a1a1aa" fontSize="8">t={Math.round(d.timeMs * 0.6)}: Arc at current zero</text>
+      <text x="680" y="439" fill={isRisk ? '#ef4444' : d.status.includes('Low') ? '#f59e0b' : '#22c55e'} fontSize="8" fontWeight="600">t={d.timeMs}: {d.status}</text>
     </svg>
   );
 }
@@ -475,21 +508,25 @@ function OperatingSequenceSVG() {
 
 /* ── Breaker State Badge ── */
 function BreakerStateBadge({ breaker, d }) {
-  const isRisk = d.status.includes('risk');
-  const color = isRisk ? '#ef4444' : '#22c55e';
-  const bg = isRisk ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.12)';
-  const label = isRisk ? 'RE-STRIKE RISK' : 'SUCCESSFUL INTERRUPTION';
+  const isRisk = d.status.toLowerCase().includes('risk');
+  const isLowMargin = d.status.includes('Low');
+  const color = isRisk ? '#ef4444' : isLowMargin ? '#f59e0b' : '#22c55e';
+  const bg = isRisk ? 'rgba(239,68,68,0.12)' : isLowMargin ? 'rgba(245,158,11,0.12)' : 'rgba(34,197,94,0.12)';
+  const label = isRisk ? 'RE-STRIKE RISK' : isLowMargin ? 'LOW MARGIN' : 'SUCCESSFUL INTERRUPTION';
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', background: bg, border: `1px solid ${color}`, borderRadius: 8, marginRight: 12 }}>
       <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block' }} />
       <span style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: '0.05em' }}>{label}</span>
-      <span style={{ fontSize: 10, color: '#71717a' }}>{breaker} | {d.time}ms | TRV {d.trv.toFixed(2)} pu</span>
+      <span style={{ fontSize: 10, color: '#71717a' }}>
+        {breaker} | {d.timeMs}ms | TRV {d.systemTrvPeakKV.toFixed(1)} kV / withstand {d.dielectricWithstandKV.toFixed(0)} kV
+      </span>
     </div>
   );
 }
 
 /* ── Theory Tab ── */
 function Theory() {
+  const example = calc('SF6', 25, 12);
   return (
     <div style={S.theory}>
       <h2 style={{ ...S.h2, marginTop: 0 }}>Circuit Breaker Operation</h2>
@@ -524,11 +561,12 @@ function Theory() {
       <p style={S.p}>
         After current zero, the system voltage appears across the open breaker gap. The TRV is an oscillatory
         transient that depends on the circuit parameters (inductance, capacitance, X/R ratio). If the TRV
-        rises faster than the dielectric recovery of the gap medium, the arc re-ignites (restrike).
+        rises faster than the dielectric recovery of the selected breaker technology, the arc re-ignites
+        (restrike). TRV duty is primarily system-driven; breaker medium changes withstand and recovery margin.
       </p>
-      <TRVWaveform trv={4.5} breaker="SF6" />
-      <span style={S.eq}>TRV peak = k_af * k_pp * sqrt(2) * (V_rated / sqrt(3))</span>
-      <span style={S.eq}>RRRV = TRV_peak / t_3 (rate of rise of recovery voltage)</span>
+      <TRVWaveform d={example} breaker="SF6" />
+      <span style={S.eq}>System duty: TRV peak and RRRV are set by network L/C and fault conditions</span>
+      <span style={S.eq}>Breaker check: withstand margin = Vwithstand - TRVpeak, recovery margin = dielectric slope - RRRV</span>
 
       <h3 style={S.h3}>Operating Sequence and Auto-Reclosing</h3>
       <p style={S.p}>
@@ -635,20 +673,30 @@ export default function CircuitBreakerOperation() {
           </div>
           <div style={S.results}>
             <div style={S.ri}>
-              <span style={S.rl}>TRV peak</span>
-              <span style={{ ...S.rv, color: BREAKER_COLORS[breaker] }}>{d.trv.toFixed(2)} pu</span>
+              <span style={S.rl}>System TRV peak</span>
+              <span style={{ ...S.rv, color: BREAKER_COLORS[breaker] }}>{d.systemTrvPeakKV.toFixed(1)} kV</span>
             </div>
             <div style={S.ri}>
               <span style={S.rl}>Break time</span>
-              <span style={S.rv}>{d.time} ms</span>
+              <span style={S.rv}>{d.timeMs} ms</span>
+            </div>
+            <div style={S.ri}>
+              <span style={S.rl}>Breaker withstand</span>
+              <span style={S.rv}>{d.dielectricWithstandKV.toFixed(0)} kV</span>
             </div>
             <div style={S.ri}>
               <span style={S.rl}>Outcome</span>
-              <span style={{ ...S.rv, color: d.status.includes('risk') ? '#ef4444' : '#22c55e' }}>{d.status}</span>
+              <span style={{ ...S.rv, color: d.status.toLowerCase().includes('risk') ? '#ef4444' : d.status.includes('Low') ? '#f59e0b' : '#22c55e' }}>{d.status}</span>
+            </div>
+            <div style={S.ri}>
+              <span style={S.rl}>RRRV / recovery</span>
+              <span style={{ ...S.rv, color: d.rrrvMarginKVus < 0 ? '#ef4444' : '#22c55e' }}>
+                {d.systemRrrvKVus.toFixed(2)} / {d.dielectricRecoveryKVus.toFixed(2)} kV/us
+              </span>
             </div>
             <div style={S.ri}>
               <span style={S.rl}>Asymmetric factor</span>
-              <span style={S.rv}>{(1 + 0.7 * Math.exp(-Math.PI / xr)).toFixed(3)}</span>
+              <span style={S.rv}>{d.asymFactor.toFixed(3)}</span>
             </div>
           </div>
         </div>

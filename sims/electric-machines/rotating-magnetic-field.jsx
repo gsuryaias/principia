@@ -40,7 +40,7 @@ const PHASES = [
 
 const DEG = Math.PI / 180;
 
-function compute(freq, poles, currents, timeDeg) {
+function resultantField(currents, timeDeg) {
   const wt = timeDeg * DEG;
   const inst = PHASES.map((phase, idx) => {
     const theta = wt + phase.angle * DEG;
@@ -56,6 +56,12 @@ function compute(freq, poles, currents, timeDeg) {
     inst[1] * Math.sin(-120 * DEG) +
     inst[2] * Math.sin(120 * DEG);
 
+  return { inst, fx, fy };
+}
+
+function compute(freq, poles, currents, timeDeg) {
+  const { inst, fx, fy } = resultantField(currents, timeDeg);
+
   const spaceWave = Array.from({ length: 73 }, (_, i) => {
     const angle = -180 + i * 5;
     const phi = angle * DEG;
@@ -69,14 +75,20 @@ function compute(freq, poles, currents, timeDeg) {
   const mag = Math.hypot(fx, fy);
   const ns = (120 * freq) / poles;
   const mechRps = ns / 60;
+  const polePairs = poles / 2;
   const balance = (Math.min(...currents) / Math.max(...currents)) * 100;
+  const fieldAngle = Math.atan2(fy, fx) / DEG;
 
   return {
+    currents,
+    poles,
+    polePairs,
     inst,
     fx,
     fy,
     mag,
-    fieldAngle: Math.atan2(fy, fx) / DEG,
+    fieldAngle,
+    mechFieldAngle: fieldAngle / polePairs,
     spaceWave,
     ns,
     mechRps,
@@ -105,12 +117,18 @@ function Diagram({ data, timeDeg }) {
 
   // Animated rotation trail - show last few positions of the field vector
   const trailAngles = [0, 1, 2, 3].map(i => {
-    const pastTime = (timeDeg - i * 15) * DEG;
-    const pastInst = PHASES.map((phase, idx) => Math.sin(pastTime + phase.angle * DEG));
-    const pfx = pastInst[0] * Math.cos(0) + pastInst[1] * Math.cos(-120 * DEG) + pastInst[2] * Math.cos(120 * DEG);
-    const pfy = pastInst[0] * Math.sin(0) + pastInst[1] * Math.sin(-120 * DEG) + pastInst[2] * Math.sin(120 * DEG);
-    return { x: cx + pfx * 58, y: cy - pfy * 58, opacity: 0.4 - i * 0.1 };
+    const past = resultantField(data.currents, timeDeg - i * 15);
+    const pastMechAngle = (Math.atan2(past.fy, past.fx) / DEG) / data.polePairs;
+    const pastAngleRad = pastMechAngle * DEG;
+    return {
+      x: cx + Math.cos(pastAngleRad) * 58,
+      y: cy - Math.sin(pastAngleRad) * 58,
+      opacity: 0.4 - i * 0.1,
+    };
   });
+  const mechAngleRad = data.mechFieldAngle * DEG;
+  const fieldTipX = cx + Math.cos(mechAngleRad) * 58;
+  const fieldTipY = cy - Math.sin(mechAngleRad) * 58;
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: W, height: 'auto' }}>
@@ -127,14 +145,14 @@ function Diagram({ data, timeDeg }) {
 
       {/* Rotation direction arc indicator */}
       <path
-        d={`M${cx + radius + 30},${cy} A${radius + 30},${radius + 30} 0 0 0 ${cx},${cy - radius - 30}`}
+        d={`M${cx},${cy - radius - 30} A${radius + 30},${radius + 30} 0 0 1 ${cx + radius + 30},${cy}`}
         fill="none" stroke="#22c55e" strokeWidth="1.5" strokeDasharray="4 3" opacity="0.5"
       />
       <polygon
-        points={`${cx},${cy - radius - 35} ${cx - 5},${cy - radius - 26} ${cx + 5},${cy - radius - 26}`}
+        points={`${cx + radius + 35},${cy} ${cx + radius + 26},${cy - 5} ${cx + radius + 26},${cy + 5}`}
         fill="#22c55e" opacity="0.5"
       />
-      <text x={cx + radius + 36} y={cy - 16} fill="#22c55e" fontSize="9" opacity="0.6">CCW</text>
+      <text x={cx + radius + 18} y={cy - 16} fill="#22c55e" fontSize="9" opacity="0.6">CW</text>
 
       <circle cx={cx} cy={cy} r="26" fill="#111827" stroke="#6366f1" strokeWidth="1.2" />
       <text x={cx} y={cy + 4} textAnchor="middle" fontSize="11" fill="#a5b4fc" fontWeight="700">Rotor</text>
@@ -168,18 +186,31 @@ function Diagram({ data, timeDeg }) {
         );
       })}
 
+      {Array.from({ length: data.poles }, (_, i) => {
+        const poleAngle = mechAngleRad + i * (2 * Math.PI / data.poles);
+        const label = i % 2 === 0 ? 'N' : 'S';
+        const color = label === 'N' ? '#22c55e' : '#ef4444';
+        const x = cx + Math.cos(poleAngle) * (radius - 28);
+        const y = cy - Math.sin(poleAngle) * (radius - 28);
+        return (
+          <text key={`${label}-${i}`} x={x} y={y + 4} textAnchor="middle" fill={color} fontSize="11" fontWeight="700">
+            {label}
+          </text>
+        );
+      })}
+
       {/* Rotation trail dots */}
       {trailAngles.map((pt, i) => (
         <circle key={i} cx={pt.x} cy={pt.y} r={4 - i * 0.8} fill="#22c55e" opacity={pt.opacity} filter="url(#rmf-glow-sm)" />
       ))}
 
-      <line x1={cx} y1={cy} x2={cx + data.fx * 58} y2={cy - data.fy * 58} stroke="#22c55e" strokeWidth="6" strokeLinecap="round" filter="url(#rmf-glow)" />
+      <line x1={cx} y1={cy} x2={fieldTipX} y2={fieldTipY} stroke="#22c55e" strokeWidth="6" strokeLinecap="round" filter="url(#rmf-glow)" />
       <polygon
-        points={`${cx + data.fx * 58},${cy - data.fy * 58} ${cx + data.fx * 58 - 10 * Math.cos(Math.atan2(-data.fy, data.fx) - 0.45)},${cy - data.fy * 58 - 10 * Math.sin(Math.atan2(-data.fy, data.fx) - 0.45)} ${cx + data.fx * 58 - 10 * Math.cos(Math.atan2(-data.fy, data.fx) + 0.45)},${cy - data.fy * 58 - 10 * Math.sin(Math.atan2(-data.fy, data.fx) + 0.45)}`}
+        points={`${fieldTipX},${fieldTipY} ${fieldTipX - 10 * Math.cos(mechAngleRad - 0.45)},${fieldTipY + 10 * Math.sin(mechAngleRad - 0.45)} ${fieldTipX - 10 * Math.cos(mechAngleRad + 0.45)},${fieldTipY + 10 * Math.sin(mechAngleRad + 0.45)}`}
         fill="#22c55e"
       />
       <text x={cx} y={335} textAnchor="middle" fill="#22c55e" fontSize="12" fontWeight="700">
-        Resultant field @ t = {timeDeg.toFixed(0)} deg
+        Resultant field @ wt = {timeDeg.toFixed(0)} deg
       </text>
 
       <text x={waveX + waveW / 2} y={30} textAnchor="middle" fill="#71717a" fontSize="12" fontWeight="600" letterSpacing="0.08em">
@@ -406,9 +437,19 @@ export default function RotatingMagneticField() {
 
   useEffect(() => {
     if (!playing || tab !== 'sim') return undefined;
-    const id = setInterval(() => setTimeDeg((t) => (t + 4) % 360), 50);
-    return () => clearInterval(id);
-  }, [playing, tab]);
+    let rafId = null;
+    let last = null;
+    const animate = (now) => {
+      if (last !== null) {
+        const dt = (now - last) / 1000;
+        setTimeDeg((t) => (t + dt * freq * 360) % 360);
+      }
+      last = now;
+      rafId = requestAnimationFrame(animate);
+    };
+    rafId = requestAnimationFrame(animate);
+    return () => rafId && cancelAnimationFrame(rafId);
+  }, [playing, tab, freq]);
 
   return (
     <div style={S.container}>
@@ -465,7 +506,7 @@ export default function RotatingMagneticField() {
             <div style={S.ri}><span style={S.rl}>Synchronous speed</span><span style={S.rv}>{data.ns.toFixed(0)} rpm</span></div>
             <div style={S.ri}><span style={S.rl}>Mechanical sync speed</span><span style={S.rv}>{data.mechRps.toFixed(2)} rps</span></div>
             <div style={S.ri}><span style={S.rl}>Resultant field magnitude</span><span style={S.rv}>{data.mag.toFixed(2)} pu</span></div>
-            <div style={S.ri}><span style={S.rl}>Field angle</span><span style={S.rv}>{data.fieldAngle.toFixed(1)} deg</span></div>
+            <div style={S.ri}><span style={S.rl}>Mechanical field angle</span><span style={S.rv}>{data.mechFieldAngle.toFixed(1)} deg</span></div>
             <div style={S.ri}><span style={S.rl}>Current balance</span><span style={S.rv}>{data.balance.toFixed(1)}%</span></div>
           </div>
 

@@ -198,7 +198,7 @@ function Theory() {
         <text x="200" y="76" textAnchor="middle" fontSize="9" fill="#fff" fontWeight="600">IT Load (Servers, Storage, Network)</text>
 
         <rect x="340" y="60" width="130" height="24" rx="4" fill="#60a5fa" opacity="0.7" />
-        <text x="405" y="76" textAnchor="middle" fontSize="9" fill="#fff" fontWeight="600">Cooling (30-40%)</text>
+        <text x="405" y="76" textAnchor="middle" fontSize="9" fill="#fff" fontWeight="600">Cooling (major non-IT load)</text>
 
         <rect x="470" y="60" width="60" height="24" rx="4" fill="#f59e0b" opacity="0.7" />
         <text x="500" y="76" textAnchor="middle" fontSize="9" fill="#fff" fontWeight="600">UPS Loss</text>
@@ -276,7 +276,7 @@ function Theory() {
       </p>
       <ul style={S.ul}>
         <li style={S.li}><strong style={{ color: '#d4d4d8' }}>IT Load:</strong> Servers, storage, networking — the productive load</li>
-        <li style={S.li}><strong style={{ color: '#d4d4d8' }}>Cooling:</strong> CRAH/CRAC, chillers, cooling towers — typically 30–40% of total</li>
+        <li style={S.li}><strong style={{ color: '#d4d4d8' }}>Cooling:</strong> CRAH/CRAC, chillers, cooling towers — often the largest non-IT load and can approach 30–40% of total facility power in warmer climates</li>
         <li style={S.li}><strong style={{ color: '#d4d4d8' }}>Conversion losses:</strong> UPS (3–8%), transformer (1–2%), distribution (2%)</li>
         <li style={S.li}><strong style={{ color: '#d4d4d8' }}>Lighting &amp; auxiliary:</strong> 3–5% of IT load</li>
       </ul>

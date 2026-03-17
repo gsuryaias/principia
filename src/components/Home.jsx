@@ -20,7 +20,8 @@ import {
   Cable,
   Network,
   Shield,
-  BarChart3
+  BarChart3,
+  Sparkles
 } from 'lucide-react';
 import { getSimulations, getCategories } from '../utils/loader';
 import { hashIndex } from '../lib/utils';
@@ -155,52 +156,56 @@ function HeroBanner() {
 
       <div className="relative p-8 md:p-12 lg:p-14 flex flex-col md:flex-row items-center gap-8 lg:gap-16">
         <div className="flex-1 text-center md:text-left">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-sm font-medium mb-6">
+            <Sparkles className="w-4 h-4" />
+            Featured Simulation
+          </div>
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-4 leading-[1.1]">
-            Explore Interactive
-            <span className="gradient-text ml-3">Simulations</span>
+            Basics of
+            <span className="gradient-text ml-3">Magnetism</span>
           </h1>
-          <p className="text-zinc-400 text-base md:text-lg max-w-xl leading-relaxed">
-            A curated collection of complex concepts brought to life through beautiful, interactive visualizations.
+          <p className="text-zinc-400 text-base md:text-lg max-w-xl leading-relaxed mb-8">
+            Explore electromagnetic fundamentals. Visualize magnetic fields, understand Lorentz force, and see how electric currents create magnetic flux in real-time.
           </p>
+          <Link
+            to="/sim/basic-principles/electromagnetic-fundamentals"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-medium transition-colors shadow-lg shadow-indigo-500/25"
+          >
+            <PlayCircle className="w-5 h-5" />
+            Start Simulation
+          </Link>
         </div>
       </div>
     </div>
   );
 }
 
-function BentoCard({ sim, index, featured }) {
+function BentoCard({ sim, index }) {
   const gIdx = hashIndex(sim.slug, GRADIENTS.length);
   const [bgGradient, accentGradient] = GRADIENTS[gIdx];
   const IconComponent = CATEGORY_ICONS[sim.categorySlug] || Box;
 
   return (
     <div
-      className={`animate-fade-in-up group h-full ${
-        featured ? 'md:col-span-2' : 'col-span-1'
-      }`}
+      className="animate-fade-in-up group h-full"
       style={{ animationDelay: `${index * 40}ms` }}
     >
       <Link to={`/sim/${sim.slug}`} className="block h-full">
-        <div className="sim-card h-full flex flex-col p-6">
-          <div className="flex justify-between items-start mb-auto">
-            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${bgGradient} flex items-center justify-center group-hover:scale-110 transition-transform duration-500 ease-out shadow-lg`}>
+        <div className="sim-card relative h-full flex flex-col justify-center p-5 overflow-hidden min-h-[5.5rem]">
+          <div className="flex items-center gap-4">
+            <div className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${bgGradient} flex items-center justify-center group-hover:scale-110 transition-transform duration-500 ease-out shadow-lg`}>
               <IconComponent className="w-6 h-6 text-white/90" />
             </div>
             
-            <div className="w-8 h-8 rounded-full bg-zinc-800/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:-translate-y-1 group-hover:translate-x-1">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-zinc-100 group-hover:text-indigo-300 transition-colors text-base leading-snug">
+                {sim.name}
+              </h3>
+            </div>
+            
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-800/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-x-1">
               <PlayCircle className="w-4 h-4 text-indigo-300" />
             </div>
-          </div>
-
-          <div className="mt-8">
-            <h3 className={`font-semibold text-zinc-100 group-hover:text-indigo-300 transition-colors mb-2 ${featured ? 'text-2xl lg:text-3xl' : 'text-lg'}`}>
-              {sim.name}
-            </h3>
-            {featured && (
-              <p className="text-zinc-400 text-sm md:text-base line-clamp-2 max-w-md">
-                Interactive visualization and theory breakdown for {sim.name.toLowerCase()}. Open the simulation to explore parameters.
-              </p>
-            )}
           </div>
           
           {/* Subtle glowing accent line that appears on hover */}
@@ -235,18 +240,18 @@ function CategorySection({ group, isSearch, isSingleCategory }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const IconComponent = CATEGORY_ICONS[group.category.slug] || Box;
 
-  const INITIAL_LIMIT = 5;
+  const INITIAL_LIMIT = 8;
   const showAll = isExpanded || isSearch || isSingleCategory;
   const hasMore = !showAll && group.sims.length > INITIAL_LIMIT;
   const displaySims = showAll ? group.sims : group.sims.slice(0, INITIAL_LIMIT);
 
   return (
     <section id={group.category.slug} className="scroll-mt-32">
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shadow-sm">
           <IconComponent className="w-5 h-5 text-zinc-400" />
         </div>
-        <h2 className="text-2xl font-semibold tracking-tight text-zinc-100 flex items-center gap-3">
+        <h2 className="text-xl md:text-2xl font-semibold tracking-tight text-zinc-100 flex items-center gap-3">
           {group.category.name}
           {!isSearch && (
             <span className="text-sm font-medium text-zinc-500 bg-zinc-800/50 px-2.5 py-0.5 rounded-full border border-zinc-700/50">
@@ -256,14 +261,12 @@ function CategorySection({ group, isSearch, isSingleCategory }) {
         </h2>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-[280px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {displaySims.map((sim, i) => (
           <BentoCard 
             key={sim.slug} 
             sim={sim} 
             index={i} 
-            // Make the first item in each category a featured wide card if we have enough space
-            featured={i === 0 && displaySims.length > 1} 
           />
         ))}
       </div>

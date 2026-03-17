@@ -283,19 +283,19 @@ function LorentzTab() {
             <text x={210} y={165} fill={C.accent} fontSize={16} fontWeight={700} textAnchor="middle">⊗</text>
             <text x={210} y={195} fill={C.muted} fontSize={10} textAnchor="middle">I into page</text>
 
-            {/* Force arrow (upward for B→ and I⊗) */}
+            {/* Force arrow (downward for B→ and I⊗ using conventional current) */}
             {F > 0 && (<g>
-              <line x1={210} y1={140} x2={210} y2={Math.max(50, 140 - Math.min(F * 15, 80))} stroke={C.amber} strokeWidth={3}/>
-              <polygon points={`210,${Math.max(50, 140 - Math.min(F * 15, 80))} 205,${Math.max(50, 140 - Math.min(F * 15, 80)) + 8} 215,${Math.max(50, 140 - Math.min(F * 15, 80)) + 8}`} fill={C.amber}/>
-              <text x={226} y={Math.max(60, 140 - Math.min(F * 15, 80) + 5)} fill={C.amber} fontSize={13} fontWeight={700}>F ↑</text>
+              <line x1={210} y1={180} x2={210} y2={Math.min(270, 180 + Math.min(F * 15, 80))} stroke={C.amber} strokeWidth={3}/>
+              <polygon points={`210,${Math.min(270, 180 + Math.min(F * 15, 80))} 205,${Math.min(270, 180 + Math.min(F * 15, 80)) - 8} 215,${Math.min(270, 180 + Math.min(F * 15, 80)) - 8}`} fill={C.amber}/>
+              <text x={226} y={Math.min(265, 180 + Math.min(F * 15, 80) - 4)} fill={C.amber} fontSize={13} fontWeight={700}>F ↓</text>
             </g>)}
 
             {/* Fleming's left-hand rule diagram */}
             <g transform="translate(385,40)">
               <text x={50} y={0} fill={C.muted} fontSize={11} fontWeight={600} textAnchor="middle">Fleming's LHR</text>
-              <line x1={50} y1={100} x2={50} y2={30} stroke={C.amber} strokeWidth={2}/>
-              <polygon points="50,30 46,40 54,40" fill={C.amber}/>
-              <text x={50} y={20} fill={C.amber} fontSize={10} textAnchor="middle" fontWeight={600}>F</text>
+              <line x1={50} y1={100} x2={50} y2={156} stroke={C.amber} strokeWidth={2}/>
+              <polygon points="50,156 46,146 54,146" fill={C.amber}/>
+              <text x={50} y={170} fill={C.amber} fontSize={10} textAnchor="middle" fontWeight={600}>F</text>
 
               <line x1={50} y1={100} x2={100} y2={100} stroke={C.cyan} strokeWidth={2}/>
               <polygon points="100,100 92,96 92,104" fill={C.cyan}/>
@@ -333,6 +333,7 @@ function LenzTab() {
   const [run, setRun] = useState(true);
   const af = useRef(); const lt = useRef(0);
   const phase = useRef(0);
+  const posRef = useRef(0.5);
 
   useEffect(() => {
     if (!run) { lt.current = 0; return; }
@@ -341,8 +342,9 @@ function LenzTab() {
         const dt = (t - lt.current) / 1000;
         phase.current += dt * 1.5;
         const p = 0.5 + 0.4 * Math.sin(phase.current);
-        setPrevPos(pos);
+        setPrevPos(posRef.current);
         setPos(p);
+        posRef.current = p;
       }
       lt.current = t;
       af.current = requestAnimationFrame(tick);
@@ -351,11 +353,11 @@ function LenzTab() {
     return () => cancelAnimationFrame(af.current);
   }, [run]);
 
-  const approaching = pos < prevPos;
-  const moving = Math.abs(pos - prevPos) > 0.001;
+  const delta = pos - prevPos;
+  const approaching = delta > 0;
+  const moving = Math.abs(delta) > 0.001;
   const magnetY = 30 + pos * 160;
-  const fluxDir = polarity > 0 ? 'down' : 'up';
-  const inducedDir = moving ? (approaching === (polarity > 0) ? 'ccw' : 'cw') : 'none';
+  const inducedDir = moving ? (approaching === (polarity < 0) ? 'ccw' : 'cw') : 'none';
 
   return (
     <div style={S.body}>
@@ -414,7 +416,7 @@ function LenzTab() {
         <div style={S.note}><span style={S.noteT}>Where this matters</span><p style={S.noteP}>Back-EMF in motors (opposes supply, limits current), transformer polarity dots, eddy-current braking in meters and trains, and induction heating all rely on Lenz's law.</p></div>
       </div>
       <div style={S.controls}>
-        <CG label="Magnet position" min={0} max={1} step={0.01} value={pos} set={v => { setPrevPos(pos); setPos(v); setRun(false); lt.current = 0; }}/>
+        <CG label="Magnet position" min={0} max={1} step={0.01} value={pos} set={v => { setPrevPos(posRef.current); posRef.current = v; setPos(v); setRun(false); lt.current = 0; }}/>
         <button style={S.btn(false)} onClick={() => setPolarity(p => p * -1)}>Flip polarity</button>
         <button style={S.btn(run)} onClick={() => { setRun(!run); lt.current = 0; }}>{run ? 'Pause' : 'Animate'}</button>
       </div>

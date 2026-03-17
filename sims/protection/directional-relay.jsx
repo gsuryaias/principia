@@ -67,11 +67,18 @@ function useTooltip() {
   return { visible, onMouseEnter, onMouseLeave };
 }
 
+function normalizeAngle(angle) {
+  let a = angle;
+  while (a > 180) a -= 360;
+  while (a <= -180) a += 360;
+  return a;
+}
+
 function computeState({ mta, currentAngle, currentMag, pickup, direction, faultType }) {
-  const theta = currentAngle;
+  const theta = normalizeAngle(currentAngle + (direction === 'Reverse' ? 180 : 0));
   const torque = Math.cos((theta - mta) * Math.PI / 180);
   const overcurrent = currentMag >= pickup;
-  const directional = direction === 'Forward' && torque > 0;
+  const directional = torque > 0;
   const operate = overcurrent && directional;
   const polarising = faultType === 'Earth Fault' ? 'Residual / negative sequence voltage' : 'Phase voltage or memory voltage';
   return { theta, torque, overcurrent, directional, operate, polarising };
@@ -420,8 +427,8 @@ function Diagram({ topology, direction, currentAngle, mta, currentMag, pickup, f
   const r = 132;
   const vX = cx + r;
   const vY = cy;
-  const iX = cx + r * Math.cos(currentAngle * Math.PI / 180);
-  const iY = cy - r * Math.sin(currentAngle * Math.PI / 180);
+  const iX = cx + r * Math.cos(state.theta * Math.PI / 180);
+  const iY = cy - r * Math.sin(state.theta * Math.PI / 180);
   const mX = cx + r * Math.cos(mta * Math.PI / 180);
   const mY = cy - r * Math.sin(mta * Math.PI / 180);
   const permitColor = state.operate ? '#ef4444' : '#22c55e';
@@ -441,15 +448,15 @@ function Diagram({ topology, direction, currentAngle, mta, currentMag, pickup, f
 
   // Angle annotation arcs
   const arcRadius = 42;
-  // Arc from V (0 deg) to I (currentAngle)
-  const thetaArc = describeArc(cx, cy, arcRadius, 0, currentAngle);
+  // Arc from V (0 deg) to I (effective theta after fault-side rotation)
+  const thetaArc = describeArc(cx, cy, arcRadius, 0, state.theta);
   // Arc from V (0 deg) to MTA
   const mtaArcRadius = 56;
   const mtaArc = describeArc(cx, cy, mtaArcRadius, 0, mta);
-  // Difference arc from MTA to currentAngle
+  // Difference arc from MTA to operating current angle
   const diffArcRadius = 34;
-  const diffArc = describeArc(cx, cy, diffArcRadius, mta, currentAngle);
-  const angleDiff = currentAngle - mta;
+  const diffArc = describeArc(cx, cy, diffArcRadius, mta, state.theta);
+  const angleDiff = normalizeAngle(state.theta - mta);
 
   // Degree markers around circle perimeter
   const degreeMarkers = [0, 90, 180, 270];
@@ -495,7 +502,7 @@ function Diagram({ topology, direction, currentAngle, mta, currentMag, pickup, f
 
         {/* Angle arc: V to I (theta) */}
         <path d={thetaArc.path} fill="none" stroke="#f59e0b" strokeWidth="1.5" />
-        <text x={thetaArc.midX + (currentAngle >= 0 ? 10 : -10)} y={thetaArc.midY + (currentAngle >= 0 ? -4 : 10)} textAnchor="middle" fill="#f59e0b" fontSize="9" fontWeight="600">{currentAngle}°</text>
+        <text x={thetaArc.midX + (state.theta >= 0 ? 10 : -10)} y={thetaArc.midY + (state.theta >= 0 ? -4 : 10)} textAnchor="middle" fill="#f59e0b" fontSize="9" fontWeight="600">{state.theta}°</text>
 
         {/* Angle arc: V to MTA */}
         <path d={mtaArc.path} fill="none" stroke="#a78bfa" strokeWidth="1" strokeDasharray="3 2" />
@@ -518,7 +525,7 @@ function Diagram({ topology, direction, currentAngle, mta, currentMag, pickup, f
 
       {/* Info panel with status */}
       <g transform="translate(520,44)">
-        <rect width="380" height="172" rx="12" fill="#101015" stroke="#27272a" />
+        <rect width="380" height="188" rx="12" fill="#101015" stroke="#27272a" />
         {/* Status badge */}
         <rect x="270" y="8" width="96" height="22" rx="6" fill={`${statusColor}22`} stroke={statusColor} strokeWidth="1.5" />
         <text x="318" y="23" textAnchor="middle" fill={statusColor} fontSize="10" fontWeight="700">{statusText}</text>
@@ -529,11 +536,12 @@ function Diagram({ topology, direction, currentAngle, mta, currentMag, pickup, f
         )}
         <text x="16" y="24" fill="#a1a1aa" fontSize="12">Topology = {topology}</text>
         <text x="16" y="46" fill="#a1a1aa" fontSize="12">Fault type = {faultType}</text>
-        <text x="16" y="68" fill="#a1a1aa" fontSize="12">Polarising = {state.polarising}</text>
-        <text x="16" y="90" fill="#a1a1aa" fontSize="12">Torque = cos({state.theta.toFixed(0)} - {mta}) = {state.torque.toFixed(3)}</text>
-        <text x="16" y="112" fill="#a1a1aa" fontSize="12">OC supervision = {state.overcurrent ? 'Picked up' : 'Below pickup'}</text>
-        <text x="16" y="134" fill={permitColor} fontSize="12" fontWeight="700">{state.operate ? 'Directional OC permits trip' : state.directional ? 'Direction ok, but current below pickup' : 'Directional element restrains'}</text>
-        <text x="16" y="156" fill="#71717a" fontSize="11">Current = {currentMag.toFixed(0)} A, pickup = {pickup.toFixed(0)} A</text>
+        <text x="16" y="68" fill="#a1a1aa" fontSize="12">Fault side = {direction}</text>
+        <text x="16" y="90" fill="#a1a1aa" fontSize="12">Polarising = {state.polarising}</text>
+        <text x="16" y="112" fill="#a1a1aa" fontSize="12">Torque = cos({state.theta.toFixed(0)} - {mta}) = {state.torque.toFixed(3)}</text>
+        <text x="16" y="134" fill="#a1a1aa" fontSize="12">OC supervision = {state.overcurrent ? 'Picked up' : 'Below pickup'}</text>
+        <text x="16" y="156" fill={permitColor} fontSize="12" fontWeight="700">{state.operate ? 'Directional OC permits trip' : state.directional ? 'Direction ok, but current below pickup' : 'Directional element restrains'}</text>
+        <text x="16" y="178" fill="#71717a" fontSize="11">Current = {currentMag.toFixed(0)} A, pickup = {pickup.toFixed(0)} A</text>
       </g>
 
       {/* Feeder diagram */}
@@ -561,7 +569,7 @@ function Diagram({ topology, direction, currentAngle, mta, currentMag, pickup, f
       <g transform="translate(510,420)">
         <rect width="392" height="56" rx="12" fill="#101015" stroke="#27272a" />
         <text x="16" y="24" fill="#818cf8" fontSize="11" fontWeight="700">Operating point</text>
-        <text x="16" y="42" fill="#a1a1aa" fontSize="11">Current = {currentMag.toFixed(0)} A, pickup = {pickup.toFixed(0)} A, theta = {state.theta.toFixed(0)} deg, MTA = {mta.toFixed(0)} deg</text>
+        <text x="16" y="42" fill="#a1a1aa" fontSize="11">Current = {currentMag.toFixed(0)} A, pickup = {pickup.toFixed(0)} A, effective theta = {state.theta.toFixed(0)} deg, MTA = {mta.toFixed(0)} deg</text>
       </g>
     </svg>
   );
@@ -707,24 +715,25 @@ export default function DirectionalRelay() {
   );
 
   // Power calculations (V in kV, I in A, angle in degrees)
-  const thetaRad = currentAngle * Math.PI / 180;
+  const thetaRad = state.theta * Math.PI / 180;
   const P = voltage * currentMag * Math.cos(thetaRad); // kW
   const Q = voltage * currentMag * Math.sin(thetaRad); // kVAR
   const Sva = voltage * currentMag; // kVA
 
   // Tooltip text computations
-  const diff = currentAngle - mta;
-  const torqueTooltipText = `Torque = cos(\u03B8 \u2212 MTA) = cos(${currentAngle}\u00B0 \u2212 ${mta}\u00B0) = cos(${diff}\u00B0) = ${state.torque.toFixed(4)}. Positive = forward, negative = reverse.`;
-  const directionTooltipText = `Forward permit when torque > 0, i.e., |\u03B8 \u2212 MTA| < 90\u00B0. Current angle ${currentAngle}\u00B0 vs MTA ${mta}\u00B0, difference = ${diff}\u00B0`;
+  const diff = normalizeAngle(state.theta - mta);
+  const sideShift = direction === 'Reverse' ? ' (base angle rotated by 180° for a reverse-side fault)' : '';
+  const torqueTooltipText = `Torque = cos(\u03B8 \u2212 MTA) = cos(${state.theta.toFixed(0)}\u00B0 \u2212 ${mta}\u00B0) = cos(${diff}\u00B0) = ${state.torque.toFixed(4)}. Positive torque permits forward operation.${sideShift}`;
+  const directionTooltipText = `Direction is decided only from torque sign. Forward permit when torque > 0, i.e., |\u03B8 \u2212 MTA| < 90\u00B0. Effective current angle ${state.theta.toFixed(0)}\u00B0 vs MTA ${mta}\u00B0, difference = ${diff}\u00B0.`;
   const ocComparison = state.overcurrent ? `${currentMag} A \u2265 ${pickup} A, picked up` : `${currentMag} A < ${pickup} A, below threshold`;
   const ocTooltipText = `Overcurrent supervision: I = ${currentMag} A vs Ipickup = ${pickup} A. ${ocComparison}`;
   const tripDirStr = state.directional ? 'forward' : 'reverse';
   const tripOCStr = state.overcurrent ? 'above pickup' : 'below pickup';
-  const tripTooltipText = `Trip requires BOTH: direction = forward AND I \u2265 Ipickup. Direction: ${tripDirStr}, OC: ${tripOCStr}`;
+  const tripTooltipText = `Trip requires BOTH: torque-derived forward permission AND I \u2265 Ipickup. Direction result: ${tripDirStr}, OC: ${tripOCStr}.`;
   const mtaTooltipText = 'Maximum Torque Angle: angle of maximum relay sensitivity. Set near expected fault current angle for the line.';
-  const viAngleTooltipText = 'Angle between voltage reference and fault current phasor. Determined by system impedance and fault type.';
-  const pTooltipText = `Active power P = V \u00D7 I \u00D7 cos(\u03B8) = ${voltage} kV \u00D7 ${currentMag} A \u00D7 cos(${currentAngle}\u00B0) = ${P.toFixed(1)} kW`;
-  const qTooltipText = `Reactive power Q = V \u00D7 I \u00D7 sin(\u03B8) = ${voltage} kV \u00D7 ${currentMag} A \u00D7 sin(${currentAngle}\u00B0) = ${Q.toFixed(1)} kVAR`;
+  const viAngleTooltipText = 'Base V-I angle referenced to the selected fault side. Reverse-side faults rotate the measured current phasor by 180 degrees before the directional decision.';
+  const pTooltipText = `Active power P = V \u00D7 I \u00D7 cos(\u03B8eff) = ${voltage} kV \u00D7 ${currentMag} A \u00D7 cos(${state.theta.toFixed(0)}\u00B0) = ${P.toFixed(1)} kW`;
+  const qTooltipText = `Reactive power Q = V \u00D7 I \u00D7 sin(\u03B8eff) = ${voltage} kV \u00D7 ${currentMag} A \u00D7 sin(${state.theta.toFixed(0)}\u00B0) = ${Q.toFixed(1)} kVAR`;
 
   return (
     <div style={S.container}>
@@ -742,7 +751,7 @@ export default function DirectionalRelay() {
           <div style={S.controls}>
             <div style={S.cg}><span style={S.label}>Topology</span><select style={S.sel} value={topology} onChange={(e) => setTopology(e.target.value)}><option>Ring Main</option><option>Parallel Feeders</option><option>Multi-infeed Bus</option></select></div>
             <div style={S.cg}><span style={S.label}>Fault type</span><select style={S.sel} value={faultType} onChange={(e) => setFaultType(e.target.value)}><option>Phase Fault</option><option>Earth Fault</option></select></div>
-            <div style={S.cg}><span style={S.label}>Fault direction</span><select style={S.sel} value={direction} onChange={(e) => setDirection(e.target.value)}><option>Forward</option><option>Reverse</option></select></div>
+            <div style={S.cg}><span style={S.label}>Fault side</span><select style={S.sel} value={direction} onChange={(e) => setDirection(e.target.value)}><option>Forward</option><option>Reverse</option></select></div>
             <div style={{ ...S.cg, position: 'relative' }} onMouseEnter={ttMTA.onMouseEnter} onMouseLeave={ttMTA.onMouseLeave}>
               <span style={S.label}>MTA</span>
               <input style={S.slider} type="range" min="-30" max="120" step="1" value={mta} onChange={(e) => setMta(Number(e.target.value))} />

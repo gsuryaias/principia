@@ -570,7 +570,10 @@ function Theory() {
       <p style={S.p}>
         For a sinusoidal flux Φ(t) = Φmax × sin(2πft), differentiation gives:
       </p>
-      <div style={S.eq}>e(t) = −N × dΦ/dt = −N × 2πf × Φmax × cos(2πft) = Emax × cos(2πft)</div>
+      <div style={S.eq}>e(t) = −N × dΦ/dt = −N × 2πf × Φmax × cos(2πft)</div>
+      <p style={S.p}>
+        We define <strong>Emax</strong> as the magnitude <em>−NωΦmax</em>, so the induced voltage is a cosine of that signed amplitude. The negative sign here is the counter‑EMF that Lenz’s law predicts.
+      </p>
       <p style={S.p}>
         The EMF <em>leads</em> the flux by 90° (cosine vs. sine), a key phasor relationship.
       </p>
@@ -646,7 +649,7 @@ function Theory() {
       </p>
       <ul style={S.ul}>
         <li style={S.li}><strong style={{ color: '#a78bfa' }}>Φ</strong> — Core flux (reference phasor)</li>
-        <li style={S.li}><strong style={{ color: '#818cf8' }}>E₁</strong> — Primary induced EMF, <em>lags</em> V₁ by 180°, leads Φ by 90°</li>
+        <li style={S.li}><strong style={{ color: '#818cf8' }}>E₁</strong> — Primary counter EMF. In the winding equation V₁ ≈ −E₁, so it appears 180° out of phase with the applied voltage while still leading the flux by 90°.</li>
         <li style={S.li}><strong style={{ color: '#f59e0b' }}>E₂</strong> — Secondary induced EMF, in phase with E₁ (same flux linkage)</li>
         <li style={S.li}><strong style={{ color: '#71717a' }}>I₀</strong> — Small no-load magnetising current, in phase with Φ (neglected in ideal model)</li>
       </ul>

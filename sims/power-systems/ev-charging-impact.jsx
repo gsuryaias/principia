@@ -561,6 +561,11 @@ function Theory() {
         voltage to remain within ±6% of nominal (226–254 V at 240 V nominal). EV charging load can easily push
         end-of-feeder voltages below 216 V (10% drop), causing appliance malfunction and motor overheating.
       </p>
+      <p style={S.p}>
+        The voltage profile here is drawn on a representative 240 V phase-to-neutral branch of the LT network,
+        with household demands treated as coincident downstream loads. It is intended to illustrate feeder-drop
+        trends, not to replace a full 3-phase unbalance or load-flow study.
+      </p>
 
       <h2 style={S.h2}>7. References</h2>
       <ul style={S.ul}>

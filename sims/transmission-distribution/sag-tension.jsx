@@ -413,7 +413,9 @@ function Theory() {
         where T₀ = 32°C is the typical erection temperature in India. This corresponds to
         approximately <strong style={{ color: '#e4e4e7' }}>1.5% increase in sag per 10°C rise</strong>.
         The maximum sag (and minimum ground clearance) occurs at the maximum operating temperature —
-        typically 75°C for ACSR conductors.
+        typically 75°C for ACSR conductors. Over the displayed temperature range, this linearized
+        relation is intended for visualization only; exact design work should use the conductor
+        state-change equation.
       </p>
 
       <h3 style={S.h3}>Wind and Ice Loading</h3>

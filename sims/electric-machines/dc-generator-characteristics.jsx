@@ -35,6 +35,7 @@ const S = {
 };
 
 const E_MAX = 280, IF_KNEE = 1.2, IF_RES = 0.03, N_RATED = 1500, RA = 0.5, RSE = 0.2;
+const FIELD_V = 220;
 
 function occ(If, N) {
   return (N / N_RATED) * E_MAX * (If + IF_RES) / (If + IF_RES + IF_KNEE);
@@ -45,6 +46,7 @@ function occSlope0(N) {
 }
 
 function findNoLoad(N, Rf) {
+  if (Rf >= occSlope0(N)) return 0;
   let Vt = occ(0, N);
   for (let i = 0; i < 60; i++) {
     const nxt = occ(Vt / Rf, N);
@@ -55,8 +57,7 @@ function findNoLoad(N, Rf) {
 }
 
 function extSepExcited(N, Rf, maxIL) {
-  const V_nl = findNoLoad(N, Rf);
-  const If_sep = V_nl / Rf;
+  const If_sep = FIELD_V / Math.max(Rf, 0.1);
   const Eg = occ(If_sep, N);
   const pts = [];
   for (let IL = 0; IL <= maxIL; IL += 0.5) {
@@ -645,8 +646,8 @@ function Theory() {
         It differs significantly between generator types:
       </p>
       <ul style={S.ul}>
-        <li style={S.li}><strong style={{ color: '#22c55e' }}>Separately Excited:</strong> V<sub>t</sub> = E<sub>g</sub> {'\u2212'} I<sub>a</sub>{'\u00B7'}R<sub>a</sub>. Since flux is maintained by an independent source, the drop is only due to armature resistance {'\u2014'} a gentle linear decline.</li>
-        <li style={S.li}><strong style={{ color: '#3b82f6' }}>Shunt:</strong> V<sub>t</sub> = E<sub>g</sub>(I<sub>f</sub>) {'\u2212'} I<sub>a</sub>{'\u00B7'}R<sub>a</sub> where I<sub>f</sub> = V<sub>t</sub>/R<sub>f</sub>. As V<sub>t</sub> drops under load, field current also drops, reducing E<sub>g</sub> further {'\u2014'} a steeper decline than separately excited. Eventually voltage collapses (the generator "dumps" its voltage).</li>
+        <li style={S.li}><strong style={{ color: '#22c55e' }}>Separately Excited:</strong> Field current is fixed by an independent source, so the flux is constant and V<sub>t</sub> falls linearly with armature voltage drop (V<sub>t</sub> = E<sub>g</sub> − I<sub>a</sub>R<sub>a</sub>).</li>
+        <li style={S.li}><strong style={{ color: '#3b82f6' }}>Shunt:</strong> V<sub>t</sub> = E<sub>g</sub>(I<sub>f</sub>) {'\u2212'} I<sub>a</sub>{'\u00B7'}R<sub>a</sub> where I<sub>f</sub> = V<sub>t</sub>/R<sub>f</sub>. As V<sub>t</sub> drops under load, field current also drops, reducing E<sub>g</sub> further {'\u2014'} a steeper decline than the separately excited case.</li>
         <li style={S.li}><strong style={{ color: '#f59e0b' }}>Series:</strong> I<sub>f</sub> = I<sub>a</sub> = I<sub>L</sub> (field in series). At light load, E<sub>g</sub> is small (little flux) and so is V<sub>t</sub>. As load increases, flux builds and V<sub>t</sub> rises {'\u2014'} until the I<sub>a</sub>R<sub>a</sub> drop overcomes the EMF increase. The curve rises then falls.</li>
       </ul>
 
@@ -711,22 +712,23 @@ export default function DCGeneratorCharacteristics() {
   useEffect(() => { setBuildEgs([]); }, [N, Rf]);
 
   useEffect(() => {
-    if (buildEgs.length === 0) return;
+    if (!canBuild || buildEgs.length === 0) return;
     const last = buildEgs[buildEgs.length - 1];
     const newIf = last / Rf;
     const newEg = occ(newIf, N);
     if (Math.abs(newEg - last) < 0.3 || buildEgs.length > 25) return;
 
-    const timer = setTimeout(() => {
-      setBuildEgs(prev => [...prev, newEg]);
-    }, 400);
+        const timer = setTimeout(() => {
+          setBuildEgs(prev => [...prev, newEg]);
+        }, 400);
     return () => clearTimeout(timer);
-  }, [buildEgs, Rf, N]);
+  }, [buildEgs, Rf, N, canBuild]);
 
   const startBuildUp = useCallback(() => {
+    if (!canBuild) return;
     const Eg0 = occ(0, N);
     setBuildEgs([Eg0]);
-  }, [N]);
+  }, [N, canBuild]);
 
   return (
     <div style={S.container}>

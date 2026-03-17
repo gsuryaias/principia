@@ -33,14 +33,35 @@ const CURVES = {
 const RELAY_COLORS = { R1: '#22c55e', R2: '#3b82f6', R3: '#f59e0b' };
 const RELAY_BORDERS = { R1: '#22c55e', R2: '#6366f1', R3: '#f59e0b' };
 const CT_RATIOS = [100, 200, 300, 400, 500, 600, 800, 1000];
+const RELAY_ORDER = ['R1', 'R2', 'R3'];
 
 const FAULT_LOCATIONS = [
-  { label: 'At R1', factors: [1.0, 0.7, 0.45] },
-  { label: 'Between R1 & R2', factors: [0.85, 0.8, 0.5] },
-  { label: 'At R2', factors: [0.7, 1.0, 0.6] },
-  { label: 'Between R2 & R3', factors: [0.55, 0.85, 0.85] },
-  { label: 'At R3', factors: [0.4, 0.65, 1.0] },
+  { label: 'At R1', seenBy: ['R1', 'R2', 'R3'], note: 'All three relays are upstream of the fault and see the same feeder current.' },
+  { label: 'Between R1 & R2', seenBy: ['R2', 'R3'], note: 'R1 is downstream of the fault, so only R2 and R3 carry fault current.' },
+  { label: 'At R2', seenBy: ['R2', 'R3'], note: 'R2 and R3 see the fault. R1 is downstream of the faulted point.' },
+  { label: 'Between R2 & R3', seenBy: ['R3'], note: 'Only the source-side relay R3 is in the fault-current path.' },
+  { label: 'At R3', seenBy: ['R3'], note: 'The source-side relay sees the fault at its own location.' },
 ];
+
+function primaryPickup(settings) {
+  return settings.pickupSec * settings.ctRatio;
+}
+
+function relayFaultCurrent(name, faultCurrentKA, location) {
+  return location.seenBy.includes(name) ? faultCurrentKA * 1000 : 0;
+}
+
+function buildRelayData(relaySettings, faultCurrentKA, location) {
+  return RELAY_ORDER.map((name) => {
+    const settings = relaySettings[name];
+    const Ifault = relayFaultCurrent(name, faultCurrentKA, location);
+    const pickupPrimary = primaryPickup(settings);
+    const psm = pickupPrimary > 0 ? Ifault / pickupPrimary : 0;
+    const opTime = CURVES[settings.curve].fn(psm, settings.tms);
+    const i2t = opTime < Infinity && opTime > 0 ? Ifault * Ifault * opTime : Infinity;
+    return { name, Ifault, psm, opTime, i2t, settings, pickupPrimary };
+  });
+}
 
 /* ─── Tooltip Component ─── */
 function Tooltip({ children, text, style: extraStyle }) {
@@ -123,12 +144,12 @@ function RelayPanel({ relay, color, borderColor, settings, onChange }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <span style={{ fontSize: 11, color: '#a1a1aa', width: 60, flexShrink: 0 }}>Pickup</span>
         <input
-          type="range" min="100" max="2000" step="50" value={settings.pickup}
-          onChange={(e) => onChange({ ...settings, pickup: Number(e.target.value) })}
+          type="range" min="0.5" max="2.5" step="0.05" value={settings.pickupSec}
+          onChange={(e) => onChange({ ...settings, pickupSec: Number(e.target.value) })}
           style={{ flex: 1, accentColor: color }}
         />
         <span style={{ fontSize: 11, color: '#71717a', fontFamily: 'monospace', minWidth: 50, textAlign: 'right' }}>
-          {settings.pickup} A
+          {settings.pickupSec.toFixed(2)} A
         </span>
       </div>
 
@@ -147,6 +168,10 @@ function RelayPanel({ relay, color, borderColor, settings, onChange }) {
             <option key={r} value={r}>{r}/1 A</option>
           ))}
         </select>
+      </div>
+
+      <div style={{ marginTop: 8, fontSize: 10, color: '#71717a', fontFamily: 'monospace' }}>
+        Primary pickup = {primaryPickup(settings).toFixed(0)} A
       </div>
     </div>
   );
@@ -170,17 +195,7 @@ function TCCPlot({ relaySettings, faultCurrent, faultLocation, cti }) {
 
   // Compute fault current at each relay
   const loc = FAULT_LOCATIONS[faultLocation];
-  const faultAtRelay = ['R1', 'R2', 'R3'].map((_, i) => faultCurrent * 1000 * loc.factors[i]);
-
-  // Compute PSM and operating time for each relay
-  const relayData = ['R1', 'R2', 'R3'].map((name, i) => {
-    const s = relaySettings[name];
-    const Ifault = faultAtRelay[i];
-    const psm = Ifault / s.pickup;
-    const opTime = CURVES[s.curve].fn(psm, s.tms);
-    const i2t = opTime < Infinity ? Ifault * Ifault * opTime : Infinity;
-    return { name, Ifault, psm, opTime, i2t, settings: s };
-  });
+  const relayData = buildRelayData(relaySettings, faultCurrent, loc);
 
   // X-axis grid: current values
   const xGridValues = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000];
@@ -193,13 +208,13 @@ function TCCPlot({ relaySettings, faultCurrent, faultLocation, cti }) {
   const curvePaths = ['R1', 'R2', 'R3'].map((name, ri) => {
     const s = relaySettings[name];
     const curveFn = CURVES[s.curve].fn;
-    const startCurrent = s.pickup;
+    const startCurrent = primaryPickup(s);
     const points = [];
 
     // Sample from just above pickup to 50000A
     for (let logI = Math.log10(startCurrent * 1.02); logI <= xMax; logI += 0.015) {
       const I = Math.pow(10, logI);
-      const psm = I / s.pickup;
+      const psm = I / startCurrent;
       const time = curveFn(psm, s.tms);
       if (time > 0 && time < Infinity && time >= 0.01 && time <= 100) {
         points.push({ x: xS(I), y: yS(time) });
@@ -272,11 +287,11 @@ function TCCPlot({ relaySettings, faultCurrent, faultLocation, cti }) {
               stroke={RELAY_COLORS[rd.name]} strokeDasharray="6 4" strokeWidth="1" opacity="0.4" />
           );
         })}
-        {/* Main fault current line (source level) */}
+        {/* Main fault current line (fault level at selected location) */}
         <line x1={xS(faultCurrent * 1000)} y1={MT} x2={xS(faultCurrent * 1000)} y2={MT + PH}
           stroke="#ef4444" strokeDasharray="6 4" strokeWidth="1.5" opacity="0.6" />
         <text x={xS(faultCurrent * 1000)} y={MT + 12} textAnchor="middle" fill="#ef4444" fontSize="9" fontWeight="600">
-          Fault: {faultCurrent} kA
+          Selected fault: {faultCurrent} kA
         </text>
 
         {/* Operating points */}
@@ -586,7 +601,9 @@ function Theory() {
       <p style={S.p}>
         In a radial feeder, current flows in one direction from source to load. Multiple relays are placed along the
         feeder, each protecting a section. The relay closest to the fault (downstream) should have the shortest
-        operating time. Each upstream relay is graded above the next with a fixed CTI.
+        operating time. Each upstream relay is graded above the next with a fixed CTI. For any given fault, every
+        source-side relay in the fault path sees essentially the same fault current, while relays downstream of the
+        fault see no source current at all.
       </p>
       <RadialFeederSVG />
 
@@ -683,9 +700,9 @@ export default function OvercurrentCoordination() {
   const [faultLocation, setFaultLocation] = useState(0);
 
   const [relaySettings, setRelaySettings] = useState({
-    R1: { curve: 'SI', tms: 0.100, pickup: 400, ctRatio: 400 },
-    R2: { curve: 'SI', tms: 0.250, pickup: 600, ctRatio: 600 },
-    R3: { curve: 'SI', tms: 0.450, pickup: 800, ctRatio: 800 },
+    R1: { curve: 'SI', tms: 0.100, pickupSec: 0.8, ctRatio: 400 },
+    R2: { curve: 'SI', tms: 0.250, pickupSec: 0.9, ctRatio: 600 },
+    R3: { curve: 'SI', tms: 0.450, pickupSec: 1.0, ctRatio: 800 },
   });
 
   const updateRelay = useCallback((name, settings) => {
@@ -694,16 +711,7 @@ export default function OvercurrentCoordination() {
 
   // Compute relay data for results
   const loc = FAULT_LOCATIONS[faultLocation];
-  const relayData = useMemo(() => {
-    return ['R1', 'R2', 'R3'].map((name, i) => {
-      const s = relaySettings[name];
-      const Ifault = faultCurrent * 1000 * loc.factors[i];
-      const psm = Ifault / s.pickup;
-      const opTime = CURVES[s.curve].fn(psm, s.tms);
-      const i2t = opTime < Infinity && opTime > 0 ? Ifault * Ifault * opTime : Infinity;
-      return { name, Ifault, psm, opTime, i2t, settings: s };
-    });
-  }, [relaySettings, faultCurrent, faultLocation, loc]);
+  const relayData = useMemo(() => buildRelayData(relaySettings, faultCurrent, loc), [relaySettings, faultCurrent, loc]);
 
   const sortedRelays = useMemo(() => {
     return [...relayData].filter(r => r.opTime > 0 && r.opTime < Infinity && r.psm > 1)
@@ -741,7 +749,7 @@ export default function OvercurrentCoordination() {
               padding: '10px 14px', background: '#18181b', border: '1px solid #27272a', borderRadius: 10
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 600 }}>Source Fault Level</span>
+                <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 600 }}>Fault Level</span>
                 <input type="range" min="5" max="50" step="0.5" value={faultCurrent}
                   onChange={(e) => setFaultCurrent(Number(e.target.value))}
                   style={{ width: 140, accentColor: '#ef4444' }} />
@@ -795,8 +803,8 @@ export default function OvercurrentCoordination() {
           }}>
             {relayData.map((rd) => {
               const curveDef = CURVES[rd.settings.curve];
-              const formulaText = `${curveDef.formula}\nTMS = ${rd.settings.tms.toFixed(3)}, PSM = ${rd.Ifault.toFixed(0)} / ${rd.settings.pickup} = ${rd.psm.toFixed(2)}\nt = ${rd.opTime < Infinity ? rd.opTime.toFixed(3) + ' s' : '∞ (PSM ≤ 1)'}`;
-              const pickupText = `Ipickup = ${rd.settings.pickup} A (CT ratio: ${rd.settings.ctRatio}/1)\nPSM at fault = Ifault / Ipickup = ${rd.Ifault.toFixed(0)} / ${rd.settings.pickup} = ${rd.psm.toFixed(2)}`;
+              const formulaText = `${curveDef.formula}\nTMS = ${rd.settings.tms.toFixed(3)}, PSM = ${rd.Ifault.toFixed(0)} / ${rd.pickupPrimary.toFixed(0)} = ${rd.psm.toFixed(2)}\nt = ${rd.opTime < Infinity ? rd.opTime.toFixed(3) + ' s' : '∞ (PSM ≤ 1)'}`;
+              const pickupText = `Relay pickup = ${rd.settings.pickupSec.toFixed(2)} A secondary\nCT ratio = ${rd.settings.ctRatio}/1\nPrimary pickup = ${rd.pickupPrimary.toFixed(0)} A\nPSM = ${rd.Ifault.toFixed(0)} / ${rd.pickupPrimary.toFixed(0)} = ${rd.psm.toFixed(2)}`;
 
               return (
                 <div key={rd.name} style={{
@@ -810,6 +818,8 @@ export default function OvercurrentCoordination() {
                     <Tooltip text={pickupText}>
                       <span>PSM: <span style={{ color: '#e4e4e7', fontWeight: 600 }}>{rd.psm > 0 ? rd.psm.toFixed(2) : 'N/A'}</span></span>
                     </Tooltip>
+                    <br />
+                    <span>Seen fault: <span style={{ color: '#e4e4e7' }}>{rd.Ifault > 0 ? (rd.Ifault / 1000).toFixed(1) + ' kA' : 'none'}</span></span>
                     <br />
                     <Tooltip text={formulaText}>
                       <span>Time: <span style={{ color: RELAY_COLORS[rd.name], fontWeight: 600 }}>
@@ -848,19 +858,19 @@ export default function OvercurrentCoordination() {
               </span>
             </div>
             <div style={{ flex: '1 1 220px', padding: '12px 14px', background: '#18181b', border: '1px solid #27272a', borderRadius: 10 }}>
-              <span style={{ display: 'block', fontSize: 10, color: '#818cf8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Fault current at relays</span>
+              <span style={{ display: 'block', fontSize: 10, color: '#818cf8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Fault current path</span>
               <span style={{ display: 'block', fontSize: 12, color: '#c4b5fd', fontFamily: 'monospace', lineHeight: 1.7 }}>
-                R1: {(faultCurrent * loc.factors[0]).toFixed(1)} kA ({(loc.factors[0] * 100).toFixed(0)}%){'\n'}
-                R2: {(faultCurrent * loc.factors[1]).toFixed(1)} kA ({(loc.factors[1] * 100).toFixed(0)}%){'\n'}
-                R3: {(faultCurrent * loc.factors[2]).toFixed(1)} kA ({(loc.factors[2] * 100).toFixed(0)}%)
+                R1: {loc.seenBy.includes('R1') ? `${faultCurrent.toFixed(1)} kA` : '0 kA'}{'\n'}
+                R2: {loc.seenBy.includes('R2') ? `${faultCurrent.toFixed(1)} kA` : '0 kA'}{'\n'}
+                R3: {loc.seenBy.includes('R3') ? `${faultCurrent.toFixed(1)} kA` : '0 kA'}
               </span>
             </div>
             <div style={{ flex: '1 1 220px', padding: '12px 14px', background: '#18181b', border: '1px solid #27272a', borderRadius: 10 }}>
               <span style={{ display: 'block', fontSize: 10, color: '#818cf8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Engineering note</span>
               <span style={{ display: 'block', fontSize: 12, color: '#c4b5fd', fontFamily: 'monospace', lineHeight: 1.7 }}>
-                Hover any result value for{'\n'}
-                formula details. CTI arrows{'\n'}
-                on the TCC show time margins.
+                Fault current is common to all{'\n'}
+                source-side relays for a given fault.{'\n'}
+                {loc.note}
               </span>
             </div>
           </div>

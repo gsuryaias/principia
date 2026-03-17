@@ -30,13 +30,44 @@ const S = {
   td: { padding: '10px 12px', borderBottom: '1px solid #27272a', color: '#a1a1aa' },
 };
 
-/* ── zone classification (unchanged physics) ── */
-function checkZone(p, q) {
-  if (p < 0) return 'Reverse Power';
-  if (q < -90) return 'Loss of Field';
-  if (Math.abs(q) > 120) return 'Field / end-region heating';
-  if (p > 105) return 'Prime Mover Limit';
-  return 'Normal';
+function inCircle(point, center, radius) {
+  return (point.r - center.r) ** 2 + (point.x - center.x) ** 2 <= radius ** 2;
+}
+
+/* Approximate capability / protection checks derived from P-Q at rated terminal voltage. */
+function evaluateOperatingPoint(p, q) {
+  const ppu = p / 100;
+  const qpu = q / 100;
+  const statorLoading = Math.hypot(ppu, qpu);
+  const denom = Math.max(ppu * ppu + qpu * qpu, 0.0001);
+  const impedance = {
+    r: ppu / denom,
+    x: qpu / denom,
+  };
+  const reversePower = p <= -2;
+  const lofZone1 = inCircle(impedance, { r: 0.35, x: -0.55 }, 0.32);
+  const lofZone2 = inCircle(impedance, { r: 0.55, x: -0.9 }, 0.58);
+  const lossOfField = q < -20 && (lofZone1 || lofZone2);
+  const fieldOrEndRegionHeating =
+    q > 105 ||
+    statorLoading > 1.08 ||
+    (q < -85 && !lossOfField);
+  const primeMoverLimit = p > 105;
+
+  let zone = 'Normal';
+  if (reversePower) zone = 'Reverse Power';
+  else if (lossOfField) zone = 'Loss of Field';
+  else if (fieldOrEndRegionHeating) zone = 'Field / end-region heating';
+  else if (primeMoverLimit) zone = 'Prime Mover Limit';
+
+  return {
+    zone,
+    impedance,
+    statorLoading,
+    reversePower,
+    lossOfField,
+    lofZone: lofZone1 ? 'Zone 1' : lofZone2 ? 'Zone 2' : 'Outside',
+  };
 }
 
 const ZONE_COLORS = {
@@ -500,7 +531,7 @@ function Theory() {
       </p>
       <CapabilityCurveDiagram />
       <ul style={S.ul}>
-        <li style={S.li}><strong style={{ color: '#22c55e' }}>Stator current limit:</strong> Maximum stator current sets the upper MVA boundary. Controlled by stator overcurrent (50/51).</li>
+        <li style={S.li}><strong style={{ color: '#22c55e' }}>Stator current limit:</strong> Maximum stator current sets the upper MVA boundary. It is normally supervised by stator current and thermal functions, not by a simple feeder-style 50/51 alone.</li>
         <li style={S.li}><strong style={{ color: '#60a5fa' }}>Rotor field limit:</strong> Maximum field current sets the over-excited reactive power boundary.</li>
         <li style={S.li}><strong style={{ color: '#a78bfa' }}>End-region heating:</strong> Under-excited operation causes flux to enter end regions of stator core.</li>
         <li style={S.li}><strong style={{ color: '#f59e0b' }}>Stability / LOF:</strong> Loss of field (40) relay detects when excitation is lost and machine approaches instability.</li>
@@ -606,7 +637,8 @@ export default function GeneratorProtection() {
   const [p, setP] = useState(80);
   const [q, setQ] = useState(20);
   const pulse = useAnimationPulse(800);
-  const zone = useMemo(() => checkZone(p, q), [p, q]);
+  const operatingPoint = useMemo(() => evaluateOperatingPoint(p, q), [p, q]);
+  const zone = operatingPoint.zone;
 
   return (
     <div style={S.container}>
@@ -650,6 +682,20 @@ export default function GeneratorProtection() {
             <div style={S.ri}>
               <span style={S.rl}>Power factor</span>
               <span style={S.rv}>{(Math.abs(p) / Math.max(Math.sqrt(p * p + q * q), 0.1)).toFixed(3)} {q >= 0 ? 'lag' : 'lead'}</span>
+            </div>
+            <div style={S.ri}>
+              <span style={S.rl}>R-X proxy</span>
+              <span style={S.rv}>{operatingPoint.impedance.r.toFixed(2)} + j{operatingPoint.impedance.x.toFixed(2)} pu</span>
+            </div>
+            <div style={S.ri}>
+              <span style={S.rl}>40 status</span>
+              <span style={{ ...S.rv, color: operatingPoint.lossOfField ? '#f59e0b' : '#71717a' }}>
+                {operatingPoint.lossOfField ? operatingPoint.lofZone : 'Outside 40 circle'}
+              </span>
+            </div>
+            <div style={S.ri}>
+              <span style={S.rl}>Stator loading</span>
+              <span style={S.rv}>{(operatingPoint.statorLoading * 100).toFixed(0)}%</span>
             </div>
           </div>
         </div>

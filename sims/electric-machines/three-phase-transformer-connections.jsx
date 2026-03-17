@@ -37,8 +37,8 @@ const sqrt3 = Math.sqrt(3);
 const GROUP_COLORS = { 0: '#22c55e', 11: '#f59e0b', 6: '#ef4444', 1: '#60a5fa' };
 
 const CONNECTIONS = [
-  { id: 'Yd11', label: 'Yd11', primary: 'Y', secondary: 'D', groupNum: 11, phaseShift: -30, desc: 'Star-Delta (-30 deg)', groupColor: '#f59e0b' },
-  { id: 'Dy11', label: 'Dy11', primary: 'D', secondary: 'Y', groupNum: 11, phaseShift: -30, desc: 'Delta-Star (-30 deg)', groupColor: '#f59e0b' },
+  { id: 'Yd11', label: 'Yd11', primary: 'Y', secondary: 'D', groupNum: 11, phaseShift: -30, desc: 'Star-Delta (-30 deg HV reference)', groupColor: '#f59e0b' },
+  { id: 'Dy11', label: 'Dy11', primary: 'D', secondary: 'Y', groupNum: 11, phaseShift: 30, desc: 'Delta-Star (+30 deg HV reference)', groupColor: '#f59e0b' },
   { id: 'Dd0',  label: 'Dd0',  primary: 'D', secondary: 'D', groupNum: 0,  phaseShift: 0,   desc: 'Delta-Delta (0 deg)', groupColor: '#22c55e' },
   { id: 'Yy0',  label: 'Yy0',  primary: 'Y', secondary: 'Y', groupNum: 0,  phaseShift: 0,   desc: 'Star-Star (0 deg)', groupColor: '#22c55e' },
 ];
@@ -571,7 +571,7 @@ function TheoryView() {
         {/* Phasor comparison */}
         <rect x={430} y={290} width={270} height={50} rx={5} fill="rgba(99,102,241,0.05)" stroke="#27272a" strokeWidth={0.5} />
         <text x={565} y={308} textAnchor="middle" fill="#818cf8" fontSize={9} fontWeight={600}>Phase Shift Rule</text>
-        <text x={565} y={322} textAnchor="middle" fill="#a1a1aa" fontSize={8}>Yd11 (-30 deg) + Dy11 (-30 deg) at two stages = net -60 deg</text>
+        <text x={565} y={322} textAnchor="middle" fill="#a1a1aa" fontSize={8}>Yd11 (-30°) and Dy11 (+30°) can be paired so their shifts cancel; aligning identical numbers keeps zero net distortion.</text>
         <text x={565} y={334} textAnchor="middle" fill="#a1a1aa" fontSize={8}>Yd11 + Yd11 in parallel = OK (same group)</text>
       </svg>
 
@@ -602,10 +602,13 @@ function TheoryView() {
       </table>
 
       <div style={S.h3}>Voltage Transformation Equations</div>
-      <span style={S.eq}>Yd: V2L = V1L × (N2/N1) / 1  [delta sec: V2L = V2φ]</span>
-      <span style={S.eq}>Dy: V2L = V1L × (N2/N1) × √3  [star sec: V2L = √3 × V2φ]</span>
-      <span style={S.eq}>Dd: V2L = V1L × (N2/N1)  [both delta: V2L = V2φ]</span>
+      <span style={S.eq}>Yd: V2L = V1L × (N2/N1)  [delta secondary: VL = Vφ]</span>
+      <span style={S.eq}>Dy: V2L = V1L × (N2/N1) × √3  [star secondary: VL = √3·Vφ]</span>
+      <span style={S.eq}>Dd: V2L = V1L × (N2/N1)  [both delta: VL = Vφ]</span>
       <span style={S.eq}>Yy: V2L = V1L × (N2/N1)  [both star: √3 factors cancel]</span>
+      <p style={S.p}>
+        The slider controls the per-phase turns ratio. Whenever a star winding participates, convert the per-phase voltage to line voltage with a √3 factor to match the nameplate line-to-line ratio.
+      </p>
 
       <div style={S.h3}>IEC 60076 Vector Group Notation</div>
       <p style={S.p}>
@@ -630,7 +633,7 @@ function TheoryView() {
             ['0', '0°', 'Yy0, Dd0, Dz0', 'Distribution, industrial'],
             ['6', '±180°', 'Yy6, Dd6', 'Special applications'],
             ['1', '+30°', 'Yd1, Dy1', 'Phase advancing'],
-            ['11', '−30°', 'Yd11, Dy11, Yz11', 'Transmission, earthing transformer'],
+            ['11', '±30° (orientation)', 'Yd11, Dy11, Yz11', 'Transmission, earthing transformer'],
           ].map(([g, s, t, u]) => (
             <tr key={g}>
               <td style={{ ...S.td, color: '#818cf8', fontFamily: 'monospace', fontWeight: 700 }}>{g}</td>
@@ -644,10 +647,10 @@ function TheoryView() {
 
       <div style={S.h3}>Why Yd11 / Dy11 is Most Common for Transmission</div>
       <ul style={S.ul}>
-        <li style={S.li}>The delta winding provides a circulating path for 3rd harmonic (triplen) magnetising currents, preventing their appearance in the line voltage — essential for clean sinusoidal output.</li>
-        <li style={S.li}>The star winding provides a solidly grounded neutral, enabling single-line-to-ground fault current return — mandatory for EHV systems above 66 kV per IEC 60076-3.</li>
-        <li style={S.li}>The −30° phase shift of Yd11 is offset by the +30° shift of Dy11; pairing them in a substation (primary = Yd11, secondary = Dy11) restores zero net phase shift to the consumer.</li>
-        <li style={S.li}>Two Yd11 transformers can be operated in parallel without any phase-shift correction because they share the same group number.</li>
+        <li style={S.li}>The delta winding circulates 3rd-harmonic magnetising current so the output voltage remains sinusoidal even under saturation.</li>
+        <li style={S.li}>The star winding gives a convenient neutral that engineers often earth for protection at EHV substations, though the grounding method always follows the wider system design.</li>
+        <li style={S.li}>Yd11’s −30° shift can be canceled by Dy11’s +30° when the two stages are paired correctly, keeping the consumer-side phasors aligned.</li>
+        <li style={S.li}>Two Yd11 transformers share the same vector group and phase shift, so they can parallel without any correction.</li>
       </ul>
 
       <div style={S.h3}>Parallel Operation Requirements</div>

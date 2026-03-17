@@ -68,12 +68,55 @@ const S = {
 };
 
 const Z_POS_KM = { r: 0.03, x: 0.32 };
+const Z_ZERO_KM = { r: 0.1, x: 0.95 };
 const ZONES = [
-  { key: 'z3', label: 'Zone 3', color: '#f59e0b' },
-  { key: 'z2', label: 'Zone 2', color: '#22c55e' },
   { key: 'z1', label: 'Zone 1', color: '#3b82f6' },
+  { key: 'z2', label: 'Zone 2', color: '#22c55e' },
+  { key: 'z3', label: 'Zone 3', color: '#f59e0b' },
 ];
-const FAULT_MULT = { '3-Phase': 0.5, LL: 0.8, LG: 1.0, LLG: 0.9 };
+const SOURCE_XR = 10;
+const FAULT_MODELS = {
+  '3-Phase': {
+    loop: '3-phase loop',
+    equation: 'Zapp = Va / Ia',
+    apparentPosFactor: 1.0,
+    apparentZeroFactor: 0,
+    currentPosFactor: 1.0,
+    currentZeroFactor: 0,
+    apparentArcFactor: 0.25,
+    currentArcFactor: 0.2,
+  },
+  LL: {
+    loop: 'Phase-phase loop',
+    equation: 'Zapp = Vab / Iab',
+    apparentPosFactor: 1.03,
+    apparentZeroFactor: 0,
+    currentPosFactor: 1.03,
+    currentZeroFactor: 0,
+    apparentArcFactor: 0.55,
+    currentArcFactor: 0.45,
+  },
+  LG: {
+    loop: 'Compensated ground loop',
+    equation: 'Zapp = Va / (Ia + k0 I0)',
+    apparentPosFactor: 1.0,
+    apparentZeroFactor: 0.03,
+    currentPosFactor: 1.0,
+    currentZeroFactor: 0.7,
+    apparentArcFactor: 1.0,
+    currentArcFactor: 1.0,
+  },
+  LLG: {
+    loop: 'Grounded phase-phase loop',
+    equation: 'Zapp ~ Vab / (Iab + k0 I0)',
+    apparentPosFactor: 0.98,
+    apparentZeroFactor: 0.018,
+    currentPosFactor: 1.0,
+    currentZeroFactor: 0.35,
+    apparentArcFactor: 0.8,
+    currentArcFactor: 0.75,
+  },
+};
 
 /* Reusable Tooltip component */
 function Tooltip({ visible, children }) {
@@ -113,6 +156,19 @@ function LabelWithTip({ text, tip }) {
 
 function mag(v) {
   return Math.hypot(v.r, v.x);
+}
+
+function addZ(...parts) {
+  return parts.reduce((acc, part) => ({ r: acc.r + part.r, x: acc.x + part.x }), { r: 0, x: 0 });
+}
+
+function scaleZ(z, factor) {
+  return { r: z.r * factor, x: z.x * factor };
+}
+
+function splitImpedance(magnitude, xr = SOURCE_XR) {
+  const r = magnitude / Math.hypot(1, xr);
+  return { r, x: r * xr };
 }
 
 function rotate(point, angle) {
@@ -178,14 +234,25 @@ function computeState({ lineKm, nextKm, faultPct, faultType, arcR, characteristi
   const lineAngle = Math.atan2(lineZ.x, lineZ.r);
   const k = faultPct / 100;
   const baseFault = { r: lineZ.r * k, x: lineZ.x * k };
-  const shiftedFault = { r: baseFault.r + arcR * FAULT_MULT[faultType], x: baseFault.x };
+  const baseZero = { r: Z_ZERO_KM.r * lineKm * k, x: Z_ZERO_KM.x * lineKm * k };
+  const model = FAULT_MODELS[faultType];
+  const shiftedFault = addZ(
+    scaleZ(baseFault, model.apparentPosFactor),
+    scaleZ(baseZero, model.apparentZeroFactor),
+    { r: arcR * model.apparentArcFactor, x: 0 }
+  );
   const result = zoneResult({ characteristic, shiftedFault, reaches, lineAngle, swing });
 
-  // Fault current: Ifault = Vsource / |Zs + Zfault|
+  // Fault current: Ifault = Vsource / |Zs + Zfault-loop|
   const Vsource = 220000 / Math.sqrt(3); // Phase voltage for 220 kV system
-  const ZtotalR = sourceZ + shiftedFault.r;
-  const ZtotalX = shiftedFault.x;
-  const ZtotalMag = Math.hypot(ZtotalR, ZtotalX);
+  const sourceVector = splitImpedance(sourceZ);
+  const faultPath = addZ(
+    scaleZ(baseFault, model.currentPosFactor),
+    scaleZ(baseZero, model.currentZeroFactor),
+    { r: arcR * model.currentArcFactor, x: 0 }
+  );
+  const totalPath = addZ(sourceVector, faultPath);
+  const ZtotalMag = mag(totalPath);
   const faultCurrent = ZtotalMag > 0 ? Vsource / ZtotalMag : 0;
 
   // SIR
@@ -204,8 +271,13 @@ function computeState({ lineKm, nextKm, faultPct, faultType, arcR, characteristi
     reach1Pct: mag(reaches.z1) / mag(lineZ) * 100,
     zFaultPct: faultPct,
     sourceZ,
+    sourceVector,
     sir,
     faultCurrent,
+    faultPath,
+    baseZero,
+    loopLabel: model.loop,
+    loopEquation: model.equation,
   };
 }
 
@@ -561,7 +633,7 @@ function Diagram({ state, characteristic, swing, showLoadEncroachment, loadMVA }
 
       {/* Status and info panels */}
       <g transform="translate(640,44)">
-        <rect width="300" height="156" rx="12" fill="#101015" stroke="#27272a" />
+        <rect width="300" height="176" rx="12" fill="#101015" stroke="#27272a" />
         {/* Status badge */}
         <rect x="200" y="8" width="86" height="22" rx="6" fill={`${statusColor}22`} stroke={statusColor} strokeWidth="1.5" />
         <text x="243" y="23" textAnchor="middle" fill={statusColor} fontSize="10" fontWeight="700">{statusText}</text>
@@ -571,12 +643,13 @@ function Diagram({ state, characteristic, swing, showLoadEncroachment, loadMVA }
           </circle>
         )}
         <text x="16" y="24" fill="#a1a1aa" fontSize="11">Characteristic = {characteristic}</text>
-        <text x="16" y="44" fill="#a1a1aa" fontSize="11">Apparent Z = {state.shiftedFault.r.toFixed(2)} + j{state.shiftedFault.x.toFixed(2)} ohm</text>
-        <text x="16" y="64" fill="#a1a1aa" fontSize="11">Fault location = {state.zFaultPct.toFixed(0)}% of protected line</text>
-        <text x="16" y="84" fill="#a1a1aa" fontSize="11">Arc resistance shift = {(state.shiftedFault.r - state.baseFault.r).toFixed(2)} ohm</text>
-        <text x="16" y="104" fill={resultColor} fontSize="11" fontWeight="700">{state.result.decision}</text>
-        <text x="16" y="124" fill="#c4b5fd" fontSize="11">Operating time = {state.result.time}</text>
-        <text x="16" y="144" fill="#71717a" fontSize="10">|Zapp| = {state.apparentMag.toFixed(2)} ohm</text>
+        <text x="16" y="44" fill="#a1a1aa" fontSize="11">Fault loop = {state.loopLabel}</text>
+        <text x="16" y="64" fill="#a1a1aa" fontSize="11">Apparent Z = {state.shiftedFault.r.toFixed(2)} + j{state.shiftedFault.x.toFixed(2)} ohm</text>
+        <text x="16" y="84" fill="#a1a1aa" fontSize="11">Fault location = {state.zFaultPct.toFixed(0)}% of protected line</text>
+        <text x="16" y="104" fill="#a1a1aa" fontSize="11">Arc resistance shift = {(state.shiftedFault.r - state.baseFault.r).toFixed(2)} ohm</text>
+        <text x="16" y="124" fill={resultColor} fontSize="11" fontWeight="700">{state.result.decision}</text>
+        <text x="16" y="144" fill="#c4b5fd" fontSize="11">Operating time = {state.result.time}</text>
+        <text x="16" y="164" fill="#71717a" fontSize="10">|Zapp| = {state.apparentMag.toFixed(2)} ohm</text>
       </g>
 
       <g transform="translate(620,240)">
@@ -585,7 +658,7 @@ function Diagram({ state, characteristic, swing, showLoadEncroachment, loadMVA }
         <text x="16" y="44" fill="#3b82f6" fontSize="11">Zone 1 = 0.8 x Zline, no intentional delay</text>
         <text x="16" y="64" fill="#22c55e" fontSize="11">Zone 2 = Zline + 0.5 x Znext, delayed local backup</text>
         <text x="16" y="84" fill="#f59e0b" fontSize="11">Zone 3 = Zline + Znext, remote backup / BF backup</text>
-        <text x="16" y="104" fill="#a1a1aa" fontSize="11">Arc resistance mainly shifts the point to the right on R-axis.</text>
+        <text x="16" y="104" fill="#a1a1aa" fontSize="11">Ground loops use residual compensation; source Z is split into R + jX.</text>
       </g>
 
       {/* Load encroachment warning */}
@@ -609,7 +682,8 @@ function Theory() {
         section. This makes distance protection much less dependent on source fault level than simple overcurrent protection.
       </p>
       <span style={S.eq}>Zapp = V / I</span>
-      <span style={S.eq}>Zfault approx. zline per km x distance to fault + Rfault</span>
+      <span style={S.eq}>Phase loop: Zph = Vab / Iab, Ground loop: Zg = Va / (Ia + k0 I0)</span>
+      <span style={S.eq}>Zfault approx. zline per km x distance + arc resistance + small residual-compensation error</span>
 
       <h3 style={S.h3}>Characteristic shapes on the R-X plane</h3>
       <p style={S.p}>
@@ -747,12 +821,12 @@ export default function DistanceRelay() {
 
           <div style={S.controls}>
             <div style={S.cg}><LabelWithTip text="Characteristic" tip="Relay operating boundary shape on R-X plane. Mho is circular/directional, Quad gives independent R/X control." /><select style={S.sel} value={characteristic} onChange={(e) => setCharacteristic(e.target.value)}><option>Mho</option><option>Quadrilateral</option><option>Lens</option></select></div>
-            <div style={S.cg}><LabelWithTip text="Fault type" tip="Type of short circuit. LG = line-ground, LL = line-line, LLG = double line-ground, 3-Phase = balanced fault. Affects arc resistance factor." /><select style={S.sel} value={faultType} onChange={(e) => setFaultType(e.target.value)}><option>LG</option><option>LL</option><option>LLG</option><option>3-Phase</option></select></div>
+            <div style={S.cg}><LabelWithTip text="Fault type" tip="Type of short circuit. Phase faults use phase loops, while LG / LLG faults use a compensated ground loop so fault type changes more than just the arc-resistance term." /><select style={S.sel} value={faultType} onChange={(e) => setFaultType(e.target.value)}><option>LG</option><option>LL</option><option>LLG</option><option>3-Phase</option></select></div>
             <div style={S.cg}><LabelWithTip text="Protected line" tip="Length of the protected transmission line in km. Impedance = z1 per km x length." /><input style={S.slider} type="range" min="20" max="400" step="5" value={lineKm} onChange={(e) => setLineKm(Number(e.target.value))} /><span style={S.val}>{lineKm} km</span></div>
             <div style={S.cg}><LabelWithTip text="Next line" tip="Length of the adjacent line section beyond the remote bus. Used for Zone 2 and Zone 3 reach calculations." /><input style={S.slider} type="range" min="10" max="300" step="5" value={nextKm} onChange={(e) => setNextKm(Number(e.target.value))} /><span style={S.val}>{nextKm} km</span></div>
             <div style={S.cg}><LabelWithTip text="Fault location" tip="Percentage of protected line to fault. >100% means the fault is beyond the remote bus, into the next line section." /><input style={S.slider} type="range" min="5" max="200" step="1" value={faultPct} onChange={(e) => setFaultPct(Number(e.target.value))} /><span style={S.val}>{faultPct}%</span></div>
             <div style={S.cg}><LabelWithTip text="Arc resistance" tip="Additional resistance from the fault arc. Shifts the apparent impedance point to the right on the R-X plane." /><input style={S.slider} type="range" min="0" max="40" step="0.5" value={arcR} onChange={(e) => setArcR(Number(e.target.value))} /><span style={S.val}>{arcR.toFixed(1)} ohm</span></div>
-            <div style={S.cg}><LabelWithTip text="Source impedance Zs" tip="Source impedance behind the relay. Affects SIR (Source Impedance Ratio) and fault current magnitude." /><input style={S.slider} type="range" min="0.5" max="15" step="0.5" value={sourceZ} onChange={(e) => setSourceZ(Number(e.target.value))} /><span style={S.val}>{sourceZ.toFixed(1)} ohm</span></div>
+            <div style={S.cg}><LabelWithTip text="Source impedance |Zs|" tip="Magnitude of source impedance behind the relay. The simulation resolves it into R + jX using a typical source X/R ratio so current duty is not treated as pure resistance." /><input style={S.slider} type="range" min="0.5" max="15" step="0.5" value={sourceZ} onChange={(e) => setSourceZ(Number(e.target.value))} /><span style={S.val}>{sourceZ.toFixed(1)} ohm</span></div>
             <div style={S.cg}><LabelWithTip text="Power swing" tip="Simulates a stable power swing trajectory that drifts through the relay zones slowly." /><input type="checkbox" checked={swing} onChange={(e) => setSwing(e.target.checked)} /></div>
             <div style={{ ...S.cg, borderLeft: '1px solid #27272a', paddingLeft: 14 }}>
               <label style={S.checkbox}>
@@ -766,10 +840,11 @@ export default function DistanceRelay() {
           </div>
 
           <div style={S.results}>
-            <WithTooltip tip={`Zapp = Zline x (fault%/100) + Rarc = ${state.shiftedFault.r.toFixed(2)} + j${state.shiftedFault.x.toFixed(2)} ohm, |Z| = ${state.apparentMag.toFixed(2)} ohm`}>
+            <WithTooltip tip={`${state.loopEquation}\nApparent fault loop = ${state.shiftedFault.r.toFixed(2)} + j${state.shiftedFault.x.toFixed(2)} ohm, |Z| = ${state.apparentMag.toFixed(2)} ohm`}>
               <span style={S.rl}>Apparent Z</span>
               <span style={S.rv}>{state.shiftedFault.r.toFixed(2)} + j{state.shiftedFault.x.toFixed(2)}</span>
             </WithTooltip>
+            <div style={S.ri}><span style={S.rl}>Fault loop</span><span style={S.rv}>{state.loopLabel}</span></div>
             <div style={S.ri}><span style={S.rl}>Zone reached</span><span style={S.rv}>{state.result.zone}</span></div>
             <div style={S.ri}><span style={S.rl}>Trip decision</span><span style={{ ...S.rv, color: state.result.decision === 'Trip' ? '#ef4444' : '#71717a' }}>{state.result.decision}</span></div>
             <div style={S.ri}><span style={S.rl}>Operating time</span><span style={S.rv}>{state.result.time}</span></div>
@@ -789,11 +864,11 @@ export default function DistanceRelay() {
               <span style={S.rl}>Zone 3 reach</span>
               <span style={{ ...S.rv, color: '#f59e0b' }}>{mag(state.reaches.z3).toFixed(2)} ohm</span>
             </WithTooltip>
-            <WithTooltip tip={`SIR = Zs / |Zline| = ${sourceZ.toFixed(1)} / ${mag(state.lineZ).toFixed(2)} = ${state.sir.toFixed(3)}. High SIR (>4) indicates weak source relative to line.`}>
+            <WithTooltip tip={`SIR = |Zs| / |Zline| = ${sourceZ.toFixed(1)} / ${mag(state.lineZ).toFixed(2)} = ${state.sir.toFixed(3)}. High SIR (>4) indicates a weak source relative to line impedance.`}>
               <span style={S.rl}>SIR</span>
               <span style={S.rv}>{state.sir.toFixed(3)}</span>
             </WithTooltip>
-            <WithTooltip tip={`Ifault = Vsource / |Zs + Zfault| = ${(220000 / Math.sqrt(3)).toFixed(0)} V / |${sourceZ.toFixed(1)} + (${state.shiftedFault.r.toFixed(2)} + j${state.shiftedFault.x.toFixed(2)})| = ${state.faultCurrent.toFixed(0)} A`}>
+            <WithTooltip tip={`Source Z = ${state.sourceVector.r.toFixed(2)} + j${state.sourceVector.x.toFixed(2)} ohm (from |Zs| = ${sourceZ.toFixed(1)} ohm, X/R = ${SOURCE_XR})\nCurrent loop Z = ${state.faultPath.r.toFixed(2)} + j${state.faultPath.x.toFixed(2)} ohm\nIfault = Vphase / |Zsource + Zloop| = ${(220000 / Math.sqrt(3)).toFixed(0)} V / ${mag(addZ(state.sourceVector, state.faultPath)).toFixed(2)} = ${state.faultCurrent.toFixed(0)} A`}>
               <span style={S.rl}>Fault current</span>
               <span style={{ ...S.rv, color: '#22d3ee' }}>{state.faultCurrent.toFixed(0)} A</span>
             </WithTooltip>
@@ -805,8 +880,8 @@ export default function DistanceRelay() {
           </div>
 
           <div style={S.strip}>
-            <div style={S.box}><span style={S.boxT}>Zone logic</span><span style={S.boxV}>Z1 underreaches for security.{'\n'}Z2 overlaps the remote bus.{'\n'}Z3 provides delayed backup.</span></div>
-            <div style={S.box}><span style={S.boxT}>Arc resistance</span><span style={S.boxV}>Higher arc resistance shifts the point right.{'\n'}Mho is more sensitive to underreach.{'\n'}Quadrilateral gives wider resistive coverage.</span></div>
+            <div style={S.box}><span style={S.boxT}>Zone logic</span><span style={S.boxV}>Zones are checked Z1, then Z2, then Z3.{'\n'}Z1 underreaches for security.{'\n'}Delayed zones provide overlap and backup.</span></div>
+            <div style={S.box}><span style={S.boxT}>Fault loop model</span><span style={S.boxV}>Phase faults use phase loops.{'\n'}LG / LLG faults use a compensated ground loop.{'\n'}Residual zero-sequence error is kept small but non-zero.</span></div>
             <div style={S.box}><span style={S.boxT}>Swing blocking</span><span style={S.boxV}>A true fault lands abruptly in the trip region.{'\n'}A stable swing drifts through the plane slowly and should be blocked.</span></div>
           </div>
         </div>

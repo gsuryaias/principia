@@ -54,13 +54,18 @@ function ntCurve(V, Ke, Ra, maxT) {
 
 function opPoint(V, Ke, Ra, TL) {
   if (Ke < 0.01) return null;
-  const Ia = TL / Ke;
+  const IaDesired = TL / Ke;
+  const Ia = Math.min(IaDesired, IA_RATED);
+  const Tactual = Ke * Ia;
   const Eb = V - Ia * Ra;
-  if (Eb <= 0) return { t: TL, n: 0, ia: V / Ra, stalled: true };
+  if (Eb <= 0) {
+    const Is = V / Ra;
+    return { t: Tactual, n: 0, ia: Is, stalled: true, limited: IaDesired > IA_RATED };
+  }
   const N = (Eb / Ke) * 30 / Math.PI;
   const P = Eb * Ia;
   const eta = V * Ia > 0 ? (P / (V * Ia)) * 100 : 0;
-  return { t: TL, n: N, ia: Ia, P, eta, stalled: false };
+  return { t: Tactual, n: N, ia: Ia, P, eta, stalled: false, limited: IaDesired > IA_RATED };
 }
 
 const METHODS = [
@@ -545,7 +550,9 @@ function Theory() {
         Since N {'\u221D'} 1/{'\u03C6'} (at constant V), the speed increases beyond base speed. However, the
         maximum torque decreases because T<sub>max</sub> = K{'\u03C6'} {'\u00D7'} I<sub>a,rated</sub>, and {'\u03C6'} is reduced. The power
         P = V {'\u00D7'} I<sub>a</sub> remains approximately constant (since both V and I<sub>a,max</sub> are unchanged).
-        This is the <strong style={{ color: '#f59e0b' }}>constant power region</strong>.
+        This is the <strong style={{ color: '#f59e0b' }}>constant power region</strong>, which in reality ends
+        once I<sub>a</sub> hits its rated limit – the drive can no longer increase torque or power even though
+        the speed command keeps rising.
       </p>
       <div style={S.eqBox}>
         <span style={{ ...S.ctxT, color: '#818cf8', fontSize: 12 }}>Field Weakening Equations</span>
@@ -697,8 +704,9 @@ export default function DCMotorSpeedControl() {
           <div style={S.results}>
             <div style={S.ri}><span style={S.rl}>Speed</span><span style={{ ...S.rv, color: op?.stalled ? '#ef4444' : '#22c55e' }}>{op ? op.n.toFixed(0) : '\u2014'} rpm</span></div>
             <div style={S.ri}><span style={S.rl}>I<sub>a</sub></span><span style={{ ...S.rv, color: op && op.ia > IA_RATED ? '#ef4444' : '#93c5fd' }}>{op ? op.ia.toFixed(1) : '\u2014'} A</span></div>
-            <div style={S.ri}><span style={S.rl}>Torque</span><span style={{ ...S.rv, color: '#c4b5fd' }}>{TL} Nm</span></div>
+            <div style={S.ri}><span style={S.rl}>Torque</span><span style={{ ...S.rv, color: '#c4b5fd' }}>{op ? op.t.toFixed(1) : TL} Nm</span></div>
             <div style={S.ri}><span style={S.rl}>Power</span><span style={{ ...S.rv, color: '#f59e0b' }}>{op ? op.P.toFixed(0) : '\u2014'} W</span></div>
+            <div style={S.ri}><span style={S.rl}>Current limit</span><span style={{ ...S.rv, color: op && op.limited ? '#ef4444' : '#22c55e' }}>{op ? (op.limited ? 'Active' : 'None') : '\u2014'}</span></div>
             <div style={S.ri}><span style={S.rl}>Efficiency</span><span style={{ ...S.rv, color: op && op.eta > 80 ? '#22c55e' : '#ef4444' }}>{op ? op.eta.toFixed(1) : '\u2014'}%</span></div>
             {method === 'ar' && op && <div style={S.ri}><span style={S.rl}>R<sub>a</sub> Loss</span><span style={{ ...S.rv, color: '#ef4444' }}>{(op.ia * op.ia * (activeRa - RA_BASE)).toFixed(0)} W</span></div>}
           </div>

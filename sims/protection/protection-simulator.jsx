@@ -62,6 +62,16 @@ const ZONE_COLORS = {
   fd2: '#fb923c',
 };
 
+const TOPOLOGY = {
+  gen: ['gt'],
+  gt: ['gen', 'bus220'],
+  bus220: ['gt', 'line'],
+  line: ['bus220', 'tf'],
+  tf: ['line', 'fd1', 'fd2'],
+  fd1: ['tf'],
+  fd2: ['tf'],
+};
+
 function useAnimationPulse(interval = 800) {
   const [pulse, setPulse] = useState(false);
   useEffect(() => {
@@ -71,12 +81,37 @@ function useAnimationPulse(interval = 800) {
   return pulse;
 }
 
-function protectionSequence(locationId, faultType, zf, breakerFail) {
+function computeSupplied(openBreakers) {
+  if (openBreakers.has('gen')) {
+    return NODES.map((node) => ({ id: node.id, live: false }));
+  }
+
+  const visited = new Set(['gen']);
+  const queue = ['gen'];
+  while (queue.length > 0) {
+    const node = queue.shift();
+    if (!node || openBreakers.has(node)) continue;
+    for (const next of TOPOLOGY[node] || []) {
+      if (openBreakers.has(next) || visited.has(next)) continue;
+      visited.add(next);
+      queue.push(next);
+    }
+  }
+
+  return NODES.map((node) => ({ id: node.id, live: visited.has(node.id) && !openBreakers.has(node.id) }));
+}
+
+function protectionSequence(locationId, faultType, zf, breakerFail, lineFaultPct) {
   const loc = NODES.find((n) => n.id === locationId);
-  const baseFault = (locationId === 'line' ? 18 : locationId.startsWith('fd') ? 8.5 : locationId === 'bus220' ? 22 : 14) * FAULTS[faultType].mult;
+  const lineDistanceFactor = Math.max(0.55, 1.12 - lineFaultPct / 150);
+  const baseFault = (locationId === 'line' ? 18 * lineDistanceFactor : locationId.startsWith('fd') ? 8.5 : locationId === 'bus220' ? 22 : 14) * FAULTS[faultType].mult;
   const current = Math.max(baseFault - zf * 0.6, 1.4);
   const relayStates = NODES.map((node) => ({ id: node.id, status: 'monitor', time: null }));
   const events = [];
+  let lineZone = null;
+  let tripCommandTime = 0;
+  let breakerOpenTime = 0;
+  let postIsolationTime = 0;
 
   const mark = (id, status, time) => {
     const r = relayStates.find((x) => x.id === id);
@@ -86,27 +121,50 @@ function protectionSequence(locationId, faultType, zf, breakerFail) {
   events.push(`t=0 ms: ${FAULTS[faultType].label} fault at ${loc.name}; estimated fault current ${current.toFixed(1)} kA`);
 
   if (locationId === 'line') {
-    mark('line', 'pickup', 8);
-    events.push('t=8 ms: Distance relay at line terminal picks up');
-    events.push('t=28 ms: Zone 1 trip issued for 80% protected line reach');
-    mark('line', 'trip', 28);
+    const zoneCfg = lineFaultPct <= 80
+      ? { zone: 'Zone 1', pickup: 8, trip: 28, reach: 'inside 80% primary reach' }
+      : lineFaultPct <= 120
+        ? { zone: 'Zone 2', pickup: 10, trip: 360, reach: 'beyond Zone 1, inside Zone 2 overreach' }
+        : { zone: 'Zone 3', pickup: 12, trip: 900, reach: 'remote backup reach (Zone 3)' };
+    lineZone = zoneCfg.zone;
+    tripCommandTime = zoneCfg.trip;
+    breakerOpenTime = tripCommandTime + 35;
+    postIsolationTime = breakerOpenTime + 30;
+    mark('line', 'pickup', zoneCfg.pickup);
+    events.push(`t=${zoneCfg.pickup} ms: Distance relay at line terminal picks up (${zoneCfg.zone})`);
+    events.push(`t=${zoneCfg.trip} ms: ${zoneCfg.zone} trip issued (${zoneCfg.reach})`);
+    mark('line', 'trip', zoneCfg.trip);
   } else if (locationId === 'bus220') {
+    tripCommandTime = 20;
+    breakerOpenTime = 60;
+    postIsolationTime = 95;
     mark('bus220', 'pickup', 6);
     events.push('t=6 ms: Bus differential measures non-zero spill current');
-    events.push('t=20 ms: Busbar differential trip to all associated breakers');
+    events.push('t=20 ms: Busbar differential issues trip to all associated breakers (B2, B3, B4)');
+    mark('gt', 'trip', 20);
     mark('bus220', 'trip', 20);
+    mark('line', 'trip', 20);
   } else if (locationId === 'gt' || locationId === 'tf') {
+    tripCommandTime = 35;
+    breakerOpenTime = 72;
+    postIsolationTime = 102;
     mark(locationId, 'pickup', 10);
     events.push(`t=10 ms: ${loc.relay} detects internal imbalance`);
     if (locationId === 'gt') events.push('t=18 ms: Buchholz gas surge element also detects severe oil disturbance');
     events.push('t=35 ms: Differential trip to HV and LV breakers');
     mark(locationId, 'trip', 35);
   } else if (locationId === 'gen') {
+    tripCommandTime = 25;
+    breakerOpenTime = 58;
+    postIsolationTime = 88;
     mark('gen', 'pickup', 8);
     events.push('t=8 ms: Generator differential operates inside stator zone');
     events.push('t=25 ms: Generator lockout and field suppression initiated');
     mark('gen', 'trip', 25);
   } else {
+    tripCommandTime = 140;
+    breakerOpenTime = 180;
+    postIsolationTime = 240;
     mark(locationId, 'pickup', 15);
     mark('tf', 'pickup', 90);
     events.push(`t=15 ms: Directional overcurrent on ${loc.short} picks up in forward direction`);
@@ -115,35 +173,54 @@ function protectionSequence(locationId, faultType, zf, breakerFail) {
     if (!breakerFail) events.push('t=240 ms: Upstream transformer OC remains in pickup but resets after feeder isolation');
   }
 
+  let failedBreakerId = null;
+
   if (breakerFail) {
-    events.push(`t=230 ms: Breaker ${loc.breaker} fails to clear after trip command`);
-    if (locationId === 'line' || locationId.startsWith('fd')) {
-      mark('tf', 'pickup', 260);
-      events.push('t=260 ms: Backup overcurrent at upstream transformer starts timing');
-      events.push('t=520 ms: Backup breaker trip command isolates broader section');
-      mark('tf', 'trip', 520);
+    const failDetectTime = tripCommandTime + 90;
+    events.push(`t=${failDetectTime} ms: Breaker ${loc.breaker} fails to clear after trip command`);
+    failedBreakerId = locationId;
+    if (locationId === 'line') {
+      const bfStart = failDetectTime + 25;
+      const bfTrip = bfStart + 80;
+      mark('bus220', 'pickup', bfStart);
+      mark('tf', 'pickup', bfStart);
+      events.push(`t=${bfStart} ms: Breaker-failure logic starts at both line ends`);
+      events.push(`t=${bfTrip} ms: Adjacent breakers B3 and B5 trip to isolate the stuck line breaker`);
+      mark('bus220', 'trip', bfTrip);
+      mark('tf', 'trip', bfTrip);
+    } else if (locationId.startsWith('fd')) {
+      const backupStart = tripCommandTime + 120;
+      const backupTrip = tripCommandTime + 380;
+      mark('tf', 'pickup', backupStart);
+      events.push(`t=${backupStart} ms: Backup overcurrent at upstream transformer starts timing`);
+      events.push(`t=${backupTrip} ms: Backup breaker trip command isolates broader section`);
+      mark('tf', 'trip', backupTrip);
+    } else if (locationId === 'bus220') {
+      const remoteClearStart = tripCommandTime + 220;
+      const remoteClearTrip = tripCommandTime + 400;
+      mark('gt', 'pickup', remoteClearStart);
+      mark('line', 'pickup', remoteClearStart);
+      events.push(`t=${remoteClearStart} ms: Bus breaker-failure initiates remote end clearing`);
+      events.push(`t=${remoteClearTrip} ms: B2 and B4 open to de-energize the faulted bus section`);
+      mark('gt', 'trip', remoteClearTrip);
+      mark('line', 'trip', remoteClearTrip);
     } else {
-      mark('bus220', 'pickup', 240);
-      events.push('t=240 ms: Breaker failure logic at 220 kV bus issues breaker-fail trip');
-      events.push('t=420 ms: Adjacent breakers open to clear stuck fault');
-      mark('bus220', 'trip', 420);
+      const backupStart = tripCommandTime + 205;
+      const backupTrip = tripCommandTime + 385;
+      mark('bus220', 'pickup', backupStart);
+      events.push(`t=${backupStart} ms: Breaker failure logic at 220 kV bus issues breaker-fail trip`);
+      events.push(`t=${backupTrip} ms: Adjacent breakers open to clear stuck fault`);
+      mark('bus220', 'trip', backupTrip);
     }
   } else {
-    events.push(`t=${locationId.startsWith('fd') ? 180 : 65} ms: ${loc.breaker} contacts part, arc extinguishes at current zero`);
-    events.push('t=95 ms: Healthy sections remain energized; faulted zone isolated selectively');
+    events.push(`t=${breakerOpenTime} ms: ${loc.breaker} contacts part, arc extinguishes at current zero`);
+    events.push(`t=${postIsolationTime} ms: Healthy sections remain energized; faulted zone isolated selectively`);
   }
 
-  const supplied = NODES.map((node) => {
-    if (!breakerFail && node.id !== locationId && !(locationId.startsWith('fd') && node.id === 'tf')) return { id: node.id, live: true };
-    if (locationId === 'line') return { id: node.id, live: ['gen', 'gt', 'bus220'].includes(node.id) };
-    if (locationId === 'bus220') return { id: node.id, live: ['gen', 'gt'].includes(node.id) };
-    if (locationId === 'gen') return { id: node.id, live: false };
-    if (locationId === 'gt') return { id: node.id, live: node.id === 'gen' ? true : false };
-    if (locationId === 'tf') return { id: node.id, live: ['gen', 'gt', 'bus220', 'line'].includes(node.id) };
-    if (locationId === 'fd1') return { id: node.id, live: node.id !== 'fd1' };
-    if (locationId === 'fd2') return { id: node.id, live: node.id !== 'fd2' };
-    return { id: node.id, live: true };
-  });
+  const tripCommands = relayStates.filter((r) => r.status === 'trip').map((r) => r.id);
+  const openBreakers = new Set(tripCommands);
+  if (failedBreakerId) openBreakers.delete(failedBreakerId);
+  const supplied = computeSupplied(openBreakers);
 
   return {
     current,
@@ -151,6 +228,9 @@ function protectionSequence(locationId, faultType, zf, breakerFail) {
     relayStates,
     events,
     supplied,
+    openBreakers: [...openBreakers],
+    failedBreakerId,
+    lineZone,
     breakerText: breakerFail ? 'Breaker failure scenario active' : `${loc.breaker} opened successfully`,
   };
 }
@@ -284,6 +364,7 @@ function Diagram({ locationId, sim, pulse }) {
   const statusColor = (status) => status === 'trip' ? '#ef4444' : status === 'pickup' ? '#f59e0b' : '#22c55e';
   const liveMap = Object.fromEntries(sim.supplied.map((s) => [s.id, s.live]));
   const relayMap = Object.fromEntries(sim.relayStates.map((r) => [r.id, r]));
+  const openBreakerMap = Object.fromEntries(NODES.map((node) => [node.id, sim.openBreakers.includes(node.id)]));
   const fault = NODES.find((n) => n.id === locationId);
 
   return (
@@ -338,6 +419,8 @@ function Diagram({ locationId, sim, pulse }) {
       {NODES.map((node) => {
         const relay = relayMap[node.id];
         const color = statusColor(relay.status);
+        const breakerOpen = openBreakerMap[node.id];
+        const breakerStuck = sim.failedBreakerId === node.id && relay.status === 'trip';
         const live = liveMap[node.id];
         const zoneColor = ZONE_COLORS[node.id] || '#3f3f46';
         const isFaulted = node.id === locationId;
@@ -359,7 +442,12 @@ function Diagram({ locationId, sim, pulse }) {
             <text x={node.x} y={node.y - 6} textAnchor="middle" fill="#f4f4f5" fontSize="10" fontWeight="700">{node.breaker}</text>
 
             {/* breaker state indicator */}
-            {relay.status === 'trip' ? (
+            {breakerStuck ? (
+              <g>
+                <line x1={node.x - 10} y1={node.y + 10} x2={node.x + 10} y2={node.y + 10} stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
+                <text x={node.x} y={node.y + 24} textAnchor="middle" fill="#ef4444" fontSize="7" fontWeight="700">STUCK</text>
+              </g>
+            ) : breakerOpen ? (
               <g>
                 <line x1={node.x - 8} y1={node.y + 12} x2={node.x - 2} y2={node.y + 4} stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
                 <line x1={node.x + 8} y1={node.y + 12} x2={node.x + 2} y2={node.y + 4} stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
@@ -723,11 +811,15 @@ export default function ProtectionSimulator() {
   const [tab, setTab] = useState('simulate');
   const [location, setLocation] = useState('line');
   const [faultType, setFaultType] = useState('LG');
+  const [lineFaultPct, setLineFaultPct] = useState(60);
   const [zf, setZf] = useState(1);
   const [breakerFail, setBreakerFail] = useState(false);
   const pulse = useAnimationPulse(700);
 
-  const sim = useMemo(() => protectionSequence(location, faultType, zf, breakerFail), [location, faultType, zf, breakerFail]);
+  const sim = useMemo(
+    () => protectionSequence(location, faultType, zf, breakerFail, lineFaultPct),
+    [location, faultType, zf, breakerFail, lineFaultPct],
+  );
   const loc = NODES.find((n) => n.id === location);
 
   return (
@@ -764,6 +856,21 @@ export default function ProtectionSimulator() {
               <input style={S.slider} type="range" min="0" max="10" step="0.5" value={zf} onChange={(e) => setZf(Number(e.target.value))} />
               <span style={S.val}>{zf.toFixed(1)} ohm</span>
             </div>
+            {location === 'line' && (
+              <div style={S.cg}>
+                <span style={S.label}>Line fault position</span>
+                <input
+                  style={S.slider}
+                  type="range"
+                  min="20"
+                  max="160"
+                  step="5"
+                  value={lineFaultPct}
+                  onChange={(e) => setLineFaultPct(Number(e.target.value))}
+                />
+                <span style={S.val}>{lineFaultPct}%</span>
+              </div>
+            )}
             <div style={S.cg}>
               <span style={S.label}>Breaker fail</span>
               <input type="checkbox" checked={breakerFail} onChange={(e) => setBreakerFail(e.target.checked)} style={{ accentColor: '#6366f1' }} />
@@ -773,18 +880,18 @@ export default function ProtectionSimulator() {
           <div style={S.results}>
             <div style={S.ri}><span style={S.rl}>Faulted element</span><span style={{ ...S.rv, color: ZONE_COLORS[location] }}>{loc.short}</span></div>
             <div style={S.ri}><span style={S.rl}>Estimated fault current</span><span style={S.rv}>{sim.current.toFixed(1)} kA</span></div>
-            <div style={S.ri}><span style={S.rl}>Primary relay zone</span><span style={S.rv}>{loc.relay}</span></div>
+            <div style={S.ri}><span style={S.rl}>Primary relay zone</span><span style={S.rv}>{location === 'line' ? `${sim.lineZone || 'Zone 1'} distance` : loc.relay}</span></div>
             <div style={S.ri}><span style={S.rl}>Breaker result</span><span style={{ ...S.rv, color: breakerFail ? '#ef4444' : '#22c55e' }}>{sim.breakerText}</span></div>
           </div>
 
           <div style={S.strip}>
             <div style={S.box}>
               <span style={S.boxT}>Selected Protection Zone</span>
-              <span style={S.boxV}>{loc.zone}{'\n'}Primary relay: {loc.relay}{'\n'}Controlled breaker: {loc.breaker}</span>
+              <span style={S.boxV}>{loc.zone}{'\n'}Primary relay: {location === 'line' ? `${loc.relay} (${sim.lineZone || 'Zone 1'})` : loc.relay}{'\n'}Controlled breaker: {loc.breaker}</span>
             </div>
             <div style={S.box}>
               <span style={S.boxT}>Fault Interpretation</span>
-              <span style={S.boxV}>{FAULTS[faultType].label}{'\n'}Zf reduces fault current and may shift relay operating margins.{'\n'}Higher Zf generally slows or weakens pickup.</span>
+              <span style={S.boxV}>{FAULTS[faultType].label}{'\n'}Zf reduces fault current and may shift relay operating margins.{'\n'}{location === 'line' ? `Fault distance = ${lineFaultPct}% from local terminal (${sim.lineZone || 'Zone 1'})` : 'Higher Zf generally slows or weakens pickup.'}</span>
             </div>
             <div style={S.box}>
               <span style={S.boxT}>Backup Logic</span>

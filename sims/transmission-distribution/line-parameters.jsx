@@ -639,7 +639,8 @@ function Theory() {
           neglected (significant only above a few hundred Hz). Spacings D₁₂, D₂₃, D₃₁ refer to
           center-to-center distances between phase bundles, not between individual sub-conductors.
           The simplified bundle formula (GMR × d^(n−1))^(1/n) is used; for n = 4 this is an
-          approximation that omits the diagonal factor (√2 correction ≈ 1.09×).
+          approximation that omits the diagonal factor (√2 correction ≈ 1.09×), so detailed
+          quad-bundle designs should expect a few percent difference in inductance and SIL.
         </p>
       </div>
 

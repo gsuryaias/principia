@@ -201,9 +201,7 @@ function Diagram({ data }) {
         {/* Converted */}
         <line x1="370" y1="21" x2="540" y2="21" stroke="#22c55e" strokeWidth={Math.max(2, convFrac * 8)} markerEnd="url(#arrow-green)" />
         <text x="455" y="16" textAnchor="middle" fill="#22c55e" fontSize="9" fontWeight="600">Pconv = Pag(1-s)</text>
-        {/* Mechanical output */}
-        <line x1="550" y1="21" x2="640" y2="21" stroke="#22d3ee" strokeWidth={Math.max(1.5, convFrac * 6)} markerEnd="url(#arrow-pf)" />
-        <text x="595" y="16" textAnchor="middle" fill="#22d3ee" fontSize="9" fontWeight="600">Pmech - Prot</text>
+        <text x="595" y="16" textAnchor="middle" fill="#22d3ee" fontSize="9" fontWeight="600">Model stops at Pconv</text>
       </g>
 
       <line x1="94" y1="138" x2="312" y2="138" stroke="#818cf8" strokeWidth={Math.max(2, cAbs(data.I1) * 0.75)} markerEnd="url(#arrow-pf)" />

@@ -191,13 +191,14 @@ function SimDiagram({ faultType, severity, pulse, events }) {
   const faultColor = ZONE_COLORS[faultType] || '#ef4444';
   const isFaulted = faultType === 'Internal Winding Fault' || faultType === 'Oil/Gas Fault';
   const isDiffTrip = faultType === 'Internal Winding Fault';
+  const isTripFault = faultType === 'Internal Winding Fault' || faultType === 'Oil/Gas Fault';
   const isInrush = faultType === 'Inrush';
   const isOverload = faultType === 'Overload';
   const isExternal = faultType === 'External Fault';
 
   // breaker state based on fault type
-  const hvBreakerOpen = isDiffTrip;
-  const lvBreakerOpen = isDiffTrip;
+  const hvBreakerOpen = isTripFault;
+  const lvBreakerOpen = isTripFault;
 
   return (
     <svg viewBox="0 0 960 420" style={{ width: '100%', maxWidth: 960, height: 'auto' }}>

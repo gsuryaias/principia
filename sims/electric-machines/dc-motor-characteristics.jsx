@@ -589,10 +589,11 @@ function Theory() {
       </p>
       <p style={S.p}>
         <strong style={{ color: '#f59e0b' }}>Differential compound</strong> ({'\u2212'}): The series
-        field opposes the shunt field. As load increases, total flux <em>decreases</em>,
-        causing speed to <em>increase</em> {'\u2014'} this is inherently unstable. The motor can
-        enter a positive feedback loop: more load {'\u2192'} less flux {'\u2192'} higher speed {'\u2192'} more current
-        {'\u2192'} even less flux. This makes it dangerous and it is rarely used in practice.
+        field opposes the shunt field. As load increases, armature current must increase to produce
+        the demanded torque, but that same current weakens the total flux through the opposing series
+        winding. Weaker flux reduces the back-EMF, so even more current flows; the resulting speed
+        jump further increases current and flux drop in a runaway spiral. This makes the differential
+        compound inherently unstable, so it is rarely used.
       </p>
 
       {/* SVG: Speed-torque characteristic comparison */}

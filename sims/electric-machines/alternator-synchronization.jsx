@@ -31,6 +31,20 @@ const S = {
   ctxP: { fontSize: 14, lineHeight: 1.7, color: '#a1a1aa', margin: 0 },
 };
 
+function seqButton(active) {
+  return {
+    padding: '6px 12px',
+    borderRadius: 8,
+    border: active ? '1px solid #22c55e' : '1px solid #27272a',
+    background: active ? 'rgba(34,197,94,0.12)' : 'transparent',
+    color: active ? '#22c55e' : '#a1a1aa',
+    fontSize: 11,
+    fontWeight: 600,
+    cursor: 'pointer',
+    minWidth: 98,
+  };
+}
+
 // Sine wave SVG helper
 function SineWave({ phase, color, freq, label, voltPu }) {
   const W = 200, H = 70;
@@ -185,7 +199,6 @@ function LoadSharingChart({ setpoint }) {
   const cW = W - pad.l - pad.r, cH = H - pad.t - pad.b;
   const R = 0.04;
   const totalLoad = 1.0;
-  const f0_grid = 50.25;
   const fOp = 50.0;
   const P_in = Math.min(Math.max((setpoint - fOp) / R, 0), totalLoad);
   const P_grid = totalLoad - P_in;
@@ -194,7 +207,7 @@ function LoadSharingChart({ setpoint }) {
   const toY = (f) => pad.t + cH - ((f - 49.5) / 1.0) * cH;
 
   const inLine = [[0, setpoint], [1.0, setpoint - R * 1.0]];
-  const gridLine = [[0, f0_grid], [1.0, f0_grid - R * 1.0]];
+  const gridLine = [[0, fOp], [1.0, fOp]];
 
   const pathFor = (pts) => pts.map(([p, f], i) => `${i === 0 ? 'M' : 'L'} ${toX(p)} ${toY(f)}`).join(' ');
 
@@ -202,7 +215,7 @@ function LoadSharingChart({ setpoint }) {
     <svg width={W} height={H}>
       <line x1={pad.l} y1={pad.t} x2={pad.l} y2={pad.t + cH} stroke="#3f3f46" strokeWidth={1} />
       <line x1={pad.l} y1={pad.t + cH} x2={pad.l + cW} y2={pad.t + cH} stroke="#3f3f46" strokeWidth={1} />
-      {[49.5, 49.7, 50.0, 50.25, 50.5].map(f => (
+      {[49.5, 49.7, 50.0, 50.3, 50.5].map(f => (
         <g key={f}>
           <line x1={pad.l - 4} y1={toY(f)} x2={pad.l + cW} y2={toY(f)} stroke="#27272a" strokeWidth={1} />
           <text x={pad.l - 6} y={toY(f) + 4} textAnchor="end" fill="#52525b" fontSize={9} fontFamily="monospace">{f.toFixed(1)}</text>
@@ -429,6 +442,7 @@ export default function AlternatorSynchronization() {
   const [excitation, setExcitation] = useState(0.95);
   const [xs, setXs] = useState(0.3);
   const [govSetpoint, setGovSetpoint] = useState(50.05);
+  const [sequenceOk, setSequenceOk] = useState(true);
 
   // Animated state
   const [phaseAngle, setPhaseAngle] = useState(0);
@@ -459,7 +473,7 @@ export default function AlternatorSynchronization() {
   const freqNear = Math.abs(dF) < 0.5;
   const phaseOk = Math.abs(angleFrom12) < 15;
   const phaseNear = Math.abs(angleFrom12) < 30;
-  const allGood = voltOk && freqOk && phaseOk;
+  const allGood = voltOk && freqOk && phaseOk && sequenceOk;
 
   const syncRPM = dF * 60;
 
@@ -511,8 +525,12 @@ export default function AlternatorSynchronization() {
       setSyncFlash('good');
       setForcedIc(null);
     } else {
-      const deltaVpu = Math.abs(2 * excitation * Math.sin((phaseNorm) / 2));
-      const ic = (deltaVpu * GRID_VOLT) / (xs * 2);
+      const incomingRe = incomingVolt * Math.cos(phaseAngle);
+      const incomingIm = incomingVolt * Math.sin(phaseAngle);
+      const deltaRe = GRID_VOLT - incomingRe;
+      const deltaIm = -incomingIm;
+      const deltaMag = Math.hypot(deltaRe, deltaIm);
+      const ic = deltaMag / (xs * 2);
       setForcedIc(ic);
       setSyncFlash('bad');
     }
@@ -751,6 +769,25 @@ export default function AlternatorSynchronization() {
                 onChange={e => setXs(Number(e.target.value))} style={S.slider} />
               <span style={S.val}>{xs.toFixed(2)} pu</span>
             </div>
+            <div style={S.cg}>
+              <span style={S.label}>Phase sequence</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  style={seqButton(sequenceOk)}
+                  onClick={() => !synced && setSequenceOk(true)}
+                  disabled={synced}
+                >
+                  Correct
+                </button>
+                <button
+                  style={seqButton(!sequenceOk)}
+                  onClick={() => !synced && setSequenceOk(false)}
+                  disabled={synced}
+                >
+                  Reverse
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Live readouts */}
@@ -813,6 +850,7 @@ export default function AlternatorSynchronization() {
                 {!voltOk && `\u0394V too large (${dVpct.toFixed(1)}%). `}
                 {!freqOk && `\u0394f too large (${dF.toFixed(2)} Hz). `}
                 {!phaseOk && `Phase offset (${angleFrom12.toFixed(0)}\u00B0). `}
+                {!sequenceOk && 'Phase sequence mismatch. '}
                 {allGood && 'All conditions met.'}
               </span>
             </div>
@@ -823,6 +861,16 @@ export default function AlternatorSynchronization() {
                 2. Adjust excitation to match 11 kV{'\n'}
                 3. Wait for pointer near 12 o'clock{'\n'}
                 4. Close breaker in green zone
+                {'\n'}5. Verify phase sequence is correct
+              </span>
+            </div>
+            <div style={S.box}>
+              <span style={S.boxT}>Phase sequence</span>
+              <span style={{ ...S.boxV, color: sequenceOk ? '#22c55e' : '#f87171' }}>
+                {sequenceOk ? 'Correct (R-Y-B)' : 'Reverse (R-B-Y)'}
+              </span>
+              <span style={{ ...S.boxV, color: '#52525b' }}>
+                {sequenceOk ? 'Sequence matches bus.' : 'Reverse sequence creates large torque shock if closed.'}
               </span>
             </div>
           </div>
@@ -848,7 +896,7 @@ export default function AlternatorSynchronization() {
 
           <p style={S.p}><strong style={{ color: '#e4e4e7' }}>1. Voltage match:</strong> The RMS terminal voltage of the incoming machine must equal the bus voltage. A mismatch drives reactive circulating current:</p>
           <code style={S.eq}>I_reactive = \u0394V / (Xs1 + Xs2)  [pu or actual]</code>
-          <p style={S.p}>Overexcitation (V_in &gt; V_grid) forces reactive current into the bus (generator absorbs lagging VArs). Underexcitation (V_in &lt; V_grid) draws reactive current from the bus. Either condition causes heating, possible voltage collapse at weak buses, or relay tripping.</p>
+          <p style={S.p}>Overexcitation (V_in &gt; V_grid) pushes reactive current into the bus (generator supplies leading VArs). Underexcitation (V_in &lt; V_grid) draws reactive current from the bus (lagging VArs). Either imbalance causes heating, possible voltage collapse at weak buses, or relay tripping.</p>
 
           <p style={S.p}><strong style={{ color: '#e4e4e7' }}>2. Frequency match:</strong> The incoming machine must rotate at exactly synchronous speed. A residual frequency difference (\u0394f) causes the rotor to oscillate about the synchronous position after closing \u2014 a phenomenon called "hunting." Large \u0394f can cause loss of synchronism (pole slipping) immediately after the breaker closes.</p>
 
